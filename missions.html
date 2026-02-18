@@ -7,149 +7,38 @@
 
 <style>
 *{box-sizing:border-box}
-body{
-  margin:0;
-  background:#000;
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
-}
-
-/* ===== TOP BAR ===== */
-.topbar{
-  position:fixed;
-  top:0;left:0;right:0;
-  height:55px;
-  background:#050505;
-  display:flex;
-  align-items:center;
-  padding:0 12px;
-  z-index:1000;
-  border-bottom:1px solid #222;
-}
-.menu-btn{font-size:24px;cursor:pointer;margin-right:10px;}
-.logo{font-weight:bold;color:#f90;min-width:130px;}
-.xp-box{flex:1;padding:0 12px;}
-.xp-bar{
-  width:100%;height:8px;background:#222;
-  border-radius:10px;overflow:hidden;
-}
-.xp-fill{
-  height:100%;
-  background:linear-gradient(90deg,#f90,#ff0);
-}
-.stats{text-align:right;font-size:13px;min-width:90px;}
-
-/* ===== SIDE MENU ===== */
-.side-menu{
-  position:fixed;
-  top:55px;left:-240px;
-  width:240px;height:100%;
-  background:#0a0a0a;
-  transition:.3s;z-index:999;
-}
-.side-menu.open{left:0}
-.side-menu a{
-  display:block;padding:14px;
-  color:#fff;text-decoration:none;
-  border-bottom:1px solid #222;
-}
-.side-menu a:hover{background:#111}
-
-/* ===== OVERLAY ===== */
-#overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  z-index:998;
-}
-
-/* ===== CONTENT ===== */
-.content{padding:75px 15px 20px;}
-.card{
-  background:#0d0d0d;
-  padding:15px;border-radius:12px;
-  margin-bottom:15px;border:1px solid #222;
-}
-.mission{
-  border:1px solid #222;
-  border-radius:10px;
-  padding:12px;margin-bottom:12px;
-  background:#111;
-}
-.mission button{
-  width:100%;margin-top:10px;
-  padding:10px;background:#f90;
-  border:none;border-radius:8px;
-  font-weight:bold;cursor:pointer;
-}
-
-/* ===== MODAL ===== */
-#modalBg{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.75);
-  z-index:2000;
-  align-items:center;
-  justify-content:center;
-}
-.modal{
-  background:#111;border-radius:14px;
-  width:300px;padding:18px;
-  border:1px solid #333;
-  text-align:center;
-}
-.modal h3{margin:0 0 10px;color:#f90}
-.modal button{
-  margin-top:15px;width:100%;
-  padding:10px;background:#900;
-  border:none;color:#fff;
-  border-radius:8px;font-size:15px;
-}
+body{margin:0;background:#000;color:#fff;font-family:Arial}
+.topbar{position:fixed;top:0;left:0;right:0;height:55px;background:#050505;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #222}
+.logo{color:#f90;font-weight:bold}
+.xp-box{flex:1;padding:0 12px}
+.xp-bar{height:8px;background:#222;border-radius:10px;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(90deg,#f90,#ff0)}
+.stats{text-align:right;font-size:13px}
+.content{padding:75px 15px}
+.mission{background:#111;border:1px solid #222;border-radius:10px;padding:12px;margin-bottom:12px}
+.mission button{width:100%;margin-top:10px;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold}
+#modalBg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center}
+.modal{background:#111;border-radius:12px;width:300px;padding:18px;border:1px solid #333;text-align:center}
+.modal h3{color:#f90;margin-top:0}
 </style>
 </head>
 
 <body>
 
-<!-- ===== TOP BAR ===== -->
 <div class="topbar">
-  <div class="menu-btn" onclick="toggleMenu()">☰</div>
   <div class="logo">🔥 Yeraltı Şehri</div>
-
   <div class="xp-box">
-    <div style="font-size:11px;margin-bottom:3px;">
-      Level <span id="lvl"></span> — XP
-    </div>
-    <div class="xp-bar">
-      <div class="xp-fill" id="xpFill"></div>
-    </div>
+    <div style="font-size:11px">Level <span id="lvl"></span></div>
+    <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
   </div>
-
   <div class="stats">
     ⚡ <span id="energy"></span><br>
     💰 <span id="yton"></span>
   </div>
 </div>
 
-<!-- ===== SIDE MENU ===== -->
-<div id="overlay" onclick="closeMenu()"></div>
-<div class="side-menu" id="menu">
-  <a href="index.html">🏠 Ana Menü</a>
-  <a href="missions.html">🧾 Görevler</a>
-  <a href="pvp.html">⚔️ PvP</a>
-  <a href="nightlife.html">🌃 Gece Hayatı</a>
-  <a href="weapons.html">🔫 Silah Tüccarı</a>
-  <a href="hospital.html">🏥 Hastane</a>
-</div>
+<div class="content" id="missions"></div>
 
-<!-- ===== CONTENT ===== -->
-<div class="content">
-  <div class="card">💣 <b>Görevler</b></div>
-  <div id="missions"></div>
-</div>
-
-<!-- ===== MODAL ===== -->
 <div id="modalBg">
   <div class="modal">
     <h3>TonCrimeGame</h3>
@@ -159,8 +48,8 @@ body{
 </div>
 
 <script>
-/* ===== PLAYER (ŞİMDİLİK DEMO) ===== */
-const player = {
+/* ===== PLAYER ===== */
+const player={
   level:42,
   xp:420,
   xpNext:1000,
@@ -168,77 +57,109 @@ const player = {
   yton:120
 };
 
-/* ===== UI INIT ===== */
+/* ===== GAME BANK (SEN) ===== */
+let gameBank = 0;
+
+/* ===== MISSIONS ===== */
+const missionsData=[
+  {id:1,name:"Sokak Temizliği",desc:"Rakip çeteyi dağıt",energy:10,xp:20,yton:50,baseRisk:3},
+  {id:2,name:"Kaçak Mal",desc:"Depodan mal çıkar",energy:15,xp:30,yton:80,baseRisk:6}
+];
+
+/* ===== UI ===== */
 function refreshUI(){
-  document.getElementById("lvl").innerText = player.level;
-  document.getElementById("energy").innerText = player.energy;
-  document.getElementById("yton").innerText = player.yton;
-  document.getElementById("xpFill").style.width =
-    Math.min(100,(player.xp/player.xpNext)*100) + "%";
+  lvl.innerText=player.level;
+  energy.innerText=player.energy;
+  yton.innerText=player.yton;
+  xpFill.style.width=Math.min(100,(player.xp/player.xpNext)*100)+"%";
 }
 refreshUI();
 
-/* ===== MENU ===== */
-function toggleMenu(){
-  menu.classList.toggle("open");
-  overlay.style.display="block";
-}
-function closeMenu(){
-  menu.classList.remove("open");
-  overlay.style.display="none";
-}
-
 /* ===== MODAL ===== */
-function openModal(text){
-  modalText.innerHTML=text;
-  modalBg.style.display="flex";
+function openModal(t){modalText.innerHTML=t;modalBg.style.display="flex"}
+function closeModal(){modalBg.style.display="none"}
+
+/* ===== HELPERS ===== */
+function todayKey(id){
+  return "mission_"+id+"_"+new Date().toISOString().slice(0,10);
 }
-function closeModal(){ modalBg.style.display="none"; }
-
-/* ===== MISSIONS ===== */
-const missionsData = [
-  {name:"Sokak Temizliği", desc:"Rakip çeteyi dağıt", energy:10, xp:20, yton:50},
-  {name:"Kaçak Mal", desc:"Depodan mal çıkar", energy:15, xp:30, yton:80}
-];
-
-missionsData.forEach((m,i)=>{
-  missions.innerHTML += `
-    <div class="mission">
-      <b>${m.name}</b><br>
-      ${m.desc}<br>
-      ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon
-      <button onclick="startMission(${i})">Görevi Başlat</button>
-    </div>`;
-});
+function getRepeatCount(id){
+  return parseInt(localStorage.getItem(todayKey(id))||"0");
+}
+function incRepeat(id){
+  const k=todayKey(id);
+  localStorage.setItem(k,getRepeatCount(id)+1);
+}
 
 /* ===== START MISSION ===== */
 function startMission(i){
-  const m = missionsData[i];
+  const m=missionsData[i];
 
   if(player.energy < m.energy){
-    openModal("❌ <b>Yetersiz Enerji</b><br><br>Bu görev için "+m.energy+" enerji gerekli.");
+    openModal("❌ Yetersiz enerji");
     return;
   }
 
-  player.energy -= m.energy;
-  player.yton += m.yton;
-  player.xp += m.xp;
+  const repeats = getRepeatCount(m.id);
+  const stage = Math.floor(repeats / 10);
+  const finalRisk = m.baseRisk * (1 + stage);
+  const roll = Math.random() * 100;
 
-  if(player.xp >= player.xpNext){
-    player.level++;
-    player.xp = 0;
-    player.xpNext += 500;
+  player.energy -= m.energy;
+  incRepeat(m.id);
+
+  if(roll < finalRisk){
+    // ❌ BAŞARISIZLIK
+    const lossYton = Math.floor(m.yton / 2);
+    const actualLoss = Math.min(player.yton, lossYton);
+
+    player.yton -= actualLoss;
+    gameBank += actualLoss;
+
+    player.xp = Math.max(0, player.xp - m.xp);
+
+    openModal(
+      "🚓 <b>Polise Yakalandın!</b><br><br>"+
+      "⚠️ Risk: %"+finalRisk+"<br>"+
+      "💰 -"+actualLoss+" YTon<br>"+
+      "⭐ -"+m.xp+" XP<br>"+
+      "🏦 Oyun Kasası +"+actualLoss+" YTon"
+    );
+  }else{
+    // ✅ BAŞARI
+    player.xp += m.xp;
+    player.yton += m.yton;
+
+    if(player.xp >= player.xpNext){
+      player.level++;
+      player.xp = 0;
+      player.xpNext += 500;
+    }
+
+    openModal(
+      "✅ <b>"+m.name+"</b><br><br>"+
+      "💰 +"+m.yton+" YTon<br>"+
+      "⭐ +"+m.xp+" XP<br>"+
+      "⚠️ Günlük tekrar: "+(repeats+1)+"<br>"+
+      "Risk: %"+finalRisk
+    );
   }
 
   refreshUI();
-
-  openModal(
-    "✅ <b>"+m.name+"</b><br><br>" +
-    "Görev tamamlandı!<br><br>" +
-    "⭐ +"+m.xp+" XP<br>" +
-    "💰 +"+m.yton+" YTon"
-  );
 }
+
+/* ===== RENDER ===== */
+missionsData.forEach((m,i)=>{
+  missions.innerHTML+=`
+    <div class="mission">
+      <b>${m.name}</b><br>
+      ${m.desc}<br>
+      ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon<br>
+      ⚠️ Taban Risk: %${m.baseRisk}
+      <button onclick="startMission(${i})">Görevi Yap</button>
+    </div>
+  `;
+});
 </script>
 
 </body>
