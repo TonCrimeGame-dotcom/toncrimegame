@@ -14,7 +14,7 @@ body{
   font-family:Arial,Helvetica,sans-serif;
 }
 
-/* ===== TOP BAR ===== */
+/* ===== TOPBAR ===== */
 .topbar{
   position:fixed;
   top:0;left:0;right:0;
@@ -28,119 +28,86 @@ body{
 }
 .menu-btn{font-size:22px;cursor:pointer;margin-right:10px}
 .logo{font-weight:bold;color:#f90;min-width:130px}
-
 .xp-box{flex:1;padding:0 10px}
 .xp-bar{
-  width:100%;
-  height:8px;
-  background:#222;
-  border-radius:10px;
-  overflow:hidden;
+  width:100%;height:8px;background:#222;
+  border-radius:10px;overflow:hidden;
 }
 .xp-fill{
-  height:100%;
-  width:0%;
+  height:100%;width:0%;
   background:linear-gradient(90deg,#f90,#ff0);
-  transition:width .6s ease;
+  transition:.5s;
 }
-
-/* ===== ENERGY BAR ===== */
 .energy-bar{
-  width:100%;
-  height:6px;
-  background:#111;
-  border-radius:10px;
-  overflow:hidden;
-  margin-top:3px;
+  width:100%;height:6px;background:#111;
+  border-radius:10px;overflow:hidden;margin-top:3px;
 }
 .energy-fill{
-  height:100%;
-  width:0%;
+  height:100%;width:0%;
   background:linear-gradient(90deg,#00ffcc,#00ff66);
-  transition:width .6s ease;
+  transition:.5s;
 }
+.stats{text-align:right;font-size:13px;min-width:100px}
 
-.stats{
-  text-align:right;
-  font-size:13px;
-  min-width:100px;
-}
-
-/* ===== SIDE MENU ===== */
+/* ===== MENU ===== */
 .side-menu{
   position:fixed;
-  top:55px;
-  left:-240px;
-  width:240px;
-  height:100%;
-  background:#0a0a0a;
-  transition:.3s;
-  z-index:999;
+  top:55px;left:-240px;width:240px;height:100%;
+  background:#0a0a0a;transition:.3s;z-index:999;
 }
 .side-menu.open{left:0}
 .side-menu a{
-  display:block;
-  padding:14px;
-  color:#fff;
-  text-decoration:none;
-  border-bottom:1px solid #222;
+  display:block;padding:14px;color:#fff;
+  text-decoration:none;border-bottom:1px solid #222;
 }
 .side-menu a:hover{background:#111}
-
 #overlay{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  z-index:998;
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.4);z-index:998;
 }
 
-/* ===== CONTENT ===== */
-.content{padding:75px 15px 20px}
+/* ===== LAYOUT ===== */
+.wrapper{
+  display:flex;
+  padding-top:75px;
+}
+.left{
+  width:55%;
+  padding:15px;
+}
+.right{
+  width:45%;
+  padding:15px;
+  border-left:1px solid #222;
+}
+
+/* ===== MISSIONS ===== */
 .mission{
   background:#111;
-  border-radius:10px;
   padding:12px;
+  border-radius:10px;
   margin-bottom:12px;
 }
 .mission button{
-  width:100%;
-  margin-top:10px;
-  padding:10px;
-  background:#f90;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
+  width:100%;margin-top:8px;
+  padding:10px;background:#f90;
+  border:none;border-radius:8px;
+  font-weight:bold;cursor:pointer;
 }
 
-/* ===== MODAL ===== */
-#modalBg{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.75);
-  z-index:2000;
-  align-items:center;
-  justify-content:center;
-}
-.modal{
+/* ===== TABLE ===== */
+.table{
   background:#111;
-  border-radius:14px;
-  width:300px;
-  padding:18px;
-  border:1px solid #333;
-  text-align:center;
-}
-.modal button{
-  margin-top:15px;
-  width:100%;
+  border-radius:10px;
   padding:10px;
-  background:#900;
-  border:none;
-  color:#fff;
-  border-radius:8px;
 }
+.row{
+  border-bottom:1px solid #222;
+  padding:6px 0;
+  font-size:13px;
+}
+.success{color:#0f0}
+.fail{color:#f33}
 </style>
 </head>
 
@@ -151,44 +118,39 @@ body{
   <div class="logo">🔥 Yeraltı Şehri</div>
 
   <div class="xp-box">
-    <div style="font-size:11px;margin-bottom:3px;">
-      Level <span id="lvl"></span>
-    </div>
-    <div class="xp-bar">
-      <div class="xp-fill" id="xpFill"></div>
-    </div>
+    <div style="font-size:11px">Level <span id="lvl"></span></div>
+    <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
   </div>
 
   <div class="stats">
     ⚡ <span id="energy"></span>
-    <div class="energy-bar">
-      <div class="energy-fill" id="energyFill"></div>
-    </div>
+    <div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
     💰 <span id="yton"></span>
   </div>
 </div>
 
 <div id="overlay" onclick="closeMenu()"></div>
-
 <div class="side-menu" id="menu">
   <a href="index.html">🏠 Ana Menü</a>
   <a href="missions.html">🧾 Görevler</a>
   <a href="pvp.html">⚔️ PvP</a>
-  <a href="nightlife.html">🌃 Gece Hayatı</a>
-  <a href="weapons.html">🔫 Silah Tüccarı</a>
-  <a href="hospital.html">🏥 Hastane</a>
 </div>
 
-<div class="content" id="missions"></div>
-
-<div id="modalBg">
-  <div class="modal">
-    <div id="modalText"></div>
-    <button onclick="closeModal()">Tamam</button>
+<div class="wrapper">
+  <div class="left" id="missions"></div>
+  <div class="right">
+    <div class="table">
+      <b>📊 Görev İstatistikleri</b>
+      <div id="statsBox"></div>
+      <hr>
+      <b>🕒 Son İşlemler</b>
+      <div id="historyBox"></div>
+    </div>
   </div>
 </div>
 
 <script>
+
 const MAX_ENERGY = 100;
 
 let player = JSON.parse(localStorage.getItem("player")) || {
@@ -196,21 +158,26 @@ let player = JSON.parse(localStorage.getItem("player")) || {
   xp:0,
   xpNext:100,
   energy:80,
-  yton:200,
-  hospitalUntil:0
+  yton:200
 };
 
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
 const missionsData = [
-  {name:"Sokak Temizliği",desc:"Rakip çeteyi dağıt",energy:10,xp:20,yton:40,risk:3},
-  {name:"Kaçak Mal",desc:"Depodan mal çıkar",energy:15,xp:30,yton:70,risk:5}
+  {name:"Sokak Temizliği",energy:10,xp:20,yton:40,risk:3},
+  {name:"Kaçak Mal",energy:15,xp:30,yton:70,risk:5},
+  {name:"Gasp",energy:20,xp:40,yton:90,risk:8}
 ];
 
-function save(){localStorage.setItem("player",JSON.stringify(player));}
+function save(){
+  localStorage.setItem("player",JSON.stringify(player));
+  localStorage.setItem("history",JSON.stringify(history));
+}
 
 function refreshUI(){
-  document.getElementById("lvl").innerText=player.level;
-  document.getElementById("energy").innerText=player.energy;
-  document.getElementById("yton").innerText=player.yton;
+  document.getElementById("lvl").innerText = player.level;
+  document.getElementById("energy").innerText = player.energy;
+  document.getElementById("yton").innerText = player.yton;
 
   document.getElementById("xpFill").style.width =
     (player.xp/player.xpNext*100)+"%";
@@ -228,73 +195,94 @@ function closeMenu(){
   document.getElementById("overlay").style.display="none";
 }
 
-function openModal(text){
-  document.getElementById("modalText").innerHTML=text;
-  document.getElementById("modalBg").style.display="flex";
-}
-function closeModal(){
-  document.getElementById("modalBg").style.display="none";
-}
-
 function renderMissions(){
-  const box=document.getElementById("missions");
+  const box = document.getElementById("missions");
   box.innerHTML="";
   missionsData.forEach(m=>{
     box.innerHTML+=`
       <div class="mission">
         <b>${m.name}</b><br>
-        ${m.desc}<br>
         ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon
-        <button onclick="startMission('${m.name}')">Görevi Başlat</button>
+        <button onclick="startMission('${m.name}')">Başlat</button>
       </div>
     `;
   });
 }
 
 function startMission(name){
+
   const m = missionsData.find(x=>x.name===name);
 
-  if(Date.now()<player.hospitalUntil){
-    openModal("🏥 Hastanedesin. Çıkmadan görev yapamazsın.");
-    return;
-  }
-
   if(player.energy < m.energy){
-    openModal("⚡ Enerji yetersiz.");
+    alert("⚡ Enerji yetersiz");
     return;
   }
 
   player.energy -= m.energy;
 
-  const success = Math.random()*100 > m.risk;
+  let success = Math.random()*100 > m.risk;
+  let time = new Date().toLocaleTimeString();
 
   if(success){
     player.xp += m.xp;
     player.yton += m.yton;
   }else{
     player.xp -= m.xp;
-    player.yton -= m.yton/2;
-
-    if(Math.random()<0.5){
-      player.hospitalUntil = Date.now()+600000;
-      openModal("❌ Başarısız! Hastaneye düştün.");
-    }else{
-      openModal("❌ Başarısız oldun.");
-    }
+    player.yton -= (m.yton/2);
   }
 
-  if(player.xp>=player.xpNext){
+  if(player.xp >= player.xpNext){
     player.level++;
-    player.xp=0;
-    player.xpNext*=1.3;
+    player.xp = 0;
+    player.xpNext = Math.floor(player.xpNext*1.3);
+  }
+
+  history.unshift({
+    mission:name,
+    result: success ? "Başarılı" : "Başarısız",
+    time:time
+  });
+
+  if(history.length > 10){
+    history.pop();
   }
 
   save();
   refreshUI();
+  renderStats();
+}
+
+function renderStats(){
+
+  let total = history.length;
+  let successCount = history.filter(h=>h.result==="Başarılı").length;
+  let failCount = history.filter(h=>h.result==="Başarısız").length;
+
+  document.getElementById("statsBox").innerHTML = `
+    Toplam: ${total}<br>
+    <span class="success">Başarılı: ${successCount}</span><br>
+    <span class="fail">Başarısız: ${failCount}</span>
+  `;
+
+  const historyBox = document.getElementById("historyBox");
+  historyBox.innerHTML="";
+
+  history.forEach(h=>{
+    historyBox.innerHTML+=`
+      <div class="row">
+        ${h.time} — ${h.mission} —
+        <span class="${h.result==="Başarılı"?"success":"fail"}">
+          ${h.result}
+        </span>
+      </div>
+    `;
+  });
 }
 
 refreshUI();
 renderMissions();
+renderStats();
+
 </script>
 
 </body>
