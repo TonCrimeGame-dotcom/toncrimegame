@@ -50,43 +50,64 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 
 <script>
 
-/* ===== PLAYER ===== */
-const player={
-  level:42,
-  xp:420,
-  xpNext:1000,
-  energy:80,
-  yton:120,
-  hospitalUntil:0
-};
+/* ===============================
+   KALICI PLAYER SİSTEMİ
+================================ */
 
-let gameBank=0;
+function loadPlayer(){
+  const saved = localStorage.getItem("playerData");
+  if(saved){
+    return JSON.parse(saved);
+  }
 
-/* ===== MISSIONS ===== */
-const missionsData=[
-  {id:1,name:"Sokak Temizliği",desc:"Rakip çeteyi dağıt",energy:10,xp:20,yton:50,baseRisk:3},
-  {id:2,name:"Kaçak Mal",desc:"Depodan mal çıkar",energy:15,xp:30,yton:80,baseRisk:6}
-];
+  const newPlayer={
+    level:42,
+    xp:420,
+    xpNext:1000,
+    energy:80,
+    yton:120,
+    hospitalUntil:0
+  };
 
-/* ===== UI ===== */
-function refreshUI(){
-  lvl.innerText=player.level;
-  energy.innerText=player.energy;
-  yton.innerText=player.yton;
-  xpFill.style.width=Math.min(100,(player.xp/player.xpNext)*100)+"%";
+  localStorage.setItem("playerData", JSON.stringify(newPlayer));
+  return newPlayer;
 }
+
+function savePlayer(){
+  localStorage.setItem("playerData", JSON.stringify(player));
+}
+
+let player = loadPlayer();
+let gameBank = parseInt(localStorage.getItem("gameBank")) || 0;
+
+function saveBank(){
+  localStorage.setItem("gameBank", gameBank);
+}
+
+/* ================= UI ================= */
+
+function refreshUI(){
+  lvl.innerText = player.level;
+  energy.innerText = player.energy;
+  yton.innerText = player.yton;
+  xpFill.style.width = Math.min(100,(player.xp/player.xpNext)*100)+"%";
+}
+
 refreshUI();
 
-/* ===== MODAL ===== */
+/* ================= MODAL ================= */
+
 function openModal(html){
-  modalText.innerHTML=html;
+  modalText.innerHTML = html;
   modalBg.style.display="flex";
 }
+
 function closeModal(){
   modalBg.style.display="none";
 }
 
-/* ===== HOSPITAL CHECK ===== */
+/* ================= HOSPITAL ================= */
+
 function isHospitalized(){
   return Date.now() < player.hospitalUntil;
 }
@@ -105,13 +126,23 @@ function payHospital(){
     openModal("❌ Yeterli YTon yok");
     return;
   }
+
   player.yton -= 10;
   player.hospitalUntil = 0;
+
+  savePlayer();
   refreshUI();
+
   openModal("✅ Hastaneden çıktın");
 }
 
-/* ===== START MISSION ===== */
+/* ================= MISSIONS ================= */
+
+const missionsData=[
+  {id:1,name:"Sokak Temizliği",desc:"Rakip çeteyi dağıt",energy:10,xp:20,yton:50,baseRisk:3},
+  {id:2,name:"Kaçak Mal",desc:"Depodan mal çıkar",energy:15,xp:30,yton:80,baseRisk:6}
+];
+
 function startMission(i){
 
   if(isHospitalized()){
@@ -119,7 +150,7 @@ function startMission(i){
     return;
   }
 
-  const m=missionsData[i];
+  const m = missionsData[i];
 
   if(player.energy < m.energy){
     openModal("❌ Yetersiz enerji");
@@ -128,18 +159,19 @@ function startMission(i){
 
   player.energy -= m.energy;
 
-  const roll=Math.random()*100;
+  const roll = Math.random()*100;
 
   if(roll < m.baseRisk){
-    /* ❌ BAŞARISIZ */
-    const lossYton=Math.floor(m.yton/2);
-    const actualLoss=Math.min(player.yton,lossYton);
 
-    player.yton-=actualLoss;
-    player.xp=Math.max(0,player.xp-m.xp);
-    gameBank+=actualLoss;
+    const lossYton = Math.floor(m.yton/2);
+    const actualLoss = Math.min(player.yton, lossYton);
 
-    /* 🎲 %50 HASTANE */
+    player.yton -= actualLoss;
+    player.xp = Math.max(0, player.xp - m.xp);
+    gameBank += actualLoss;
+
+    saveBank();
+
     if(Math.random() < 0.5){
       player.hospitalUntil = Date.now() + (10*60*1000);
       openModal(
@@ -157,14 +189,14 @@ function startMission(i){
     }
 
   }else{
-    /* ✅ BAŞARI */
-    player.yton+=m.yton;
-    player.xp+=m.xp;
 
-    if(player.xp>=player.xpNext){
+    player.yton += m.yton;
+    player.xp += m.xp;
+
+    if(player.xp >= player.xpNext){
       player.level++;
-      player.xp=0;
-      player.xpNext+=500;
+      player.xp = 0;
+      player.xpNext += 500;
     }
 
     openModal(
@@ -174,10 +206,12 @@ function startMission(i){
     );
   }
 
+  savePlayer();
   refreshUI();
 }
 
-/* ===== RENDER ===== */
+/* ================= RENDER ================= */
+
 missionsData.forEach((m,i)=>{
   missions.innerHTML+=`
     <div class="mission">
