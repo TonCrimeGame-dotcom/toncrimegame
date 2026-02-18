@@ -7,105 +7,48 @@
 
 <style>
 *{box-sizing:border-box}
-body{
-  margin:0;
-  background:#000;
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
-}
+body{margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
 
 /* ===== TOPBAR ===== */
 .topbar{
-  position:fixed;
-  top:0;left:0;right:0;
-  height:55px;
-  background:#050505;
-  display:flex;
-  align-items:center;
-  padding:0 12px;
-  z-index:1000;
-  border-bottom:1px solid #222;
+  position:fixed;top:0;left:0;right:0;height:55px;
+  background:#050505;display:flex;align-items:center;
+  padding:0 12px;z-index:1000;border-bottom:1px solid #222;
 }
 .menu-btn{font-size:22px;cursor:pointer;margin-right:10px}
 .logo{font-weight:bold;color:#f90;min-width:130px}
 .xp-box{flex:1;padding:0 10px}
-.xp-bar{
-  width:100%;height:8px;background:#222;
-  border-radius:10px;overflow:hidden;
-}
-.xp-fill{
-  height:100%;width:0%;
-  background:linear-gradient(90deg,#f90,#ff0);
-  transition:.5s;
-}
-.energy-bar{
-  width:100%;height:6px;background:#111;
-  border-radius:10px;overflow:hidden;margin-top:3px;
-}
-.energy-fill{
-  height:100%;width:0%;
-  background:linear-gradient(90deg,#00ffcc,#00ff66);
-  transition:.5s;
-}
+.xp-bar{width:100%;height:8px;background:#222;border-radius:10px;overflow:hidden}
+.xp-fill{height:100%;width:0%;background:linear-gradient(90deg,#f90,#ff0);transition:.5s}
+.energy-bar{width:100%;height:6px;background:#111;border-radius:10px;overflow:hidden;margin-top:3px}
+.energy-fill{height:100%;width:0%;background:linear-gradient(90deg,#00ffcc,#00ff66);transition:.5s}
 .stats{text-align:right;font-size:13px;min-width:100px}
 
 /* ===== MENU ===== */
 .side-menu{
-  position:fixed;
-  top:55px;left:-240px;width:240px;height:100%;
+  position:fixed;top:55px;left:-240px;width:240px;height:100%;
   background:#0a0a0a;transition:.3s;z-index:999;
 }
 .side-menu.open{left:0}
-.side-menu a{
-  display:block;padding:14px;color:#fff;
-  text-decoration:none;border-bottom:1px solid #222;
-}
+.side-menu a{display:block;padding:14px;color:#fff;text-decoration:none;border-bottom:1px solid #222}
 .side-menu a:hover{background:#111}
-#overlay{
-  display:none;position:fixed;inset:0;
-  background:rgba(0,0,0,.4);z-index:998;
-}
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:998}
 
 /* ===== LAYOUT ===== */
-.wrapper{
-  display:flex;
-  padding-top:75px;
-}
-.left{
-  width:55%;
-  padding:15px;
-}
-.right{
-  width:45%;
-  padding:15px;
-  border-left:1px solid #222;
-}
+.wrapper{display:flex;padding-top:75px}
+.left{width:55%;padding:15px}
+.right{width:45%;padding:15px;border-left:1px solid #222}
 
 /* ===== MISSIONS ===== */
-.mission{
-  background:#111;
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:12px;
-}
+.mission{background:#111;padding:12px;border-radius:10px;margin-bottom:12px}
 .mission button{
-  width:100%;margin-top:8px;
-  padding:10px;background:#f90;
-  border:none;border-radius:8px;
-  font-weight:bold;cursor:pointer;
+  width:100%;margin-top:8px;padding:10px;background:#f90;
+  border:none;border-radius:8px;font-weight:bold;cursor:pointer
 }
 
 /* ===== TABLE ===== */
-.table{
-  background:#111;
-  border-radius:10px;
-  padding:10px;
-}
-.row{
-  border-bottom:1px solid #222;
-  padding:6px 0;
-  font-size:13px;
-}
+.table{background:#111;border-radius:10px;padding:10px}
+.row{border-bottom:1px solid #222;padding:6px 0;font-size:13px}
 .success{color:#0f0}
 .fail{color:#f33}
 </style>
@@ -150,93 +93,66 @@ body{
 </div>
 
 <script>
+
+/* ========= GLOBAL PLAYER ENGINE ========= */
+
 const MAX_ENERGY = 100;
-const ENERGY_REGEN_TIME = 300000; // 5 dakika
+const ENERGY_REGEN_TIME = 300000;
 
 let player = JSON.parse(localStorage.getItem("player")) || {
-  level:1,
-  xp:0,
-  xpNext:100,
-  energy:80,
-  yton:200,
-  lastEnergyTime: Date.now()
+  level:1,xp:0,xpNext:100,
+  energy:80,yton:200,
+  lastEnergyTime:Date.now()
 };
 
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
 function savePlayer(){
-  localStorage.setItem("player", JSON.stringify(player));
+  localStorage.setItem("player",JSON.stringify(player));
+  localStorage.setItem("history",JSON.stringify(history));
 }
 
 function regenEnergy(){
-
   let now = Date.now();
   let diff = now - player.lastEnergyTime;
-
   let regenPoints = Math.floor(diff / ENERGY_REGEN_TIME);
 
   if(regenPoints > 0){
     player.energy = Math.min(MAX_ENERGY, player.energy + regenPoints);
-    player.lastEnergyTime = now;
+    player.lastEnergyTime += regenPoints * ENERGY_REGEN_TIME;
     savePlayer();
   }
 }
 
 function addXP(amount){
   player.xp += amount;
-
   while(player.xp >= player.xpNext){
     player.xp -= player.xpNext;
     player.level++;
     player.xpNext = Math.floor(player.xpNext * 1.3);
   }
-
-  savePlayer();
 }
 
 function removeXP(amount){
-  player.xp = Math.max(0, player.xp - amount);
-  savePlayer();
+  player.xp = Math.max(0,player.xp-amount);
 }
 
 function addYTon(amount){
   player.yton += amount;
-  savePlayer();
 }
 
 function removeYTon(amount){
-  player.yton = Math.max(0, player.yton - amount);
-  savePlayer();
+  player.yton = Math.max(0,player.yton-amount);
 }
 
 function spendEnergy(amount){
   regenEnergy();
   if(player.energy < amount) return false;
-
   player.energy -= amount;
-  savePlayer();
   return true;
 }
-const MAX_ENERGY = 100;
 
-let player = JSON.parse(localStorage.getItem("player")) || {
-  level:1,
-  xp:0,
-  xpNext:100,
-  energy:80,
-  yton:200
-};
-
-let history = JSON.parse(localStorage.getItem("history")) || [];
-
-const missionsData = [
-  {name:"Sokak Temizliği",energy:10,xp:20,yton:40,risk:3},
-  {name:"Kaçak Mal",energy:15,xp:30,yton:70,risk:5},
-  {name:"Gasp",energy:20,xp:40,yton:90,risk:8}
-];
-
-function save(){
-  localStorage.setItem("player",JSON.stringify(player));
-  localStorage.setItem("history",JSON.stringify(history));
-}
+/* ========= UI ========= */
 
 function refreshUI(){
   document.getElementById("lvl").innerText = player.level;
@@ -250,6 +166,8 @@ function refreshUI(){
     (player.energy/MAX_ENERGY*100)+"%";
 }
 
+/* ========= MENU ========= */
+
 function toggleMenu(){
   document.getElementById("menu").classList.toggle("open");
   document.getElementById("overlay").style.display="block";
@@ -259,8 +177,16 @@ function closeMenu(){
   document.getElementById("overlay").style.display="none";
 }
 
+/* ========= MISSIONS ========= */
+
+const missionsData = [
+  {name:"Sokak Temizliği",energy:10,xp:20,yton:40,risk:3},
+  {name:"Kaçak Mal",energy:15,xp:30,yton:70,risk:5},
+  {name:"Gasp",energy:20,xp:40,yton:90,risk:8}
+];
+
 function renderMissions(){
-  const box = document.getElementById("missions");
+  const box=document.getElementById("missions");
   box.innerHTML="";
   missionsData.forEach(m=>{
     box.innerHTML+=`
@@ -277,41 +203,31 @@ function startMission(name){
 
   const m = missionsData.find(x=>x.name===name);
 
-  if(player.energy < m.energy){
+  if(!spendEnergy(m.energy)){
     alert("⚡ Enerji yetersiz");
     return;
   }
-
-  player.energy -= m.energy;
 
   let success = Math.random()*100 > m.risk;
   let time = new Date().toLocaleTimeString();
 
   if(success){
-    player.xp += m.xp;
-    player.yton += m.yton;
+    addXP(m.xp);
+    addYTon(m.yton);
   }else{
-    player.xp -= m.xp;
-    player.yton -= (m.yton/2);
-  }
-
-  if(player.xp >= player.xpNext){
-    player.level++;
-    player.xp = 0;
-    player.xpNext = Math.floor(player.xpNext*1.3);
+    removeXP(m.xp);
+    removeYTon(m.yton/2);
   }
 
   history.unshift({
     mission:name,
-    result: success ? "Başarılı" : "Başarısız",
+    result: success ? "Başarılı":"Başarısız",
     time:time
   });
 
-  if(history.length > 10){
-    history.pop();
-  }
+  if(history.length>10) history.pop();
 
-  save();
+  savePlayer();
   refreshUI();
   renderStats();
 }
@@ -322,15 +238,14 @@ function renderStats(){
   let successCount = history.filter(h=>h.result==="Başarılı").length;
   let failCount = history.filter(h=>h.result==="Başarısız").length;
 
-  document.getElementById("statsBox").innerHTML = `
+  document.getElementById("statsBox").innerHTML=`
     Toplam: ${total}<br>
     <span class="success">Başarılı: ${successCount}</span><br>
     <span class="fail">Başarısız: ${failCount}</span>
   `;
 
-  const historyBox = document.getElementById("historyBox");
+  const historyBox=document.getElementById("historyBox");
   historyBox.innerHTML="";
-
   history.forEach(h=>{
     historyBox.innerHTML+=`
       <div class="row">
@@ -343,9 +258,17 @@ function renderStats(){
   });
 }
 
+/* ========= INIT ========= */
+
+regenEnergy();
 refreshUI();
 renderMissions();
 renderStats();
+
+setInterval(()=>{
+  regenEnergy();
+  refreshUI();
+},60000);
 
 </script>
 
