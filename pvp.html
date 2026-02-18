@@ -75,7 +75,6 @@ async function loadPvP(){
     .from("pvp_questions")
     .select("*")
     .eq("active", true)
-    .order("id", { ascending:false })
     .limit(1)
     .single();
 
