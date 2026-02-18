@@ -3,93 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🔥 Yeraltı Şehri</title>
+<title>Yeraltı Şehri</title>
 
 <style>
+/* ===== GENEL ===== */
 body{
   margin:0;
   background:#0b0b0b;
   color:#fff;
-  font-family:Arial, Helvetica, sans-serif;
+  font-family:Arial,Helvetica,sans-serif;
+  overflow-x:hidden;
 }
 
-#topbar{
+/* ===== ÜST BAR ===== */
+#topBar{
   position:fixed;
-  top:0;
-  left:0;
-  right:0;
+  top:0; left:0; right:0;
   height:60px;
   background:#000;
   display:flex;
   align-items:center;
-  justify-content:center;
+  padding:0 15px;
+  z-index:1000;
   border-bottom:1px solid #222;
-  z-index:10;
 }
-
-#topbar span{
-  font-size:20px;
+#menuBtn{
+  font-size:26px;
+  cursor:pointer;
+  margin-right:15px;
+}
+#logo{
   font-weight:bold;
   letter-spacing:1px;
 }
 
-#container{
-  padding:90px 20px 20px;
-  max-width:500px;
-  margin:auto;
+/* ===== SOL MENÜ ===== */
+#sideMenu{
+  position:fixed;
+  top:0; left:-260px;
+  width:260px;
+  height:100%;
+  background:#111;
+  z-index:999;
+  padding-top:70px;
+  transition:0.3s;
 }
+#sideMenu.open{ left:0; }
 
-.announcement{
-  background:linear-gradient(90deg,#2b0000,#000);
-  padding:14px;
-  border-radius:12px;
-  text-align:center;
-  margin-bottom:20px;
-  font-size:14px;
-}
-
-button{
+#sideMenu button{
   width:100%;
   padding:16px;
-  margin:12px 0;
-  background:#1a1a1a;
-  color:#fff;
+  background:none;
   border:none;
-  border-radius:14px;
+  color:#fff;
+  text-align:left;
   font-size:16px;
+  border-bottom:1px solid #222;
 }
+#sideMenu button:hover{ background:#222; }
 
-button:hover{
-  background:#333;
+/* ===== ARKA PLAN KARARTI ===== */
+#overlay{
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.6);
+  z-index:998;
+  display:none;
+}
+#overlay.show{ display:block; }
+
+/* ===== ANA İÇERİK ===== */
+#content{
+  padding:90px 20px 20px;
+}
+.card{
+  background:#151515;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ÜST LOGO -->
-<div id="topbar">
-  <span>🔥 Yeraltı Şehri</span>
+<!-- ÜST BAR -->
+<div id="topBar">
+  <div id="menuBtn" onclick="toggleMenu()">☰</div>
+  <div id="logo">🔥 Yeraltı Şehri</div>
 </div>
 
-<!-- ANA MENÜ -->
-<div id="container">
-
-  <div class="announcement">
-    🏆 PvP Turnuvası Aktif<br>
-    Ödül: <b>500 YTon</b>
-  </div>
-
+<!-- SOL MENÜ -->
+<div id="sideMenu">
   <button onclick="go('missions.html')">💣 Görevler</button>
   <button onclick="go('pvp.html')">⚔️ PvP</button>
   <button onclick="go('nightlife.html')">🌃 Gece Hayatı</button>
   <button onclick="go('weapons.html')">🔫 Silah Kaçakçısı</button>
   <button onclick="go('hospital.html')">🏥 Hastane</button>
+</div>
+
+<!-- KARARTI -->
+<div id="overlay" onclick="toggleMenu()"></div>
+
+<!-- ANA EKRAN -->
+<div id="content">
+
+  <div class="card">
+    🏆 <b>PvP Turnuvası Aktif</b><br>
+    Ödül: <b>500 YTon</b>
+  </div>
+
+  <div class="card">
+    👤 <b>Durum</b><br>
+    Enerji: 80<br>
+    YTon: 120
+  </div>
+
+  <div class="card">
+    Sokaklar seni izliyor…<br>
+    Bir hamle yap.
+  </div>
 
 </div>
 
 <script>
+function toggleMenu(){
+  document.getElementById("sideMenu").classList.toggle("open");
+  document.getElementById("overlay").classList.toggle("show");
+}
+
 function go(page){
+  toggleMenu();
   window.location.href = page;
 }
 </script>
