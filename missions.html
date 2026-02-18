@@ -26,38 +26,72 @@ body{
   z-index:1000;
   border-bottom:1px solid #222;
 }
-.menu-btn{font-size:24px;cursor:pointer;margin-right:10px}
-.logo{font-weight:bold;color:#f90;min-width:120px}
-.xp-box{flex:1;padding:0 12px}
+.menu-btn{
+  font-size:24px;
+  cursor:pointer;
+  margin-right:10px;
+}
+.logo{
+  font-weight:bold;
+  color:#f90;
+  min-width:130px;
+}
+.xp-box{
+  flex:1;
+  padding:0 12px;
+}
 .xp-bar{
-  width:100%;height:8px;background:#222;
-  border-radius:10px;overflow:hidden
+  width:100%;
+  height:8px;
+  background:#222;
+  border-radius:10px;
+  overflow:hidden;
 }
 .xp-fill{
-  height:100%;width:40%;
-  background:linear-gradient(90deg,#f90,#ff0)
+  height:100%;
+  width:40%;
+  background:linear-gradient(90deg,#f90,#ff0);
 }
-.stats{text-align:right;font-size:13px;min-width:80px}
+.stats{
+  text-align:right;
+  font-size:13px;
+  min-width:90px;
+}
 
 /* ===== SIDE MENU ===== */
 .side-menu{
   position:fixed;
-  top:55px;left:-240px;
-  width:240px;height:100%;
+  top:55px;
+  left:-240px;
+  width:240px;
+  height:100%;
   background:#0a0a0a;
   transition:.3s;
   z-index:999;
 }
 .side-menu.open{left:0}
 .side-menu a{
-  display:block;padding:14px;
-  color:#fff;text-decoration:none;
-  border-bottom:1px solid #222
+  display:block;
+  padding:14px;
+  color:#fff;
+  text-decoration:none;
+  border-bottom:1px solid #222;
 }
 .side-menu a:hover{background:#111}
 
+/* ===== OVERLAY ===== */
+#overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:998;
+}
+
 /* ===== CONTENT ===== */
-.content{padding:75px 15px 30px}
+.content{
+  padding:75px 15px 20px;
+}
 .card{
   background:#0d0d0d;
   padding:15px;
@@ -66,26 +100,51 @@ body{
   border:1px solid #222;
 }
 .mission{
-  margin-top:10px;
-  padding:12px;
-  border-radius:10px;
-  background:#111;
   border:1px solid #222;
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:12px;
+  background:#111;
 }
 .mission button{
+  width:100%;
   margin-top:10px;
+  padding:10px;
+  background:#f90;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* ===== MODAL ===== */
+#modalBg{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  z-index:2000;
+  align-items:center;
+  justify-content:center;
+}
+.modal{
+  background:#111;
+  border-radius:14px;
+  width:300px;
+  padding:18px;
+  border:1px solid #333;
+  text-align:center;
+}
+.modal h3{margin:0 0 10px;color:#f90}
+.modal button{
+  margin-top:15px;
   width:100%;
   padding:10px;
   background:#900;
   border:none;
-  border-radius:8px;
   color:#fff;
-  font-size:14px;
-}
-.empty{
-  text-align:center;
-  padding:20px;
-  color:#f55;
+  border-radius:8px;
+  font-size:15px;
 }
 </style>
 </head>
@@ -94,7 +153,7 @@ body{
 
 <!-- ===== TOP BAR ===== -->
 <div class="topbar">
-  <div class="menu-btn" id="menuBtn">☰</div>
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
   <div class="logo">🔥 Yeraltı Şehri</div>
 
   <div class="xp-box">
@@ -113,6 +172,7 @@ body{
 </div>
 
 <!-- ===== SIDE MENU ===== -->
+<div id="overlay" onclick="closeMenu()"></div>
 <div class="side-menu" id="menu">
   <a href="index.html">🏠 Ana Menü</a>
   <a href="missions.html">🧾 Görevler</a>
@@ -123,10 +183,20 @@ body{
 </div>
 
 <!-- ===== CONTENT ===== -->
-<div class="content" id="pageContent">
+<div class="content">
   <div class="card">
-    🧾 <b>Görevler</b>
-    <div id="missionsBox"></div>
+    💣 <b>Görevler</b>
+  </div>
+
+  <div id="missions"></div>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div id="modalBg">
+  <div class="modal">
+    <h3>TonCrimeGame</h3>
+    <div id="modalText"></div>
+    <button onclick="closeModal()">Tamam</button>
   </div>
 </div>
 
@@ -139,59 +209,55 @@ const player = {
   yton:120
 };
 
-lvl.innerText = player.level;
-energy.innerText = player.energy;
-yton.innerText = player.yton;
-xpFill.style.width = player.xpPercent + "%";
+document.getElementById("lvl").innerText = player.level;
+document.getElementById("energy").innerText = player.energy;
+document.getElementById("yton").innerText = player.yton;
+document.getElementById("xpFill").style.width = player.xpPercent+"%";
 
 /* ===== MENU ===== */
-const menu = document.getElementById("menu");
-menuBtn.onclick = e => {
-  e.stopPropagation();
-  menu.classList.toggle("open");
-};
-document.addEventListener("click",e=>{
-  if(menu.classList.contains("open") && !menu.contains(e.target)){
-    menu.classList.remove("open");
-  }
-});
-menu.addEventListener("click",e=>e.stopPropagation());
+function toggleMenu(){
+  document.getElementById("menu").classList.toggle("open");
+  document.getElementById("overlay").style.display="block";
+}
+function closeMenu(){
+  document.getElementById("menu").classList.remove("open");
+  document.getElementById("overlay").style.display="none";
+}
 
-/* ===== MISSIONS (ŞİMDİLİK DUMMY – SUPABASE HAZIR) ===== */
-const missions = [
-  {
-    title:"Sokak Temizliği",
-    desc:"Mahalledeki rakip çeteyi dağıt",
-    energy:10,
-    reward:50
-  },
-  {
-    title:"Kuryeyi Yakala",
-    desc:"Kaçan kuryeyi durdur",
-    energy:15,
-    reward:80
-  }
+/* ===== MODAL ===== */
+function openModal(text){
+  document.getElementById("modalText").innerHTML=text;
+  document.getElementById("modalBg").style.display="flex";
+}
+function closeModal(){
+  document.getElementById("modalBg").style.display="none";
+}
+
+/* ===== MISSIONS (ŞİMDİLİK DEMO) ===== */
+const missionsData = [
+  {name:"Sokak Temizliği", desc:"Rakip çeteyi dağıt", energy:10, xp:20, yton:50},
+  {name:"Kaçak Mal", desc:"Depodan mal çıkar", energy:15, xp:30, yton:80}
 ];
 
-const box = document.getElementById("missionsBox");
+const box = document.getElementById("missions");
 
-if(missions.length === 0){
-  box.innerHTML = "<div class='empty'>❌ Görev bulunamadı</div>";
+if(missionsData.length === 0){
+  box.innerHTML = "<div class='card'>❌ Görev bulunamadı</div>";
 }else{
-  missions.forEach(m=>{
+  missionsData.forEach(m=>{
     box.innerHTML += `
       <div class="mission">
-        <b>${m.title}</b><br>
-        <span style="font-size:13px">${m.desc}</span><br>
-        ⚡ ${m.energy} | 💰 ${m.reward} YTon
-        <button onclick="startMission('${m.title}')">Göreve Başla</button>
+        <b>${m.name}</b><br>
+        ${m.desc}<br>
+        ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon
+        <button onclick="startMission('${m.name}')">Görevi Başlat</button>
       </div>
     `;
   });
 }
 
 function startMission(name){
-  alert("Görev başladı: " + name);
+  openModal("🧾 <b>"+name+"</b><br><br>Görev başarıyla başlatıldı.");
 }
 </script>
 
