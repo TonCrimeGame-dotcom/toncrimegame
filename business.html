@@ -2,220 +2,232 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>İş Hayatı</title>
+<title>TonCrimeGame – İş Hayatı</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  margin:0;
-  background:#0b0b0b;
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
-  padding:15px;
+*{box-sizing:border-box}
+body{margin:0;background:#000;color:#fff;font-family:Arial}
+
+/* ===== TOPBAR ===== */
+.topbar{
+position:fixed;top:0;left:0;right:0;height:60px;
+background:#050505;display:flex;align-items:center;
+padding:0 12px;border-bottom:1px solid #222;z-index:1000;
 }
-h1{margin-bottom:10px}
+.menu-btn{cursor:pointer;margin-right:10px}
+.logo{color:#f90;font-weight:bold;min-width:130px}
+.xp-box{flex:1;padding:0 10px}
+.xp-bar{height:8px;background:#222;border-radius:10px;overflow:hidden}
+.xp-fill{height:100%;width:0%;background:linear-gradient(90deg,#f90,#ff0);transition:.4s}
+.energy-bar{height:6px;background:#111;border-radius:10px;margin-top:3px;overflow:hidden}
+.energy-fill{height:100%;width:0%;background:linear-gradient(90deg,#0ff,#0f0);transition:.4s}
+.stats{text-align:right;font-size:13px}
+
+/* ===== MENU ===== */
+.side-menu{
+position:fixed;top:60px;left:-240px;width:240px;height:100%;
+background:#0a0a0a;transition:.3s;z-index:999;
+}
+.side-menu.open{left:0}
+.side-menu a{display:block;padding:14px;color:#fff;text-decoration:none;border-bottom:1px solid #222}
+.side-menu a:hover{background:#111}
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:998}
+
+/* ===== CONTENT ===== */
+.content{padding:90px 20px}
 .card{
-  background:#151515;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
+background:#111;
+padding:15px;
+border-radius:10px;
+margin-bottom:15px;
+border:1px solid #222;
 }
 button{
-  background:#ff9800;
-  border:none;
-  border-radius:8px;
-  padding:10px 15px;
-  font-weight:bold;
-  cursor:pointer;
-}
-button:disabled{
-  background:#555;
-  cursor:not-allowed;
+width:100%;
+padding:10px;
+margin-top:8px;
+border:none;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+background:#f90;
 }
 input{
-  width:100%;
-  padding:8px;
-  border-radius:6px;
-  border:none;
-  margin-top:5px;
+width:100%;
+padding:8px;
+margin-top:6px;
+background:#000;
+color:#fff;
+border:1px solid #333;
+border-radius:6px;
 }
-.small{font-size:13px;opacity:.8}
-.lock{
-  text-align:center;
-  padding:40px 20px;
-}
-.lock h2{color:#ff5252}
-.product{
-  display:flex;
-  justify-content:space-between;
-  margin:8px 0;
-}
+.locked{color:#777}
 </style>
 </head>
 
 <body>
 
-<h1>🏢 İş Hayatı</h1>
+<div class="topbar">
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+<div class="logo">🔥 Yeraltı Şehri</div>
 
-<div id="content"></div>
+<div class="xp-box">
+<div style="font-size:11px">Level <span id="lvl"></span></div>
+<div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+</div>
+
+<div class="stats">
+⚡ <span id="energy"></span>
+<div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
+💰 <span id="yton"></span>
+</div>
+</div>
+
+<div id="overlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="menu">
+<a href="index.html">🏠 Ana Menü</a>
+<a href="missions.html">🧾 Görevler</a>
+<a href="pvp.html">⚔️ PvP</a>
+<a href="nightlife.html">🌃 Gece Hayatı</a>
+<a href="weapons.html">🔫 Silah Tüccarı</a>
+<a href="hospital.html">🏥 Hastane</a>
+</div>
+
+<div class="content" id="content"></div>
 
 <script>
-/* =========================
-   OYUNCU VERİLERİ (DEMO)
-   ========================= */
-const player = {
-  level: 42,        // 🔁 test için değiştir (50 yap → açılır)
-  premium: false,   // 🔁 true yap → direkt açılır
-  yton: 1200,
-};
 
-/* =========================
-   BİNA VERİLERİ
-   ========================= */
-let building = null;
+/* ===== CORE ===== */
+const MAX_ENERGY=100;
+const ENERGY_REGEN=60;
 
-/* =========================
-   GİRİŞ KONTROLÜ
-   ========================= */
-function canAccess(){
-  return player.premium || player.level >= 50;
+function getPlayer(){return JSON.parse(localStorage.getItem("player"))}
+function setPlayer(p){localStorage.setItem("player",JSON.stringify(p))}
+
+let player=getPlayer();
+if(!player){
+player={level:1,xp:0,xpNext:100,energy:80,yton:500,premium:false,business:null,lastEnergyTick:Date.now()}
+setPlayer(player)
 }
 
-/* =========================
-   EKRANLAR
-   ========================= */
+/* ===== ENERGY REGEN ===== */
+function regen(){
+let p=getPlayer()
+if(p.energy>=MAX_ENERGY)return
+let now=Date.now()
+let sec=Math.floor((now-p.lastEnergyTick)/1000)
+if(sec>=ENERGY_REGEN){
+let gain=Math.floor(sec/ENERGY_REGEN)
+p.energy=Math.min(MAX_ENERGY,p.energy+gain)
+p.lastEnergyTick+=gain*ENERGY_REGEN*1000
+setPlayer(p)
+}
+}
+
+/* ===== UI ===== */
+function updateUI(){
+let p=getPlayer()
+document.getElementById("lvl").innerText=p.level
+document.getElementById("energy").innerText=p.energy
+document.getElementById("yton").innerText=p.yton
+document.getElementById("xpFill").style.width=(p.xp/p.xpNext*100)+"%"
+document.getElementById("energyFill").style.width=(p.energy/100*100)+"%"
+}
+setInterval(()=>{regen();updateUI()},1000)
+updateUI()
+
+/* ===== MENU ===== */
+function toggleMenu(){
+document.getElementById("menu").classList.toggle("open")
+document.getElementById("overlay").style.display="block"
+}
+function closeMenu(){
+document.getElementById("menu").classList.remove("open")
+document.getElementById("overlay").style.display="none"
+}
+
+/* ===== BUSINESS SYSTEM ===== */
 function render(){
-  const c = document.getElementById("content");
-  c.innerHTML = "";
 
-  if(!canAccess()){
-    c.innerHTML = `
-      <div class="card lock">
-        <h2>🔒 İş Hayatı Kilitli</h2>
-        <p>Bu alan <b>Level 50</b>’de açılır.</p>
-        <p>⭐ Premium üyeler için direkt açıktır.</p>
-        <p class="small">Mevcut level: ${player.level}</p>
-      </div>
-    `;
-    return;
-  }
+let p=getPlayer()
+let box=document.getElementById("content")
 
-  if(!building){
-    c.innerHTML = `
-      <div class="card">
-        <h2>🏗️ Bina Satın Al</h2>
-        <p>Bir bina satın alarak iş hayatına başla.</p>
-        <p><b>Fiyat:</b> 1000 YTon</p>
-        <button onclick="buyBuilding()">Satın Al</button>
-      </div>
-    `;
-    return;
-  }
-
-  renderBuilding();
+// Unlock check
+if(!p.premium && p.level<50){
+box.innerHTML="<div class='card locked'>🔒 İş Hayatı Level 50'de açılır veya Premium gerekir</div>"
+return
 }
 
-/* =========================
-   BİNA SATIN AL
-   ========================= */
-function buyBuilding(){
-  if(player.yton < 1000){
-    alert("Yeterli YTon yok");
-    return;
-  }
+if(!p.business){
+box.innerHTML=`
+<div class="card">
+<b>🏢 Genel Ev</b><br>
+Fiyat: 45 YTon
+<button onclick="buyBusiness('Genel Ev',45)">Satın Al</button>
+</div>
 
-  player.yton -= 1000;
+<div class="card">
+<b>🍸 Gece Kulübü</b><br>
+Fiyat: 80 YTon
+<button onclick="buyBusiness('Gece Kulübü',80)">Satın Al</button>
+</div>
 
-  building = {
-    name: "Yeraltı Fabrikası",
-    product: "Kaçak Ürün",
-    stock: 100,        // günlük üretim
-    price: 20,         // patron belirler
-    safe: 0
-  };
-
-  render();
+<div class="card">
+<b>☕ Coffee Shop</b><br>
+Fiyat: 55 YTon
+<button onclick="buyBusiness('Coffee Shop',55)">Satın Al</button>
+</div>
+`
+return
 }
 
-/* =========================
-   BİNA PANELİ
-   ========================= */
-function renderBuilding(){
-  const c = document.getElementById("content");
-  c.innerHTML = `
-    <div class="card">
-      <h2>🏭 ${building.name}</h2>
-
-      <div class="product">
-        <span>📦 Stok:</span>
-        <b>${building.stock}</b>
-      </div>
-
-      <div class="product">
-        <span>💰 Kasa:</span>
-        <b>${building.safe} YTon</b>
-      </div>
-
-      <div class="product">
-        <span>🏷️ Ürün Fiyatı:</span>
-        <b>${building.price} YTon</b>
-      </div>
-
-      <hr style="margin:10px 0;border-color:#222">
-
-      <label>Yeni fiyat belirle:</label>
-      <input type="number" id="newPrice" value="${building.price}">
-      <button onclick="setPrice()">Fiyatı Güncelle</button>
-
-      <hr style="margin:10px 0;border-color:#222">
-
-      <button onclick="sellProducts()">📤 Satış Yap</button>
-      <p class="small">Günde otomatik 100 adet üretim (demo)</p>
-    </div>
-  `;
+// Business active
+box.innerHTML=`
+<div class="card">
+<b>${p.business.name}</b><br>
+Günlük üretim: 100 ürün<br><br>
+Satış fiyatı belirle:
+<input type="number" id="price" value="${p.business.price}">
+<button onclick="savePrice()">Fiyatı Güncelle</button>
+<button onclick="collectIncome()">Geliri Topla</button>
+</div>
+`
 }
 
-/* =========================
-   FİYAT BELİRLE
-   ========================= */
-function setPrice(){
-  const p = Number(document.getElementById("newPrice").value);
-  if(p <= 0){ alert("Geçersiz fiyat"); return; }
-  building.price = p;
-  render();
+function buyBusiness(name,price){
+let p=getPlayer()
+if(p.yton<price){alert("YTon yetersiz");return}
+p.yton-=price
+p.business={name:name,price:10,lastCollect:Date.now()}
+setPlayer(p)
+render()
 }
 
-/* =========================
-   SATIŞ
-   ========================= */
-function sellProducts(){
-  if(building.stock <= 0){
-    alert("Stok yok");
-    return;
-  }
-
-  const income = building.stock * building.price;
-  building.safe += income;
-  building.stock = 0;
-
-  alert("Satış yapıldı: +" + income + " YTon");
-  render();
+function savePrice(){
+let p=getPlayer()
+let newPrice=parseInt(document.getElementById("price").value)
+p.business.price=newPrice
+setPlayer(p)
+alert("Fiyat güncellendi")
 }
 
-/* =========================
-   GÜNLÜK ÜRETİM (DEMO)
-   ========================= */
-setInterval(()=>{
-  if(building){
-    building.stock += 100;
-    if(building.stock > 1000) building.stock = 1000;
-    render();
-  }
-}, 15000); // 15 sn = 1 gün (demo)
+function collectIncome(){
+let p=getPlayer()
+let now=Date.now()
+let diff=Math.floor((now-p.business.lastCollect)/86400000)
+if(diff<1){alert("Henüz 1 gün dolmadı");return}
 
-/* ========================= */
-render();
+let income=100*p.business.price
+p.yton+=income
+p.business.lastCollect=now
+setPlayer(p)
+alert("💰 "+income+" YTon kazandın")
+updateUI()
+}
+
+render()
+
 </script>
-
 </body>
 </html>
