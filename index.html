@@ -6,199 +6,177 @@
 <title>Yeraltı Şehri</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif}
 body{
+  margin:0;
   background:#0b0b0b;
   color:#fff;
-  padding-top:60px;
+  font-family:Arial, sans-serif;
+  overflow-x:hidden;
 }
 
-/* ===== TOP BAR ===== */
+/* ===== LOGO BAR ===== */
 #topBar{
   position:fixed;
-  top:0;left:0;right:0;
+  top:0; left:0; right:0;
   height:60px;
   background:#000;
-  display:grid;
-  grid-template-columns:auto 1fr auto;
+  display:flex;
   align-items:center;
-  padding:0 15px;
-  z-index:1000;
+  justify-content:space-between;
+  padding:0 12px;
+  z-index:100;
   border-bottom:1px solid #222;
 }
 
-/* LEFT */
-#topLeft{
-  display:flex;
-  align-items:center;
-  gap:15px;
-}
-
 #menuBtn{
-  font-size:26px;
+  font-size:22px;
   cursor:pointer;
 }
 
 #logo{
   font-weight:bold;
-  font-size:18px;
+  letter-spacing:1px;
 }
 
-/* CENTER – XP BAR */
-#xpWrapper{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-}
-
-#level{
+#status{
   font-size:13px;
-  opacity:0.9;
-  white-space:nowrap;
+  text-align:right;
 }
 
-#xpBar{
-  width:100%;
-  max-width:420px;
-  height:12px;
+/* ===== XP BAR ===== */
+#xpBox{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:6px;
+  width:160px;
+  height:6px;
   background:#222;
-  border-radius:10px;
+  border-radius:5px;
   overflow:hidden;
 }
-
 #xpFill{
   height:100%;
-  width:35%;
-  background:linear-gradient(90deg,#ffb300,#ff6a00);
-  transition:width .3s;
-}
-
-/* RIGHT */
-#statusBar{
-  text-align:right;
-  font-size:13px;
-  line-height:1.3;
-  opacity:0.9;
+  width:40%;
+  background:linear-gradient(90deg,#f90,#f00);
 }
 
 /* ===== SIDE MENU ===== */
 #sideMenu{
   position:fixed;
-  top:60px;
-  left:-260px;
+  top:0; left:-260px;
   width:260px;
-  height:calc(100% - 60px);
+  height:100%;
   background:#111;
+  padding:80px 15px;
   transition:.3s;
-  padding:15px;
-  z-index:999;
+  z-index:99;
 }
+#sideMenu.open{left:0}
 
-#sideMenu a{
-  display:block;
-  padding:12px;
-  margin-bottom:8px;
+.menuBtn{
+  width:100%;
+  padding:14px;
+  margin:8px 0;
   background:#1a1a1a;
-  border-radius:8px;
   color:#fff;
-  text-decoration:none;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
 }
+.menuBtn:hover{background:#333}
 
-#sideMenu a:hover{
-  background:#272727;
-}
-
-/* ===== CONTENT ===== */
+/* ===== MAIN ===== */
 #content{
-  padding:15px;
+  padding:90px 20px 20px;
 }
 
-.card{
-  background:#151515;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
+.announcement{
+  background:linear-gradient(90deg,#2b0000,#000);
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:20px;
+  text-align:center;
+  font-size:14px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- TOP BAR -->
+<!-- ===== TOP BAR ===== -->
 <div id="topBar">
+  <div id="menuBtn" onclick="toggleMenu()">☰</div>
 
-  <!-- LEFT -->
-  <div id="topLeft">
-    <div id="menuBtn" onclick="toggleMenu()">☰</div>
-    <div id="logo">🔥 Yeraltı Şehri</div>
-  </div>
-
-  <!-- CENTER -->
-  <div id="xpWrapper">
-    <div id="level">Lvl <b id="levelNum">3</b></div>
-    <div id="xpBar">
+  <div id="logo">
+    🔥 Yeraltı Şehri
+    <div id="xpBox">
       <div id="xpFill"></div>
     </div>
-    <div id="xpText" style="font-size:12px;opacity:.8">350 / 1000 XP</div>
   </div>
 
-  <!-- RIGHT -->
-  <div id="statusBar">
-    ⚡ Enerji: <b id="energy">80</b><br>
-    💰 YTon: <b id="yton">120</b>
+  <div id="status">
+    ⚡ <span id="energy">100</span><br>
+    💰 <span id="yton">250</span>
   </div>
-
 </div>
 
-<!-- SIDE MENU -->
+<!-- ===== SIDE MENU ===== -->
 <div id="sideMenu">
-  <a href="missions.html">📜 Görevler</a>
-  <a href="pvp.html">⚔️ PvP</a>
-  <a href="nightlife.html">🌙 Gece Hayatı</a>
-  <a href="weapons.html">🔫 Silah Tüccarı</a>
-  <a href="hospital.html">🏥 Hastane</a>
+  <button class="menuBtn" onclick="go('missions.html')">💣 Görevler</button>
+  <button class="menuBtn" onclick="go('pvp.html')">⚔️ PvP</button>
+  <button class="menuBtn" onclick="go('nightlife.html')">🌃 Gece Hayatı</button>
+  <button class="menuBtn" onclick="go('weapons.html')">🔫 Silah Kaçakçısı</button>
+  <button class="menuBtn" onclick="go('hospital.html')">🏥 Hastane</button>
+  <button class="menuBtn" onclick="goBusiness()">🏢 İş Hayatı</button>
 </div>
 
-<!-- CONTENT -->
+<!-- ===== MAIN CONTENT ===== -->
 <div id="content">
-
-  <div class="card">
-    🏆 <b>PvP Turnuvası Aktif</b><br>
-    Ödül: <b>500 YTon</b>
+  <div class="announcement">
+    🏆 PvP Turnuvası Aktif<br>
+    Ödül: 500 YTon
   </div>
-
-  <div class="card">
-    Sokaklar seni izliyor…<br>
-    <b>Bir hamle yap.</b>
-  </div>
-
 </div>
 
 <script>
-let menuOpen = false;
+/* ===== DEMO PLAYER (sonra Supabase) ===== */
+const player = {
+  level: 42,
+  xp: 210,
+  xpNeed: 500,
+  energy: 100,
+  yton: 250,
+  premium: false
+};
 
-/* MENU */
+/* ===== UI INIT ===== */
+document.getElementById("energy").innerText = player.energy;
+document.getElementById("yton").innerText = player.yton;
+document.getElementById("xpFill").style.width =
+  Math.min(100, (player.xp / player.xpNeed) * 100) + "%";
+
+/* ===== MENU ===== */
 function toggleMenu(){
-  menuOpen = !menuOpen;
-  document.getElementById("sideMenu").style.left = menuOpen ? "0" : "-260px";
+  document.getElementById("sideMenu").classList.toggle("open");
+}
+function go(page){
+  window.location.href = page;
 }
 
-/* XP SYSTEM (ŞİMDİLİK DEMO) */
-let level = 3;
-let xp = 350;
-let xpMax = 1000;
-
-function updateXP(){
-  document.getElementById("levelNum").innerText = level;
-  document.getElementById("xpText").innerText = xp + " / " + xpMax + " XP";
-  document.getElementById("xpFill").style.width = (xp / xpMax * 100) + "%";
+/* ===== İŞ HAYATI KONTROL ===== */
+function goBusiness(){
+  if(player.premium || player.level >= 50){
+    window.location.href = "business.html";
+  }else{
+    alert(
+      "🔒 İş Hayatı Kilitli\n\n" +
+      "• Level 50'de açılır\n" +
+      "• Premium üyeler için direkt açık\n\n" +
+      "Mevcut level: " + player.level
+    );
+  }
 }
-
-updateXP();
-
-/* Test için XP artır (sonra sileriz) */
-// setInterval(()=>{ xp += 25; if(xp>=xpMax){xp=0;level++;} updateXP(); },2000);
 </script>
 
 </body>
