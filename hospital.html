@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Hastane</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.header{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-bottom:1px solid #222;
+}
+.container{
+  padding:80px 15px 20px;
+}
+.card{
+  background:#151515;
+  border-radius:12px;
+  padding:20px;
+  text-align:center;
+}
+.card h2{
+  margin-top:0;
+}
+.info{
+  margin:15px 0;
+  font-size:15px;
+  opacity:.9;
+}
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  background:#1f1f1f;
+  color:#fff;
+  font-size:16px;
+}
+button:hover{background:#333}
+.confirm{
+  background:#1e5f1e;
+}
+.confirm:hover{background:#2f7f2f}
+.back{
+  background:#500;
+  margin:20px 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <b>🏥 Hastane</b>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>İyileşme Merkezi</h2>
+    <div class="info">
+      Burada yaralarını sardırtabilir ve tam enerjiyle
+      sokaklara dönebilirsin.
+      <br><br>
+      💰 Ücret: <b>10 YTon</b>
+    </div>
+
+    <button class="confirm" onclick="confirmHeal()">İyileşmek İstiyorum</button>
+  </div>
+</div>
+
+<button class="back" onclick="location.href='index.html'">⬅ Ana Menü</button>
+
+<script>
+function confirmHeal(){
+  const ok = confirm(
+    "İyileşmek için 10 YTon ödenecek.\n\nOnaylıyor musun?"
+  );
+
+  if(!ok) return;
+
+  healPlayer();
+}
+
+function healPlayer(){
+  /*
+   ŞİMDİLİK FRONTEND DEMO:
+   - YTon düşümü
+   - Enerji doldu mesajı
+
+   Sonraki adımda bunu Supabase RPC'ye bağlayacağız
+  */
+  alert("🏥 Tedavi oldun!\nEnerjin yenilendi.\n10 YTon ödendi.");
+}
+</script>
+
+</body>
+</html>
