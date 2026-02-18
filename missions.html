@@ -26,55 +26,31 @@ body{
   z-index:1000;
   border-bottom:1px solid #222;
 }
-.menu-btn{
-  font-size:24px;
-  cursor:pointer;
-  margin-right:10px;
-}
-.logo{
-  font-weight:bold;
-  color:#f90;
-  min-width:130px;
-}
-.xp-box{
-  flex:1;
-  padding:0 12px;
-}
+.menu-btn{font-size:24px;cursor:pointer;margin-right:10px;}
+.logo{font-weight:bold;color:#f90;min-width:130px;}
+.xp-box{flex:1;padding:0 12px;}
 .xp-bar{
-  width:100%;
-  height:8px;
-  background:#222;
-  border-radius:10px;
-  overflow:hidden;
+  width:100%;height:8px;background:#222;
+  border-radius:10px;overflow:hidden;
 }
 .xp-fill{
   height:100%;
-  width:40%;
   background:linear-gradient(90deg,#f90,#ff0);
 }
-.stats{
-  text-align:right;
-  font-size:13px;
-  min-width:90px;
-}
+.stats{text-align:right;font-size:13px;min-width:90px;}
 
 /* ===== SIDE MENU ===== */
 .side-menu{
   position:fixed;
-  top:55px;
-  left:-240px;
-  width:240px;
-  height:100%;
+  top:55px;left:-240px;
+  width:240px;height:100%;
   background:#0a0a0a;
-  transition:.3s;
-  z-index:999;
+  transition:.3s;z-index:999;
 }
 .side-menu.open{left:0}
 .side-menu a{
-  display:block;
-  padding:14px;
-  color:#fff;
-  text-decoration:none;
+  display:block;padding:14px;
+  color:#fff;text-decoration:none;
   border-bottom:1px solid #222;
 }
 .side-menu a:hover{background:#111}
@@ -89,32 +65,23 @@ body{
 }
 
 /* ===== CONTENT ===== */
-.content{
-  padding:75px 15px 20px;
-}
+.content{padding:75px 15px 20px;}
 .card{
   background:#0d0d0d;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-  border:1px solid #222;
+  padding:15px;border-radius:12px;
+  margin-bottom:15px;border:1px solid #222;
 }
 .mission{
   border:1px solid #222;
   border-radius:10px;
-  padding:12px;
-  margin-bottom:12px;
+  padding:12px;margin-bottom:12px;
   background:#111;
 }
 .mission button{
-  width:100%;
-  margin-top:10px;
-  padding:10px;
-  background:#f90;
-  border:none;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
+  width:100%;margin-top:10px;
+  padding:10px;background:#f90;
+  border:none;border-radius:8px;
+  font-weight:bold;cursor:pointer;
 }
 
 /* ===== MODAL ===== */
@@ -128,23 +95,17 @@ body{
   justify-content:center;
 }
 .modal{
-  background:#111;
-  border-radius:14px;
-  width:300px;
-  padding:18px;
+  background:#111;border-radius:14px;
+  width:300px;padding:18px;
   border:1px solid #333;
   text-align:center;
 }
 .modal h3{margin:0 0 10px;color:#f90}
 .modal button{
-  margin-top:15px;
-  width:100%;
-  padding:10px;
-  background:#900;
-  border:none;
-  color:#fff;
-  border-radius:8px;
-  font-size:15px;
+  margin-top:15px;width:100%;
+  padding:10px;background:#900;
+  border:none;color:#fff;
+  border-radius:8px;font-size:15px;
 }
 </style>
 </head>
@@ -158,7 +119,7 @@ body{
 
   <div class="xp-box">
     <div style="font-size:11px;margin-bottom:3px;">
-      Level <span id="lvl">42</span> — XP
+      Level <span id="lvl"></span> — XP
     </div>
     <div class="xp-bar">
       <div class="xp-fill" id="xpFill"></div>
@@ -166,8 +127,8 @@ body{
   </div>
 
   <div class="stats">
-    ⚡ <span id="energy">80</span><br>
-    💰 <span id="yton">120</span>
+    ⚡ <span id="energy"></span><br>
+    💰 <span id="yton"></span>
   </div>
 </div>
 
@@ -184,10 +145,7 @@ body{
 
 <!-- ===== CONTENT ===== -->
 <div class="content">
-  <div class="card">
-    💣 <b>Görevler</b>
-  </div>
-
+  <div class="card">💣 <b>Görevler</b></div>
   <div id="missions"></div>
 </div>
 
@@ -201,63 +159,85 @@ body{
 </div>
 
 <script>
-/* ===== PLAYER (ŞİMDİLİK SABİT) ===== */
+/* ===== PLAYER (ŞİMDİLİK DEMO) ===== */
 const player = {
   level:42,
-  xpPercent:40,
+  xp:420,
+  xpNext:1000,
   energy:80,
   yton:120
 };
 
-document.getElementById("lvl").innerText = player.level;
-document.getElementById("energy").innerText = player.energy;
-document.getElementById("yton").innerText = player.yton;
-document.getElementById("xpFill").style.width = player.xpPercent+"%";
+/* ===== UI INIT ===== */
+function refreshUI(){
+  document.getElementById("lvl").innerText = player.level;
+  document.getElementById("energy").innerText = player.energy;
+  document.getElementById("yton").innerText = player.yton;
+  document.getElementById("xpFill").style.width =
+    Math.min(100,(player.xp/player.xpNext)*100) + "%";
+}
+refreshUI();
 
 /* ===== MENU ===== */
 function toggleMenu(){
-  document.getElementById("menu").classList.toggle("open");
-  document.getElementById("overlay").style.display="block";
+  menu.classList.toggle("open");
+  overlay.style.display="block";
 }
 function closeMenu(){
-  document.getElementById("menu").classList.remove("open");
-  document.getElementById("overlay").style.display="none";
+  menu.classList.remove("open");
+  overlay.style.display="none";
 }
 
 /* ===== MODAL ===== */
 function openModal(text){
-  document.getElementById("modalText").innerHTML=text;
-  document.getElementById("modalBg").style.display="flex";
+  modalText.innerHTML=text;
+  modalBg.style.display="flex";
 }
-function closeModal(){
-  document.getElementById("modalBg").style.display="none";
-}
+function closeModal(){ modalBg.style.display="none"; }
 
-/* ===== MISSIONS (ŞİMDİLİK DEMO) ===== */
+/* ===== MISSIONS ===== */
 const missionsData = [
   {name:"Sokak Temizliği", desc:"Rakip çeteyi dağıt", energy:10, xp:20, yton:50},
   {name:"Kaçak Mal", desc:"Depodan mal çıkar", energy:15, xp:30, yton:80}
 ];
 
-const box = document.getElementById("missions");
+missionsData.forEach((m,i)=>{
+  missions.innerHTML += `
+    <div class="mission">
+      <b>${m.name}</b><br>
+      ${m.desc}<br>
+      ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon
+      <button onclick="startMission(${i})">Görevi Başlat</button>
+    </div>`;
+});
 
-if(missionsData.length === 0){
-  box.innerHTML = "<div class='card'>❌ Görev bulunamadı</div>";
-}else{
-  missionsData.forEach(m=>{
-    box.innerHTML += `
-      <div class="mission">
-        <b>${m.name}</b><br>
-        ${m.desc}<br>
-        ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon
-        <button onclick="startMission('${m.name}')">Görevi Başlat</button>
-      </div>
-    `;
-  });
-}
+/* ===== START MISSION ===== */
+function startMission(i){
+  const m = missionsData[i];
 
-function startMission(name){
-  openModal("🧾 <b>"+name+"</b><br><br>Görev başarıyla başlatıldı.");
+  if(player.energy < m.energy){
+    openModal("❌ <b>Yetersiz Enerji</b><br><br>Bu görev için "+m.energy+" enerji gerekli.");
+    return;
+  }
+
+  player.energy -= m.energy;
+  player.yton += m.yton;
+  player.xp += m.xp;
+
+  if(player.xp >= player.xpNext){
+    player.level++;
+    player.xp = 0;
+    player.xpNext += 500;
+  }
+
+  refreshUI();
+
+  openModal(
+    "✅ <b>"+m.name+"</b><br><br>" +
+    "Görev tamamlandı!<br><br>" +
+    "⭐ +"+m.xp+" XP<br>" +
+    "💰 +"+m.yton+" YTon"
+  );
 }
 </script>
 
