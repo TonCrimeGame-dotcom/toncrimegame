@@ -22,7 +22,7 @@ body{margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
 .xp-fill{height:100%;width:0%;background:linear-gradient(90deg,#f90,#ff0);transition:.5s}
 .energy-bar{width:100%;height:6px;background:#111;border-radius:10px;overflow:hidden;margin-top:3px}
 .energy-fill{height:100%;width:0%;background:linear-gradient(90deg,#00ffcc,#00ff66);transition:.5s}
-.stats{text-align:right;font-size:13px;min-width:100px}
+.stats{text-align:right;font-size:13px;min-width:130px}
 
 /* ===== MENU ===== */
 .side-menu{
@@ -66,9 +66,9 @@ body{margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
   </div>
 
   <div class="stats">
-    ⚡ <span id="energy"></span>
-    <div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
+    ⚡ <span id="energy"></span><br>
     💰 <span id="yton"></span>
+    <div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
   </div>
 </div>
 
@@ -94,69 +94,61 @@ body{margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
 
 <script>
 
-/* ========= GLOBAL PLAYER ENGINE ========= */
+/* ========= ENERGY SYSTEM ========= */
 
 const MAX_ENERGY = 100;
-const ENERGY_REGEN_TIME = 300000;
+const ENERGY_INTERVAL = 300; // saniye (5 dk)
 
 let player = JSON.parse(localStorage.getItem("player")) || {
-  level:1,xp:0,xpNext:100,
-  energy:80,yton:200,
-  lastEnergyTime:Date.now()
+  level:1,
+  xp:0,
+  xpNext:100,
+  energy:80,
+  yton:200,
+  lastEnergyTime: Date.now()
 };
 
 let history = JSON.parse(localStorage.getItem("history")) || [];
 
-function savePlayer(){
+function save(){
   localStorage.setItem("player",JSON.stringify(player));
   localStorage.setItem("history",JSON.stringify(history));
 }
 
-function regenEnergy(){
+function updateEnergy(){
   let now = Date.now();
-  let diff = now - player.lastEnergyTime;
-  let regenPoints = Math.floor(diff / ENERGY_REGEN_TIME);
+  let secondsPassed = Math.floor((now - player.lastEnergyTime) / 1000);
+  let regenPoints = Math.floor(secondsPassed / ENERGY_INTERVAL);
 
   if(regenPoints > 0){
     player.energy = Math.min(MAX_ENERGY, player.energy + regenPoints);
-    player.lastEnergyTime += regenPoints * ENERGY_REGEN_TIME;
-    savePlayer();
+    player.lastEnergyTime += regenPoints * ENERGY_INTERVAL * 1000;
+    save();
   }
 }
 
-function addXP(amount){
-  player.xp += amount;
-  while(player.xp >= player.xpNext){
-    player.xp -= player.xpNext;
-    player.level++;
-    player.xpNext = Math.floor(player.xpNext * 1.3);
-  }
-}
+function energyCountdown(){
+  if(player.energy >= MAX_ENERGY) return "FULL";
 
-function removeXP(amount){
-  player.xp = Math.max(0,player.xp-amount);
-}
+  let now = Date.now();
+  let secondsPassed = Math.floor((now - player.lastEnergyTime) / 1000);
+  let remaining = ENERGY_INTERVAL - (secondsPassed % ENERGY_INTERVAL);
 
-function addYTon(amount){
-  player.yton += amount;
-}
+  let min = Math.floor(remaining / 60);
+  let sec = remaining % 60;
 
-function removeYTon(amount){
-  player.yton = Math.max(0,player.yton-amount);
-}
-
-function spendEnergy(amount){
-  regenEnergy();
-  if(player.energy < amount) return false;
-  player.energy -= amount;
-  return true;
+  return min + "m " + sec + "s";
 }
 
 /* ========= UI ========= */
 
 function refreshUI(){
+
+  updateEnergy();
+
   document.getElementById("lvl").innerText = player.level;
-  document.getElementById("energy").innerText = player.energy;
+  document.getElementById("energy").innerText =
+    player.energy + " (" + energyCountdown() + ")";
   document.getElementById("yton").innerText = player.yton;
 
   document.getElementById("xpFill").style.width =
@@ -203,20 +195,30 @@ function startMission(name){
 
   const m = missionsData.find(x=>x.name===name);
 
-  if(!spendEnergy(m.energy)){
+  updateEnergy();
+
+  if(player.energy < m.energy){
     alert("⚡ Enerji yetersiz");
     return;
   }
+
+  player.energy -= m.energy;
 
   let success = Math.random()*100 > m.risk;
   let time = new Date().toLocaleTimeString();
 
   if(success){
-    addXP(m.xp);
-    addYTon(m.yton);
+    player.xp += m.xp;
+    player.yton += m.yton;
   }else{
-    removeXP(m.xp);
-    removeYTon(m.yton/2);
+    player.xp = Math.max(0,player.xp-m.xp);
+    player.yton = Math.max(0,player.yton-(m.yton/2));
+  }
+
+  if(player.xp >= player.xpNext){
+    player.level++;
+    player.xp = 0;
+    player.xpNext = Math.floor(player.xpNext*1.3);
   }
 
   history.unshift({
@@ -227,7 +229,7 @@ function startMission(name){
 
   if(history.length>10) history.pop();
 
-  savePlayer();
+  save();
   refreshUI();
   renderStats();
 }
@@ -260,15 +262,13 @@ function renderStats(){
 
 /* ========= INIT ========= */
 
-regenEnergy();
 refreshUI();
 renderMissions();
 renderStats();
 
 setInterval(()=>{
-  regenEnergy();
   refreshUI();
-},60000);
+},1000);
 
 </script>
 
