@@ -186,7 +186,72 @@ body{
 </div>
 
 <script>
-/* ===== PLAYER DATA ===== */
+const MAX_ENERGY = 100;
+const ENERGY_REGEN_TIME = 300000; // 5 dakika
+
+let player = JSON.parse(localStorage.getItem("player")) || {
+  level:1,
+  xp:0,
+  xpNext:100,
+  energy:80,
+  yton:200,
+  lastEnergyTime: Date.now()
+};
+
+function savePlayer(){
+  localStorage.setItem("player", JSON.stringify(player));
+}
+
+function regenEnergy(){
+
+  let now = Date.now();
+  let diff = now - player.lastEnergyTime;
+
+  let regenPoints = Math.floor(diff / ENERGY_REGEN_TIME);
+
+  if(regenPoints > 0){
+    player.energy = Math.min(MAX_ENERGY, player.energy + regenPoints);
+    player.lastEnergyTime = now;
+    savePlayer();
+  }
+}
+
+function addXP(amount){
+  player.xp += amount;
+
+  while(player.xp >= player.xpNext){
+    player.xp -= player.xpNext;
+    player.level++;
+    player.xpNext = Math.floor(player.xpNext * 1.3);
+  }
+
+  savePlayer();
+}
+
+function removeXP(amount){
+  player.xp = Math.max(0, player.xp - amount);
+  savePlayer();
+}
+
+function addYTon(amount){
+  player.yton += amount;
+  savePlayer();
+}
+
+function removeYTon(amount){
+  player.yton = Math.max(0, player.yton - amount);
+  savePlayer();
+}
+
+function spendEnergy(amount){
+  regenEnergy();
+  if(player.energy < amount) return false;
+
+  player.energy -= amount;
+  savePlayer();
+  return true;
+}
+  /* ===== PLAYER DATA ===== */
 const player = {
   level: 42,
   xpPercent: 40,
