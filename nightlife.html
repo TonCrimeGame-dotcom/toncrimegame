@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Gece Hayatı</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.header{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-bottom:1px solid #222;
+}
+.container{
+  padding:80px 20px 20px;
+}
+button{
+  width:100%;
+  padding:18px;
+  margin:12px 0;
+  background:#1a1a1a;
+  color:#fff;
+  border:none;
+  border-radius:14px;
+  font-size:18px;
+}
+button:hover{background:#333}
+.back{
+  background:#500;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <b>🌃 Gece Hayatı</b>
+</div>
+
+<div class="container">
+  <button onclick="location.href='club.html'">🍸 Gece Kulübü</button>
+  <button onclick="location.href='coffeeshop.html'">☕ Coffee Shop</button>
+  <button onclick="location.href='brothel.html'">💋 Genel Ev</button>
+
+  <button class="back" onclick="location.href='index.html'">⬅ Ana Menü</button>
+</div>
+
+</body>
+</html>
