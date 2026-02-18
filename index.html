@@ -4,68 +4,272 @@
 <meta charset="UTF-8">
 <title>TonCrimeGame</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body{margin:0;background:#000;color:#fff;font-family:Arial}
-.topbar{position:fixed;top:0;left:0;right:0;height:55px;background:#050505;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #222;z-index:1000}
-.menu-btn{font-size:22px;cursor:pointer;margin-right:10px}
-.logo{color:#f90;font-weight:bold;min-width:130px}
-.xp-box{flex:1;padding:0 10px}
-.xp-bar{height:8px;background:#222;border-radius:10px;overflow:hidden}
-.xp-fill{height:100%;width:0;background:linear-gradient(90deg,#f90,#ff0)}
-.energy-bar{height:6px;background:#111;border-radius:10px;overflow:hidden;margin-top:3px}
-.energy-fill{height:100%;width:0;background:linear-gradient(90deg,#00ffcc,#00ff66)}
-.stats{text-align:right;font-size:13px;min-width:100px}
-.side-menu{position:fixed;top:55px;left:-240px;width:240px;height:100%;background:#0a0a0a;transition:.3s}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#000;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  background:#050505;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  z-index:1000;
+  border-bottom:1px solid #222;
+}
+.menu-btn{
+  font-size:22px;
+  cursor:pointer;
+  margin-right:10px;
+}
+.logo{
+  font-weight:bold;
+  color:#f90;
+  min-width:140px;
+}
+.xp-box{
+  flex:1;
+  padding:0 12px;
+}
+.xp-bar{
+  width:100%;
+  height:8px;
+  background:#222;
+  border-radius:10px;
+  overflow:hidden;
+}
+.xp-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#f90,#ff0);
+  transition:.5s;
+}
+.energy-bar{
+  width:100%;
+  height:6px;
+  background:#111;
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:3px;
+}
+.energy-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#00ffcc,#00ff66);
+  transition:.5s;
+}
+.stats{
+  text-align:right;
+  font-size:13px;
+  min-width:100px;
+}
+
+/* ===== SIDE MENU ===== */
+.side-menu{
+  position:fixed;
+  top:60px;
+  left:-240px;
+  width:240px;
+  height:100%;
+  background:#0a0a0a;
+  transition:.3s;
+  z-index:999;
+}
 .side-menu.open{left:0}
-.side-menu a{display:block;padding:14px;color:#fff;text-decoration:none;border-bottom:1px solid #222}
-#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4)}
-.content{padding:75px 15px}
-.card{background:#111;padding:15px;border-radius:12px;margin-bottom:15px}
+.side-menu a{
+  display:block;
+  padding:14px;
+  color:#fff;
+  text-decoration:none;
+  border-bottom:1px solid #222;
+}
+.side-menu a:hover{background:#111}
+
+#overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:998;
+}
+
+/* ===== CONTENT ===== */
+.content{
+  padding:90px 15px 20px;
+}
+.card{
+  background:#0d0d0d;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+  border:1px solid #222;
+}
+
+/* ===== MODAL ===== */
+#modalBg{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  z-index:2000;
+  align-items:center;
+  justify-content:center;
+}
+.modal{
+  background:#111;
+  border-radius:14px;
+  width:300px;
+  padding:18px;
+  border:1px solid #333;
+  text-align:center;
+}
+.modal h3{margin:0 0 10px;color:#f90}
+.modal button{
+  margin-top:15px;
+  width:100%;
+  padding:10px;
+  background:#900;
+  border:none;
+  color:#fff;
+  border-radius:8px;
+  font-size:15px;
+}
 </style>
 </head>
+
 <body>
 
+<!-- ===== TOP BAR ===== -->
 <div class="topbar">
-<div class="menu-btn" onclick="toggleMenu()">☰</div>
-<div class="logo">🔥 Yeraltı Şehri</div>
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+  <div class="logo">🔥 Yeraltı Şehri</div>
 
-<div class="xp-box">
-<div style="font-size:11px">Level <span id="lvl"></span></div>
-<div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+  <div class="xp-box">
+    <div style="font-size:11px">
+      Level <span id="lvl"></span>
+    </div>
+    <div class="xp-bar">
+      <div class="xp-fill" id="xpFill"></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    ⚡ <span id="energy"></span>
+    <div class="energy-bar">
+      <div class="energy-fill" id="energyFill"></div>
+    </div>
+    💰 <span id="yton"></span>
+  </div>
 </div>
 
-<div class="stats">
-⚡ <span id="energy"></span>
-<div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
-💰 <span id="yton"></span>
-</div>
-</div>
-
+<!-- ===== MENU ===== -->
 <div id="overlay" onclick="closeMenu()"></div>
+
 <div class="side-menu" id="menu">
-<a href="index.html">🏠 Ana Menü</a>
-<a href="missions.html">🧾 Görevler</a>
-<a href="pvp.html">⚔️ PvP</a>
+  <a href="index.html">🏠 Ana Menü</a>
+  <a href="missions.html">🧾 Görevler</a>
+  <a href="pvp.html">⚔️ PvP</a>
+  <a href="nightlife.html">🌃 Gece Hayatı</a>
+  <a href="weapons.html">🔫 Silah Tüccarı</a>
+  <a href="hospital.html">🏥 Hastane</a>
+  <a href="#" onclick="goBusiness()">🏢 İş Hayatı</a>
 </div>
 
+<!-- ===== CONTENT ===== -->
 <div class="content">
-<div class="card">
-🏆 PvP Turnuvası Aktif<br>
-Ödül: 500 YTon
-</div>
+
+  <div class="card">
+    🏆 <b>PvP Turnuvası Aktif</b><br>
+    Ödül: 500 YTon
+  </div>
+
+  <div class="card">
+    👤 <b>Durum</b><br>
+    Enerji: <span id="energy2"></span><br>
+    YTon: <span id="yton2"></span>
+  </div>
+
+  <div class="card">
+    Sokaklar seni izliyor…<br>
+    Bir hamle yap.
+  </div>
+
 </div>
 
-<script>
-function toggleMenu(){
-document.getElementById("menu").classList.toggle("open");
-document.getElementById("overlay").style.display="block";
-}
-function closeMenu(){
-document.getElementById("menu").classList.remove("open");
-document.getElementById("overlay").style.display="none";
-}
-</script>
+<!-- ===== MODAL ===== -->
+<div id="modalBg">
+  <div class="modal">
+    <h3>TonCrimeGame</h3>
+    <div id="modalText"></div>
+    <button onclick="closeModal()">Tamam</button>
+  </div>
+</div>
 
 <script src="engine.js"></script>
+<script>
+
+/* ===== MENU ===== */
+function toggleMenu(){
+  document.getElementById("menu").classList.toggle("open");
+  document.getElementById("overlay").style.display="block";
+}
+function closeMenu(){
+  document.getElementById("menu").classList.remove("open");
+  document.getElementById("overlay").style.display="none";
+}
+
+/* ===== MODAL ===== */
+function openModal(text){
+  document.getElementById("modalText").innerHTML=text;
+  document.getElementById("modalBg").style.display="flex";
+}
+function closeModal(){
+  document.getElementById("modalBg").style.display="none";
+}
+
+/* ===== UI SYNC ===== */
+function updateUI(){
+  document.getElementById("lvl").innerText=player.level;
+  document.getElementById("energy").innerText=player.energy;
+  document.getElementById("yton").innerText=player.yton;
+
+  document.getElementById("energy2").innerText=player.energy;
+  document.getElementById("yton2").innerText=player.yton;
+
+  document.getElementById("xpFill").style.width=
+    (player.xp/player.xpNext*100)+"%";
+
+  document.getElementById("energyFill").style.width=
+    (player.energy/100*100)+"%";
+}
+
+setInterval(updateUI,500);
+updateUI();
+
+/* ===== BUSINESS CONTROL ===== */
+function goBusiness(){
+  if(player.premium || player.level >= 50){
+    window.location.href="business.html";
+  }else{
+    openModal(
+      "🔒 İş Hayatı Kilitli<br><br>" +
+      "• Level 50'de açılır<br>" +
+      "• Premium üyeler için direkt açık<br><br>" +
+      "Mevcut level: <b>"+player.level+"</b>"
+    );
+  }
+}
+
+</script>
+
 </body>
 </html>
