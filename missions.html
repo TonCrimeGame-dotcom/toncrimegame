@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Görevler</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.header{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-bottom:1px solid #222;
+  z-index:10;
+}
+.container{
+  padding:80px 15px 20px;
+}
+.card{
+  background:#151515;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
+}
+.card h3{margin:0 0 8px}
+.reward{
+  font-size:14px;
+  color:#aaa;
+}
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  background:#1f1f1f;
+  color:#fff;
+  font-size:16px;
+}
+button:hover{background:#333}
+.done{background:#063}
+.back{
+  background:#500;
+  margin-top:20px;
+}
+.center{text-align:center}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <b>💣 Görevler</b>
+</div>
+
+<div class="container" id="missions">
+  Yükleniyor...
+</div>
+
+<button class="back" onclick="location.href='index.html'">⬅ Ana Menü</button>
+
+<!-- Supabase -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script>
+// ================= AYARLAR =================
+const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY = "BURAYA_PUBLISHABLE_KEY";
+const TELEGRAM_ID = "162154220";
+// ===========================================
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Görevleri yükle
+async function loadMissions(){
+  const { data, error } = await sb
+    .from("missions")
+    .select("*")
+    .eq("active", true);
+
+  if(error || !data || data.length === 0){
+    document.getElementById("missions").innerHTML =
+      "<div class='center'>❌ Görev bulunamadı</div>";
+    return;
+  }
+
+  let html = "";
+  data.forEach(m => {
+    html += `
+      <div class="card">
+        <h3>${m.title}</h3>
+        <p>${m.description}</p>
+        <div class="reward">🎁 ${m.xp} XP • ${m.yton} YTon</div>
+        <button onclick="doMission(${m.id}, ${m.xp}, ${m.yton})">
+          Görevi Yap
+        </button>
+      </div>
+    `;
+  });
+
+  document.getElementById("missions").innerHTML = html;
+}
+
+// Görev yap
+async function doMission(id, xp, yton){
+  alert(
+    "✅ Görev tamamlandı!\n\n+" +
+    xp + " XP\n+" +
+    yton + " YTon"
+  );
+
+  // ileride buraya:
+  // sb.rpc("mission_complete", {...})
+}
+
+// Başlat
+loadMissions();
+</script>
+
+</body>
+</html>
