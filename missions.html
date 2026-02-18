@@ -4,65 +4,150 @@
 <meta charset="UTF-8">
 <title>TonCrimeGame – Görevler</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{margin:0;background:#000;color:#fff;font-family:Arial}
-.content{padding:75px 15px}
+.wrapper{display:flex;padding-top:70px}
+.left{width:55%;padding:15px}
+.right{width:45%;padding:15px;border-left:1px solid #222}
 .mission{background:#111;padding:12px;border-radius:10px;margin-bottom:12px}
-button{width:100%;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold}
+.mission button{width:100%;margin-top:8px;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold}
+.table{background:#111;padding:10px;border-radius:10px}
+.row{border-bottom:1px solid #222;padding:5px 0;font-size:13px}
+.success{color:#0f0}
+.fail{color:#f33}
 </style>
 </head>
 <body>
 
-<div class="content" id="missions"></div>
+<div class="wrapper">
+  <div class="left" id="missions"></div>
+
+  <div class="right">
+    <div class="table">
+      <b>📊 Görev İstatistik</b>
+      <div id="statsBox"></div>
+      <hr>
+      <b>🕒 Geçmiş</b>
+      <div id="historyBox"></div>
+    </div>
+  </div>
+</div>
 
 <script src="engine.js"></script>
 <script>
 
-const missionsData=[
-{name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
-{name:"Kaçak Mal",energy:15,xp:30,yton:80,risk:30}
+/* ===== OYUN KASASI ===== */
+let gameBank = parseInt(localStorage.getItem("gameBank")) || 0;
+
+/* ===== MISSION DATA ===== */
+const missionsData = [
+  {name:"Sokak Temizliği", energy:10, xp:20, yton:50, risk:20},
+  {name:"Kaçak Mal", energy:15, xp:30, yton:80, risk:30}
 ];
 
+/* ===== KAYITLAR ===== */
+let history = JSON.parse(localStorage.getItem("missionHistory")) || [];
+let repeatCounter = JSON.parse(localStorage.getItem("missionRepeat")) || {};
+let stats = JSON.parse(localStorage.getItem("missionStats")) || {
+  success:0,
+  fail:0
+};
+
+/* ===== UI ===== */
 const box=document.getElementById("missions");
 
 missionsData.forEach(m=>{
-box.innerHTML+=`
-<div class="mission">
-<b>${m.name}</b><br>
-⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton}
-<button onclick="startMission('${m.name}',${m.energy},${m.xp},${m.yton},${m.risk})">
-Başlat
-</button>
-</div>
-`;
+  box.innerHTML+=`
+  <div class="mission">
+    <b>${m.name}</b><br>
+    ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton}
+    <button onclick="startMission('${m.name}',${m.energy},${m.xp},${m.yton},${m.risk})">
+      Başlat
+    </button>
+  </div>
+  `;
 });
 
-function startMission(name,energy,xp,yton,risk){
+function startMission(name,energy,xp,yton,baseRisk){
 
-if(Date.now()<player.hospitalUntil){
-alert("Hastanedesin!");
-return;
+  if(Date.now() < player.hospitalUntil){
+    alert("🏥 Hastanedesin!");
+    return;
+  }
+
+  if(!useEnergy(energy)){
+    alert("Enerji yetersiz");
+    return;
+  }
+
+  /* ===== RISK ARTIŞ SİSTEMİ ===== */
+  if(!repeatCounter[name]) repeatCounter[name]=0;
+  repeatCounter[name]++;
+
+  let riskMultiplier = Math.floor(repeatCounter[name]/10);
+  let finalRisk = baseRisk * (1 + riskMultiplier);
+
+  /* ===== SONUÇ ===== */
+  let success = Math.random()*100 > finalRisk;
+
+  let time = new Date().toLocaleTimeString();
+
+  if(success){
+    addXP(xp);
+    addYton(yton);
+    stats.success++;
+    history.unshift({name,time,result:"success"});
+  }else{
+    stats.fail++;
+
+    let lost = Math.floor(yton/2);
+    removeYton(lost);
+    gameBank += lost;
+    localStorage.setItem("gameBank",gameBank);
+
+    addXP(-Math.floor(xp/2));
+    player.energy = Math.max(0, player.energy - energy);
+
+    if(Math.random()<0.5){
+      player.hospitalUntil = Date.now()+600000;
+    }
+
+    savePlayer();
+    history.unshift({name,time,result:"fail"});
+  }
+
+  localStorage.setItem("missionHistory",JSON.stringify(history));
+  localStorage.setItem("missionRepeat",JSON.stringify(repeatCounter));
+  localStorage.setItem("missionStats",JSON.stringify(stats));
+
+  renderStats();
 }
 
-if(!useEnergy(energy)){
-alert("Enerji yetersiz");
-return;
+/* ===== STATS PANEL ===== */
+function renderStats(){
+
+  document.getElementById("statsBox").innerHTML = `
+    ✅ Başarılı: ${stats.success}<br>
+    ❌ Başarısız: ${stats.fail}<br>
+    🏦 Oyun Kasası: ${gameBank} YTon
+  `;
+
+  let h="";
+  history.slice(0,15).forEach(x=>{
+    h+=`
+    <div class="row ${x.result}">
+      ${x.time} – ${x.name} – 
+      ${x.result==="success"?"Başarılı":"Başarısız"}
+    </div>
+    `;
+  });
+
+  document.getElementById("historyBox").innerHTML=h;
 }
 
-if(Math.random()*100>risk){
-addXP(xp);
-addYton(yton);
-alert("Başarılı!");
-}else{
-removeYton(Math.floor(yton/2));
-addXP(-Math.floor(xp/2));
-if(Math.random()<0.5){
-player.hospitalUntil=Date.now()+600000;
-savePlayer();
-}
-alert("Başarısız!");
-}
-}
+renderStats();
+
 </script>
 </body>
 </html>
