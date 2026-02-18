@@ -1,76 +1,71 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<title>⚔️ PvP</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{
-  background:#0b0b0b;
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
-  margin:0;
-  padding:20px;
-}
-.box{
-  background:#151515;
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:16px;
-}
-h2{text-align:center}
-button{
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:#222;
-  color:#fff;
-  font-size:16px;
-}
-button:hover{background:#333}
-img{
-  width:100%;
-  border-radius:10px;
-  margin:10px 0;
-}
-.result{
-  text-align:center;
-  font-size:18px;
-  padding:20px 0;
-}
-.back{
-  background:#500;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>PvP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      background:#0b0b0b;
+      color:#fff;
+      font-family:Arial;
+      text-align:center;
+      padding:20px;
+    }
+    .box {
+      max-width:500px;
+      margin:auto;
+      background:#111;
+      padding:20px;
+      border-radius:10px;
+    }
+    button {
+      width:100%;
+      padding:12px;
+      margin:6px 0;
+      font-size:16px;
+      background:#222;
+      color:#fff;
+      border:1px solid #444;
+      border-radius:6px;
+    }
+    button:hover {
+      background:#333;
+    }
+    .error {
+      color:#ff4d4d;
+      font-weight:bold;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h2>⚔️ PvP</h2>
-  <div id="content">Yükleniyor...</div>
+<h2>⚔️ PvP</h2>
+
+<div id="content" class="box">
+  Yükleniyor...
 </div>
 
-<button class="back" onclick="location.href='index.html'">⬅ Ana Menü</button>
-
-<!-- SUPABASE -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
 <script>
-// ===== AYARLAR =====
+/* =======================
+   SUPABASE AYARLARI
+   ======================= */
 const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-const TELEGRAM_ID = "162154220";
-// ===================
+const SUPABASE_KEY = "BURAYA_ANON_PUBLIC_KEY";
+
+/* ======================= */
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let startTime = 0;
 
-// PvP Sorusu Yükle
-async function loadPvP(){
+/* 🔎 NET BAĞLANTI TESTİ */
+sb.from("pvp_questions").select("id").then(r => {
+  console.log("TEST:", r);
+});
+
+/* PvP yükle */
+async function loadPvP() {
   const { data, error } = await sb
     .from("pvp_questions")
     .select("*")
@@ -78,61 +73,28 @@ async function loadPvP(){
     .limit(1)
     .single();
 
-  if(error || !data){
+  if (error || !data) {
     document.getElementById("content").innerHTML =
-      "<div class='result'>❌ PvP sorusu bulunamadı</div>";
+      "<div class='error'>❌ PvP sorusu bulunamadı</div>";
+    console.error(error);
     return;
   }
 
-  startTime = Date.now();
-
   document.getElementById("content").innerHTML = `
-    ${data.image_url ? `<img src="${data.image_url}">` : ``}
     <p><b>${data.question}</b></p>
-
-    <button onclick="answerPvP(${data.id},'A')">A) ${data.option_a}</button>
-    <button onclick="answerPvP(${data.id},'B')">B) ${data.option_b}</button>
-    <button onclick="answerPvP(${data.id},'C')">C) ${data.option_c}</button>
-    <button onclick="answerPvP(${data.id},'D')">D) ${data.option_d}</button>
+    <button onclick="answer('A')">${data.option_a}</button>
+    <button onclick="answer('B')">${data.option_b}</button>
+    <button onclick="answer('C')">${data.option_c}</button>
+    <button onclick="answer('D')">${data.option_d}</button>
   `;
 }
 
-// Cevap Ver
-async function answerPvP(qid, ans){
-  const timeSpent = Math.floor((Date.now() - startTime) / 1000);
-
-  const { data, error } = await sb.rpc("pvp_answer",{
-    p_telegram_id: TELEGRAM_ID,
-    p_question_id: qid,
-    p_answer: ans,
-    p_time: timeSpent
-  });
-
-  if(error || !data){
-    document.getElementById("content").innerHTML =
-      "<div class='result'>❌ Sunucu hatası</div>";
-    return;
-  }
-
-  if(data.result === "win"){
-    document.getElementById("content").innerHTML = `
-      <div class="result">
-        🏆 <b>Kazandın!</b><br><br>
-        +${data.xp} XP<br>
-        +${data.yton} YTon
-      </div>
-    `;
-  }else{
-    document.getElementById("content").innerHTML = `
-      <div class="result">
-        ❌ <b>Kaybettin</b><br><br>
-        ${data.yton} YTon
-      </div>
-    `;
-  }
+/* Şık tıklanınca */
+function answer(opt){
+  alert("Seçtin: " + opt);
 }
 
-// Başlat
+/* BAŞLAT */
 loadPvP();
 </script>
 
