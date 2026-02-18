@@ -1,9 +1,17 @@
-/* ========= TONCRIME ENGINE ========= */
+/* ========= TONCRIME CORE ========= */
 
 const MAX_ENERGY = 100;
-const ENERGY_REGEN_SECONDS = 60; // 1 enerji = 60 saniye
+const ENERGY_REGEN_SECONDS = 60;
 
-let player = JSON.parse(localStorage.getItem("player"));
+function getPlayer() {
+  return JSON.parse(localStorage.getItem("player"));
+}
+
+function setPlayer(p) {
+  localStorage.setItem("player", JSON.stringify(p));
+}
+
+let player = getPlayer();
 
 if (!player) {
   player = {
@@ -16,51 +24,49 @@ if (!player) {
     hospitalUntil: 0,
     lastEnergyTick: Date.now()
   };
-  localStorage.setItem("player", JSON.stringify(player));
-}
-
-/* ===== SAVE ===== */
-function savePlayer() {
-  localStorage.setItem("player", JSON.stringify(player));
-}
-
-/* ===== ENERGY KULLAN ===== */
-function useEnergy(amount) {
-  if (player.energy < amount) return false;
-
-  player.energy -= amount;
-  player.lastEnergyTick = Date.now();
-  savePlayer();
-  return true;
+  setPlayer(player);
 }
 
 /* ===== ENERGY REGEN ===== */
 function regenerateEnergy() {
+
+  let p = getPlayer();
   const now = Date.now();
 
-  if (!player.lastEnergyTick) {
-    player.lastEnergyTick = now;
-    savePlayer();
+  if (!p.lastEnergyTick) {
+    p.lastEnergyTick = now;
+    setPlayer(p);
     return;
   }
 
-  if (player.energy >= MAX_ENERGY) return;
+  if (p.energy >= MAX_ENERGY) return;
 
-  const secondsPassed = Math.floor((now - player.lastEnergyTick) / 1000);
+  const secondsPassed = Math.floor((now - p.lastEnergyTick) / 1000);
 
   if (secondsPassed >= ENERGY_REGEN_SECONDS) {
 
-    const energyToAdd = Math.floor(secondsPassed / ENERGY_REGEN_SECONDS);
+    const gained = Math.floor(secondsPassed / ENERGY_REGEN_SECONDS);
 
-    player.energy = Math.min(MAX_ENERGY, player.energy + energyToAdd);
+    p.energy = Math.min(MAX_ENERGY, p.energy + gained);
 
-    player.lastEnergyTick += energyToAdd * ENERGY_REGEN_SECONDS * 1000;
+    p.lastEnergyTick += gained * ENERGY_REGEN_SECONDS * 1000;
 
-    savePlayer();
+    setPlayer(p);
   }
 }
 
+function useEnergy(amount) {
+
+  let p = getPlayer();
+
+  if (p.energy < amount) return false;
+
+  p.energy -= amount;
+  p.lastEnergyTick = Date.now();
+
+  setPlayer(p);
+  return true;
+}
+
 /* ===== GLOBAL LOOP ===== */
-setInterval(() => {
-  regenerateEnergy();
-}, 1000);
+setInterval(regenerateEnergy, 1000);
