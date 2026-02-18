@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Coffee Shop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.header{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-bottom:1px solid #222;
+}
+.container{
+  padding:80px 15px 20px;
+}
+.card{
+  background:#151515;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
+}
+.card h3{
+  margin:0 0 6px 0;
+}
+.effect{
+  font-size:14px;
+  opacity:.85;
+}
+.price{
+  margin-top:6px;
+  font-weight:bold;
+}
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  background:#1f1f1f;
+  color:#fff;
+  font-size:16px;
+}
+button:hover{background:#333}
+.back{
+  background:#500;
+  margin:20px 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <b>☕ Coffee Shop</b>
+</div>
+
+<div class="container" id="shop"></div>
+
+<button class="back" onclick="location.href='nightlife.html'">⬅ Geri</button>
+
+<script>
+/* ========= 30 UYUŞTURUCU ========= */
+const drugs = [
+ {name:"Ot (Çizgi)", effect:"Enerji +2 / Risk +1", price:20},
+ {name:"Ot (Taş)", effect:"Enerji +3 / Risk +2", price:26},
+ {name:"Mor Sis", effect:"XP +5 / Risk +2", price:30},
+ {name:"Kırmızı Çizik", effect:"XP +6 / Risk +3", price:34},
+ {name:"Pembe Toz", effect:"Başarı +2% / Risk +3", price:38},
+ {name:"Gece Mantarı", effect:"XP +8 / Risk +4", price:42},
+ {name:"Beyaz Hayal", effect:"Enerji +4 / XP +4", price:45},
+ {name:"Neon Ot", effect:"Enerji +5 / Risk +3", price:48},
+ {name:"Zihin Parçası", effect:"Başarı +3%", price:52},
+ {name:"Kara Çamur", effect:"XP +10 / Risk +5", price:55},
+
+ {name:"Mavi Kristal", effect:"Enerji +6 / Risk +4", price:58},
+ {name:"Sokak Şekeri", effect:"Enerji +4 / XP +3", price:32},
+ {name:"Derin Kafa", effect:"Başarı +4% / Risk +5", price:60},
+ {name:"Gölgeli Hap", effect:"XP +7 / Risk +3", price:40},
+ {name:"Kafesiz", effect:"Enerji +7 / Risk +6", price:65},
+ {name:"Ateş Tozu", effect:"Başarı +5% / Risk +6", price:70},
+ {name:"Rüya Yaprağı", effect:"XP +12 / Risk +7", price:75},
+ {name:"Zombi Karışım", effect:"Enerji +8 / Risk +8", price:80},
+ {name:"Yüksek Bulut", effect:"Enerji +9 / XP +6", price:85},
+ {name:"Çarpık Mantık", effect:"Başarı +6% / Risk +7", price:90},
+
+ {name:"Sıvı Gece", effect:"XP +15 / Risk +8", price:95},
+ {name:"Alt Beyin", effect:"Enerji +10 / Risk +9", price:100},
+ {name:"Parazit", effect:"Başarı +7% / Risk +10", price:110},
+ {name:"Bulanık Hat", effect:"XP +18 / Risk +11", price:120},
+ {name:"Frekans", effect:"Enerji +12 / XP +8", price:130},
+ {name:"Sersem", effect:"Risk +12 / XP +20", price:140},
+ {name:"Karanlık Çay", effect:"Başarı +8% / Risk +12", price:150},
+ {name:"Psiko Damla", effect:"XP +25 / Risk +14", price:160},
+ {name:"Paranoya", effect:"Enerji +15 / Risk +15", price:170},
+ {name:"Son Nefes", effect:"XP +30 / Risk +18", price:200}
+];
+
+let html = "";
+drugs.forEach(d=>{
+ html += `
+  <div class="card">
+    <h3>${d.name}</h3>
+    <div class="effect">${d.effect}</div>
+    <div class="price">${d.price} YTon</div>
+    <button onclick="buyDrug('${d.name}')">Satın Al</button>
+  </div>
+ `;
+});
+
+document.getElementById("shop").innerHTML = html;
+
+function buyDrug(name){
+  alert("☕ Kullanıldı: " + name);
+}
+</script>
+
+</body>
+</html>
