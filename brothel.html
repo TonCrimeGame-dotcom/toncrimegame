@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Genel Ev</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.header{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-bottom:1px solid #222;
+}
+.container{
+  padding:80px 15px 20px;
+}
+.section{
+  margin-bottom:25px;
+}
+.section h2{
+  margin-bottom:10px;
+  font-size:18px;
+}
+.card{
+  background:#151515;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:12px;
+}
+.name{
+  font-size:16px;
+  font-weight:bold;
+}
+.effect{
+  font-size:14px;
+  opacity:.85;
+  margin-top:4px;
+}
+.price{
+  margin-top:6px;
+  font-weight:bold;
+}
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  background:#1f1f1f;
+  color:#fff;
+  font-size:16px;
+}
+button:hover{background:#333}
+.back{
+  background:#500;
+  margin:20px 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <b>💋 Genel Ev</b>
+</div>
+
+<div class="container" id="brothel"></div>
+
+<button class="back" onclick="location.href='nightlife.html'">⬅ Geri</button>
+
+<script>
+/* ===== KADINLAR (35) ===== */
+const women = [
+ "Mia Khalite","Lana Rains","Sasha Noir","Lola Velvet","Kira Moon",
+ "Vera Blaze","Nina Fox","Bella Storm","Ruby Kiss","Alina Frost",
+ "Eva Lux","Maya Sin","Daisy Night","Lexa Flame","Rina Dark",
+ "Tina Glow","Katy Venom","Nora Silk","Ivy Black","Mila Rose",
+ "Sienna Red","Aria Vice","Nika Poison","Lily Smoke","Zara Heat",
+ "Vixen Blue","Kora Night","Luna Vice","Tara Sin","Jade Velvet",
+ "Elena Ice","Roxy Hell","Vera Pink","Nadia Lux","Mona Kiss"
+];
+
+/* ===== ERKEKLER (10) ===== */
+const men = [
+ "Johnny Steel","Max Power","Leo Storm","Rick Blaze","Tony Dark",
+ "Axel Noir","Chris Venom","Duke Stone","Mark Inferno","Ivan Rush"
+];
+
+/* ===== İKİZLER (5) ===== */
+const twins = [
+ "Scarlet & Violet",
+ "Luna & Nova",
+ "Ivy & Lily",
+ "Rose & Ruby",
+ "Mia & Mila"
+];
+
+let html = "";
+
+/* KADINLAR */
+html += `<div class="section"><h2>👠 Kadınlar</h2>`;
+women.forEach((n,i)=>{
+ html += `
+  <div class="card">
+    <div class="name">${n}</div>
+    <div class="effect">Enerji +5 | Başarı +3% | Risk +1</div>
+    <div class="price">${30 + i} YTon</div>
+    <button onclick="buyService('${n}')">Hizmet Al</button>
+  </div>
+ `;
+});
+html += `</div>`;
+
+/* ERKEKLER */
+html += `<div class="section"><h2>🕴️ Erkekler</h2>`;
+men.forEach((n,i)=>{
+ html += `
+  <div class="card">
+    <div class="name">${n}</div>
+    <div class="effect">Enerji +6 | Başarı +4% | Risk +2</div>
+    <div class="price">${55 + i*2} YTon</div>
+    <button onclick="buyService('${n}')">Hizmet Al</button>
+  </div>
+ `;
+});
+html += `</div>`;
+
+/* İKİZLER */
+html += `<div class="section"><h2>👯 İkizler</h2>`;
+twins.forEach((n,i)=>{
+ html += `
+  <div class="card">
+    <div class="name">${n}</div>
+    <div class="effect">Enerji +10 | Başarı +8% | Risk +3</div>
+    <div class="price">${120 + i*5} YTon</div>
+    <button onclick="buyService('${n}')">Hizmet Al</button>
+  </div>
+ `;
+});
+html += `</div>`;
+
+document.getElementById("brothel").innerHTML = html;
+
+function buyService(name){
+ alert("💋 Hizmet alındı: " + name);
+}
+</script>
+
+</body>
+</html>
