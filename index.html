@@ -19,14 +19,15 @@ body{
   top:0;left:0;right:0;
   height:60px;
   background:#000;
-  display:flex;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
   align-items:center;
-  justify-content:space-between;
   padding:0 15px;
   z-index:1000;
   border-bottom:1px solid #222;
 }
 
+/* LEFT */
 #topLeft{
   display:flex;
   align-items:center;
@@ -43,6 +44,37 @@ body{
   font-size:18px;
 }
 
+/* CENTER – XP BAR */
+#xpWrapper{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+#level{
+  font-size:13px;
+  opacity:0.9;
+  white-space:nowrap;
+}
+
+#xpBar{
+  width:100%;
+  max-width:420px;
+  height:12px;
+  background:#222;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#xpFill{
+  height:100%;
+  width:35%;
+  background:linear-gradient(90deg,#ffb300,#ff6a00);
+  transition:width .3s;
+}
+
+/* RIGHT */
 #statusBar{
   text-align:right;
   font-size:13px;
@@ -95,15 +127,28 @@ body{
 
 <!-- TOP BAR -->
 <div id="topBar">
+
+  <!-- LEFT -->
   <div id="topLeft">
     <div id="menuBtn" onclick="toggleMenu()">☰</div>
     <div id="logo">🔥 Yeraltı Şehri</div>
   </div>
 
+  <!-- CENTER -->
+  <div id="xpWrapper">
+    <div id="level">Lvl <b id="levelNum">3</b></div>
+    <div id="xpBar">
+      <div id="xpFill"></div>
+    </div>
+    <div id="xpText" style="font-size:12px;opacity:.8">350 / 1000 XP</div>
+  </div>
+
+  <!-- RIGHT -->
   <div id="statusBar">
     ⚡ Enerji: <b id="energy">80</b><br>
     💰 YTon: <b id="yton">120</b>
   </div>
+
 </div>
 
 <!-- SIDE MENU -->
@@ -133,10 +178,27 @@ body{
 <script>
 let menuOpen = false;
 
+/* MENU */
 function toggleMenu(){
   menuOpen = !menuOpen;
   document.getElementById("sideMenu").style.left = menuOpen ? "0" : "-260px";
 }
+
+/* XP SYSTEM (ŞİMDİLİK DEMO) */
+let level = 3;
+let xp = 350;
+let xpMax = 1000;
+
+function updateXP(){
+  document.getElementById("levelNum").innerText = level;
+  document.getElementById("xpText").innerText = xp + " / " + xpMax + " XP";
+  document.getElementById("xpFill").style.width = (xp / xpMax * 100) + "%";
+}
+
+updateXP();
+
+/* Test için XP artır (sonra sileriz) */
+// setInterval(()=>{ xp += 25; if(xp>=xpMax){xp=0;level++;} updateXP(); },2000);
 </script>
 
 </body>
