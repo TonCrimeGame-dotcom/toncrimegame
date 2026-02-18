@@ -17,9 +17,10 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 .content{padding:75px 15px}
 .mission{background:#111;border:1px solid #222;border-radius:10px;padding:12px;margin-bottom:12px}
 .mission button{width:100%;margin-top:10px;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold}
-#modalBg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center}
+#modalBg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center}
 .modal{background:#111;border-radius:12px;width:300px;padding:18px;border:1px solid #333;text-align:center}
 .modal h3{color:#f90;margin-top:0}
+.modal button{margin-top:10px;padding:8px 12px;background:#900;border:none;color:#fff;border-radius:8px}
 </style>
 </head>
 
@@ -48,17 +49,18 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 </div>
 
 <script>
+
 /* ===== PLAYER ===== */
 const player={
   level:42,
   xp:420,
   xpNext:1000,
   energy:80,
-  yton:120
+  yton:120,
+  hospitalUntil:0
 };
 
-/* ===== GAME BANK (SEN) ===== */
-let gameBank = 0;
+let gameBank=0;
 
 /* ===== MISSIONS ===== */
 const missionsData=[
@@ -76,23 +78,47 @@ function refreshUI(){
 refreshUI();
 
 /* ===== MODAL ===== */
-function openModal(t){modalText.innerHTML=t;modalBg.style.display="flex"}
-function closeModal(){modalBg.style.display="none"}
+function openModal(html){
+  modalText.innerHTML=html;
+  modalBg.style.display="flex";
+}
+function closeModal(){
+  modalBg.style.display="none";
+}
 
-/* ===== HELPERS ===== */
-function todayKey(id){
-  return "mission_"+id+"_"+new Date().toISOString().slice(0,10);
+/* ===== HOSPITAL CHECK ===== */
+function isHospitalized(){
+  return Date.now() < player.hospitalUntil;
 }
-function getRepeatCount(id){
-  return parseInt(localStorage.getItem(todayKey(id))||"0");
+
+function hospitalModal(){
+  const remaining = Math.ceil((player.hospitalUntil - Date.now())/60000);
+  openModal(
+    "🏥 Hastanedesin!<br><br>"+
+    "⏳ Kalan süre: "+remaining+" dakika<br><br>"+
+    "<button onclick='payHospital()'>10 YTon Öde</button>"
+  );
 }
-function incRepeat(id){
-  const k=todayKey(id);
-  localStorage.setItem(k,getRepeatCount(id)+1);
+
+function payHospital(){
+  if(player.yton < 10){
+    openModal("❌ Yeterli YTon yok");
+    return;
+  }
+  player.yton -= 10;
+  player.hospitalUntil = 0;
+  refreshUI();
+  openModal("✅ Hastaneden çıktın");
 }
 
 /* ===== START MISSION ===== */
 function startMission(i){
+
+  if(isHospitalized()){
+    hospitalModal();
+    return;
+  }
+
   const m=missionsData[i];
 
   if(player.energy < m.energy){
@@ -100,48 +126,51 @@ function startMission(i){
     return;
   }
 
-  const repeats = getRepeatCount(m.id);
-  const stage = Math.floor(repeats / 10);
-  const finalRisk = m.baseRisk * (1 + stage);
-  const roll = Math.random() * 100;
-
   player.energy -= m.energy;
-  incRepeat(m.id);
 
-  if(roll < finalRisk){
-    // ❌ BAŞARISIZLIK
-    const lossYton = Math.floor(m.yton / 2);
-    const actualLoss = Math.min(player.yton, lossYton);
+  const roll=Math.random()*100;
 
-    player.yton -= actualLoss;
-    gameBank += actualLoss;
+  if(roll < m.baseRisk){
+    /* ❌ BAŞARISIZ */
+    const lossYton=Math.floor(m.yton/2);
+    const actualLoss=Math.min(player.yton,lossYton);
 
-    player.xp = Math.max(0, player.xp - m.xp);
+    player.yton-=actualLoss;
+    player.xp=Math.max(0,player.xp-m.xp);
+    gameBank+=actualLoss;
 
-    openModal(
-      "🚓 <b>Polise Yakalandın!</b><br><br>"+
-      "⚠️ Risk: %"+finalRisk+"<br>"+
-      "💰 -"+actualLoss+" YTon<br>"+
-      "⭐ -"+m.xp+" XP<br>"+
-      "🏦 Oyun Kasası +"+actualLoss+" YTon"
-    );
+    /* 🎲 %50 HASTANE */
+    if(Math.random() < 0.5){
+      player.hospitalUntil = Date.now() + (10*60*1000);
+      openModal(
+        "🚓 Görev Başarısız!<br>"+
+        "💰 -"+actualLoss+" YTon<br>"+
+        "⭐ -"+m.xp+" XP<br><br>"+
+        "🏥 Hastaneye düştün (10 dk)"
+      );
+    }else{
+      openModal(
+        "🚓 Görev Başarısız!<br>"+
+        "💰 -"+actualLoss+" YTon<br>"+
+        "⭐ -"+m.xp+" XP"
+      );
+    }
+
   }else{
-    // ✅ BAŞARI
-    player.xp += m.xp;
-    player.yton += m.yton;
+    /* ✅ BAŞARI */
+    player.yton+=m.yton;
+    player.xp+=m.xp;
 
-    if(player.xp >= player.xpNext){
+    if(player.xp>=player.xpNext){
       player.level++;
-      player.xp = 0;
-      player.xpNext += 500;
+      player.xp=0;
+      player.xpNext+=500;
     }
 
     openModal(
-      "✅ <b>"+m.name+"</b><br><br>"+
+      "✅ "+m.name+"<br>"+
       "💰 +"+m.yton+" YTon<br>"+
-      "⭐ +"+m.xp+" XP<br>"+
-      "⚠️ Günlük tekrar: "+(repeats+1)+"<br>"+
-      "Risk: %"+finalRisk
+      "⭐ +"+m.xp+" XP"
     );
   }
 
@@ -155,11 +184,12 @@ missionsData.forEach((m,i)=>{
       <b>${m.name}</b><br>
       ${m.desc}<br>
       ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon<br>
-      ⚠️ Taban Risk: %${m.baseRisk}
+      ⚠️ Risk: %${m.baseRisk}
       <button onclick="startMission(${i})">Görevi Yap</button>
     </div>
   `;
 });
+
 </script>
 
 </body>
