@@ -8,38 +8,151 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#000;color:#fff;font-family:Arial}
-.topbar{position:fixed;top:0;left:0;right:0;height:55px;background:#050505;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #222}
-.logo{color:#f90;font-weight:bold}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:55px;
+  background:#050505;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  border-bottom:1px solid #222;
+  z-index:1000;
+}
+.menu-btn{
+  font-size:22px;
+  cursor:pointer;
+  margin-right:10px;
+}
+.logo{
+  color:#f90;
+  font-weight:bold;
+  min-width:130px;
+}
 .xp-box{flex:1;padding:0 12px}
 .xp-bar{height:8px;background:#222;border-radius:10px;overflow:hidden}
 .xp-fill{height:100%;background:linear-gradient(90deg,#f90,#ff0)}
 .stats{text-align:right;font-size:13px}
-.content{padding:75px 15px}
-.mission{background:#111;border:1px solid #222;border-radius:10px;padding:12px;margin-bottom:12px}
-.mission button{width:100%;margin-top:10px;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold}
-#modalBg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);align-items:center;justify-content:center}
-.modal{background:#111;border-radius:12px;width:300px;padding:18px;border:1px solid #333;text-align:center}
+
+/* ===== SIDE MENU ===== */
+.side-menu{
+  position:fixed;
+  top:55px;
+  left:-240px;
+  width:240px;
+  height:100%;
+  background:#0a0a0a;
+  transition:.3s;
+  z-index:999;
+}
+.side-menu.open{left:0}
+.side-menu a{
+  display:block;
+  padding:14px;
+  color:#fff;
+  text-decoration:none;
+  border-bottom:1px solid #222;
+}
+.side-menu a:hover{background:#111}
+
+#overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:998;
+}
+
+/* ===== CONTENT ===== */
+.content{
+  padding:75px 15px;
+}
+.mission{
+  background:#111;
+  border:1px solid #222;
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:12px;
+}
+.mission button{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  background:#f90;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+}
+
+/* ===== MODAL ===== */
+#modalBg{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.8);
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+}
+.modal{
+  background:#111;
+  border-radius:12px;
+  width:300px;
+  padding:18px;
+  border:1px solid #333;
+  text-align:center;
+}
 .modal h3{color:#f90;margin-top:0}
-.modal button{margin-top:10px;padding:8px 12px;background:#900;border:none;color:#fff;border-radius:8px}
+.modal button{
+  margin-top:10px;
+  padding:8px 12px;
+  background:#900;
+  border:none;
+  color:#fff;
+  border-radius:8px;
+}
 </style>
 </head>
 
 <body>
 
+<!-- ===== TOP BAR ===== -->
 <div class="topbar">
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
   <div class="logo">🔥 Yeraltı Şehri</div>
+
   <div class="xp-box">
-    <div style="font-size:11px">Level <span id="lvl"></span></div>
-    <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+    <div style="font-size:11px">
+      Level <span id="lvl"></span>
+    </div>
+    <div class="xp-bar">
+      <div class="xp-fill" id="xpFill"></div>
+    </div>
   </div>
+
   <div class="stats">
     ⚡ <span id="energy"></span><br>
     💰 <span id="yton"></span>
   </div>
 </div>
 
+<!-- ===== SIDE MENU ===== -->
+<div id="overlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="menu">
+  <a href="index.html">🏠 Ana Menü</a>
+  <a href="missions.html">💣 Görevler</a>
+  <a href="pvp.html">⚔️ PvP</a>
+  <a href="nightlife.html">🌃 Gece Hayatı</a>
+  <a href="weapons.html">🔫 Silah Tüccarı</a>
+  <a href="hospital.html">🏥 Hastane</a>
+</div>
+
+<!-- ===== CONTENT ===== -->
 <div class="content" id="missions"></div>
 
+<!-- ===== MODAL ===== -->
 <div id="modalBg">
   <div class="modal">
     <h3>TonCrimeGame</h3>
@@ -50,15 +163,20 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 
 <script>
 
-/* ===============================
-   KALICI PLAYER SİSTEMİ
-================================ */
+/* ===== MENU ===== */
+function toggleMenu(){
+  menu.classList.toggle("open");
+  overlay.style.display="block";
+}
+function closeMenu(){
+  menu.classList.remove("open");
+  overlay.style.display="none";
+}
 
+/* ===== PLAYER LOAD ===== */
 function loadPlayer(){
   const saved = localStorage.getItem("playerData");
-  if(saved){
-    return JSON.parse(saved);
-  }
+  if(saved) return JSON.parse(saved);
 
   const newPlayer={
     level:42,
@@ -68,79 +186,67 @@ function loadPlayer(){
     yton:120,
     hospitalUntil:0
   };
-
-  localStorage.setItem("playerData", JSON.stringify(newPlayer));
+  localStorage.setItem("playerData",JSON.stringify(newPlayer));
   return newPlayer;
 }
 
 function savePlayer(){
-  localStorage.setItem("playerData", JSON.stringify(player));
+  localStorage.setItem("playerData",JSON.stringify(player));
 }
 
 let player = loadPlayer();
 let gameBank = parseInt(localStorage.getItem("gameBank")) || 0;
 
 function saveBank(){
-  localStorage.setItem("gameBank", gameBank);
+  localStorage.setItem("gameBank",gameBank);
 }
 
-/* ================= UI ================= */
-
+/* ===== UI ===== */
 function refreshUI(){
   lvl.innerText = player.level;
   energy.innerText = player.energy;
   yton.innerText = player.yton;
   xpFill.style.width = Math.min(100,(player.xp/player.xpNext)*100)+"%";
 }
-
 refreshUI();
 
-/* ================= MODAL ================= */
-
+/* ===== MODAL ===== */
 function openModal(html){
-  modalText.innerHTML = html;
+  modalText.innerHTML=html;
   modalBg.style.display="flex";
 }
-
 function closeModal(){
   modalBg.style.display="none";
 }
 
-/* ================= HOSPITAL ================= */
-
+/* ===== HOSPITAL ===== */
 function isHospitalized(){
   return Date.now() < player.hospitalUntil;
 }
-
 function hospitalModal(){
   const remaining = Math.ceil((player.hospitalUntil - Date.now())/60000);
   openModal(
     "🏥 Hastanedesin!<br><br>"+
-    "⏳ Kalan süre: "+remaining+" dakika<br><br>"+
+    "⏳ "+remaining+" dakika kaldı<br><br>"+
     "<button onclick='payHospital()'>10 YTon Öde</button>"
   );
 }
-
 function payHospital(){
   if(player.yton < 10){
     openModal("❌ Yeterli YTon yok");
     return;
   }
-
   player.yton -= 10;
   player.hospitalUntil = 0;
-
   savePlayer();
   refreshUI();
-
   openModal("✅ Hastaneden çıktın");
 }
 
-/* ================= MISSIONS ================= */
-
+/* ===== MISSIONS ===== */
 const missionsData=[
-  {id:1,name:"Sokak Temizliği",desc:"Rakip çeteyi dağıt",energy:10,xp:20,yton:50,baseRisk:3},
-  {id:2,name:"Kaçak Mal",desc:"Depodan mal çıkar",energy:15,xp:30,yton:80,baseRisk:6}
+  {name:"Sokak Temizliği",desc:"Rakip çeteyi dağıt",energy:10,xp:20,yton:50,risk:3},
+  {name:"Kaçak Mal",desc:"Depodan mal çıkar",energy:15,xp:30,yton:80,risk:6}
 ];
 
 function startMission(i){
@@ -161,13 +267,12 @@ function startMission(i){
 
   const roll = Math.random()*100;
 
-  if(roll < m.baseRisk){
-
+  if(roll < m.risk){
     const lossYton = Math.floor(m.yton/2);
-    const actualLoss = Math.min(player.yton, lossYton);
+    const actualLoss = Math.min(player.yton,lossYton);
 
     player.yton -= actualLoss;
-    player.xp = Math.max(0, player.xp - m.xp);
+    player.xp = Math.max(0,player.xp - m.xp);
     gameBank += actualLoss;
 
     saveBank();
@@ -175,28 +280,27 @@ function startMission(i){
     if(Math.random() < 0.5){
       player.hospitalUntil = Date.now() + (10*60*1000);
       openModal(
-        "🚓 Görev Başarısız!<br>"+
+        "🚓 Başarısız!<br>"+
         "💰 -"+actualLoss+" YTon<br>"+
         "⭐ -"+m.xp+" XP<br><br>"+
-        "🏥 Hastaneye düştün (10 dk)"
+        "🏥 Hastaneye düştün"
       );
     }else{
       openModal(
-        "🚓 Görev Başarısız!<br>"+
+        "🚓 Başarısız!<br>"+
         "💰 -"+actualLoss+" YTon<br>"+
         "⭐ -"+m.xp+" XP"
       );
     }
 
   }else{
-
     player.yton += m.yton;
     player.xp += m.xp;
 
     if(player.xp >= player.xpNext){
       player.level++;
-      player.xp = 0;
-      player.xpNext += 500;
+      player.xp=0;
+      player.xpNext+=500;
     }
 
     openModal(
@@ -210,20 +314,18 @@ function startMission(i){
   refreshUI();
 }
 
-/* ================= RENDER ================= */
-
+/* ===== RENDER ===== */
 missionsData.forEach((m,i)=>{
   missions.innerHTML+=`
     <div class="mission">
       <b>${m.name}</b><br>
       ${m.desc}<br>
       ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon<br>
-      ⚠️ Risk: %${m.baseRisk}
+      ⚠️ Risk: %${m.risk}
       <button onclick="startMission(${i})">Görevi Yap</button>
     </div>
   `;
 });
-
 </script>
 
 </body>
