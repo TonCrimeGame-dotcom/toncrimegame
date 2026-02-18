@@ -128,7 +128,7 @@ body{
 
 <!-- ===== TOP BAR ===== -->
 <div class="topbar">
-  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+  <div class="menu-btn" id="menuBtn">☰</div>
   <div class="logo">🔥 Yeraltı Şehri</div>
 
   <div class="xp-box">
@@ -157,7 +157,7 @@ body{
 </div>
 
 <!-- ===== CONTENT ===== -->
-<div class="content">
+<div class="content" id="pageContent">
   <div class="card">
     🏆 <b>PvP Turnuvası Aktif</b><br>
     Ödül: 500 YTon
@@ -186,7 +186,7 @@ body{
 </div>
 
 <script>
-/* ===== PLAYER DATA (ŞİMDİLİK SABİT) ===== */
+/* ===== PLAYER DATA ===== */
 const player = {
   level: 42,
   xpPercent: 40,
@@ -196,24 +196,41 @@ const player = {
 };
 
 /* ===== INIT ===== */
-document.getElementById("lvl").innerText = player.level;
-document.getElementById("energy").innerText = player.energy;
-document.getElementById("yton").innerText = player.yton;
-document.getElementById("xpFill").style.width = player.xpPercent + "%";
+lvl.innerText = player.level;
+energy.innerText = player.energy;
+yton.innerText = player.yton;
+xpFill.style.width = player.xpPercent + "%";
 
-/* ===== MENU ===== */
-function toggleMenu(){
-  document.getElementById("menu").classList.toggle("open");
-}
+/* ===== MENU LOGIC ===== */
+const menu = document.getElementById("menu");
+const menuBtn = document.getElementById("menuBtn");
+const content = document.getElementById("pageContent");
+
+menuBtn.addEventListener("click", (e)=>{
+  e.stopPropagation(); // dış tıklama sayılmasın
+  menu.classList.toggle("open");
+});
+
+// Menü dışına tıklanınca kapat
+document.addEventListener("click",(e)=>{
+  if(menu.classList.contains("open") && !menu.contains(e.target)){
+    menu.classList.remove("open");
+  }
+});
+
+// Menü içindeki tıklamalar kapanmasın
+menu.addEventListener("click",(e)=>{
+  e.stopPropagation();
+});
 
 /* ===== MODAL ===== */
 function openModal(title,text){
-  document.getElementById("modalTitle").innerHTML = title;
-  document.getElementById("modalText").innerHTML = text;
-  document.getElementById("modalBg").style.display="flex";
+  modalTitle.innerHTML = title;
+  modalText.innerHTML = text;
+  modalBg.style.display="flex";
 }
 function closeModal(){
-  document.getElementById("modalBg").style.display="none";
+  modalBg.style.display="none";
 }
 
 /* ===== BUSINESS CONTROL ===== */
