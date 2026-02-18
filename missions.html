@@ -11,50 +11,42 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 
 /* ===== TOPBAR ===== */
 .topbar{
-  position:fixed;top:0;left:0;right:0;
-  height:60px;background:#050505;
-  display:flex;align-items:center;
-  padding:0 12px;z-index:1000;
-  border-bottom:1px solid #222;
+position:fixed;top:0;left:0;right:0;height:60px;
+background:#050505;display:flex;align-items:center;
+padding:0 12px;border-bottom:1px solid #222;z-index:1000;
 }
-.menu-btn{font-size:22px;cursor:pointer;margin-right:10px}
-.logo{color:#f90;font-weight:bold;min-width:140px}
-.xp-box{flex:1;padding:0 12px}
-.xp-bar{width:100%;height:8px;background:#222;border-radius:10px;overflow:hidden}
-.xp-fill{height:100%;width:0%;background:linear-gradient(90deg,#f90,#ff0);transition:.5s}
-.energy-bar{width:100%;height:6px;background:#111;border-radius:10px;overflow:hidden;margin-top:3px}
-.energy-fill{height:100%;width:0%;background:linear-gradient(90deg,#00ffcc,#00ff66);transition:.5s}
-.stats{text-align:right;font-size:13px;min-width:100px}
+.menu-btn{cursor:pointer;margin-right:10px}
+.logo{color:#f90;font-weight:bold;min-width:130px}
+.xp-box{flex:1;padding:0 10px}
+.xp-bar{height:8px;background:#222;border-radius:10px;overflow:hidden}
+.xp-fill{height:100%;width:0%;background:linear-gradient(90deg,#f90,#ff0);transition:.4s}
+.energy-bar{height:6px;background:#111;border-radius:10px;margin-top:3px;overflow:hidden}
+.energy-fill{height:100%;width:0%;background:linear-gradient(90deg,#0ff,#0f0);transition:.4s}
+.stats{text-align:right;font-size:13px}
 
 /* ===== MENU ===== */
 .side-menu{
-  position:fixed;top:60px;left:-240px;
-  width:240px;height:100%;
-  background:#0a0a0a;transition:.3s;z-index:999;
+position:fixed;top:60px;left:-240px;width:240px;height:100%;
+background:#0a0a0a;transition:.3s;z-index:999;
 }
 .side-menu.open{left:0}
-.side-menu a{
-  display:block;padding:14px;color:#fff;
-  text-decoration:none;border-bottom:1px solid #222;
-}
+.side-menu a{display:block;padding:14px;color:#fff;text-decoration:none;border-bottom:1px solid #222}
 .side-menu a:hover{background:#111}
-#overlay{
-  display:none;position:fixed;inset:0;
-  background:rgba(0,0,0,.4);z-index:998;
-}
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:998}
 
 /* ===== LAYOUT ===== */
 .wrapper{display:flex;padding-top:80px}
 .left{width:55%;padding:15px}
 .right{width:45%;padding:15px;border-left:1px solid #222}
 
-/* ===== MISSIONS ===== */
+/* ===== MISSION ===== */
 .mission{background:#111;padding:12px;border-radius:10px;margin-bottom:12px}
-.mission button{width:100%;margin-top:8px;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold}
-
-/* ===== TABLE ===== */
-.table{background:#111;padding:10px;border-radius:10px}
-.row{border-bottom:1px solid #222;padding:5px 0;font-size:13px}
+.mission button{
+width:100%;margin-top:8px;padding:10px;
+background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
+}
+.table{background:#111;border-radius:10px;padding:10px}
+.row{border-bottom:1px solid #222;padding:6px 0;font-size:13px}
 .success{color:#0f0}
 .fail{color:#f33}
 </style>
@@ -62,189 +54,200 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 
 <body>
 
-<!-- ===== TOPBAR ===== -->
 <div class="topbar">
-  <div class="menu-btn" onclick="toggleMenu()">☰</div>
-  <div class="logo">🔥 Yeraltı Şehri</div>
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+<div class="logo">🔥 Yeraltı Şehri</div>
 
-  <div class="xp-box">
-    <div style="font-size:11px">
-      Level <span id="lvl"></span>
-    </div>
-    <div class="xp-bar">
-      <div class="xp-fill" id="xpFill"></div>
-    </div>
-  </div>
+<div class="xp-box">
+<div style="font-size:11px">Level <span id="lvl"></span></div>
+<div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+</div>
 
-  <div class="stats">
-    ⚡ <span id="energy"></span>
-    <div class="energy-bar">
-      <div class="energy-fill" id="energyFill"></div>
-    </div>
-    💰 <span id="yton"></span>
-  </div>
+<div class="stats">
+⚡ <span id="energy"></span>
+<div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
+💰 <span id="yton"></span>
+</div>
 </div>
 
 <div id="overlay" onclick="closeMenu()"></div>
-
 <div class="side-menu" id="menu">
-  <a href="index.html">🏠 Ana Menü</a>
-  <a href="missions.html">🧾 Görevler</a>
-  <a href="pvp.html">⚔️ PvP</a>
-  <a href="nightlife.html">🌃 Gece Hayatı</a>
-  <a href="weapons.html">🔫 Silah Tüccarı</a>
-  <a href="hospital.html">🏥 Hastane</a>
+<a href="index.html">🏠 Ana Menü</a>
+<a href="missions.html">🧾 Görevler</a>
+<a href="pvp.html">⚔️ PvP</a>
 </div>
 
 <div class="wrapper">
-  <div class="left" id="missions"></div>
-
-  <div class="right">
-    <div class="table">
-      <b>📊 Görev İstatistik</b>
-      <div id="statsBox"></div>
-      <hr>
-      <b>🕒 Geçmiş</b>
-      <div id="historyBox"></div>
-    </div>
-  </div>
+<div class="left" id="missions"></div>
+<div class="right">
+<div class="table">
+<b>📊 İstatistik</b>
+<div id="statsBox"></div>
+<hr>
+<b>🕒 Geçmiş</b>
+<div id="historyBox"></div>
+</div>
+</div>
 </div>
 
-<script src="engine.js"></script>
- <script>setInterval(() => {
+<script>
 
-  const p = JSON.parse(localStorage.getItem("player"));
-  if (!p) return;
+/* ===== CORE PLAYER ===== */
+const MAX_ENERGY=100;
+const ENERGY_REGEN=60;
 
-  const energyEl = document.getElementById("energy");
-  const energyFill = document.getElementById("energyFill");
+function getPlayer(){return JSON.parse(localStorage.getItem("player"))}
+function setPlayer(p){localStorage.setItem("player",JSON.stringify(p))}
 
-  if (energyEl) energyEl.innerText = p.energy;
-
-  if (energyFill) {
-    energyFill.style.width = (p.energy / 100) * 100 + "%";
-  }
-
-}, 1000);<script>
-  <script>
-
-/* ===== MENU ===== */
-function toggleMenu(){
-  document.getElementById("menu").classList.toggle("open");
-  document.getElementById("overlay").style.display="block";
+let player=getPlayer();
+if(!player){
+player={
+level:1,xp:0,xpNext:100,
+energy:80,yton:120,premium:false,
+hospitalUntil:0,lastEnergyTick:Date.now(),
+missionStats:{success:0,fail:0},
+missionHistory:[],
+missionRepeat:{}
 }
-function closeMenu(){
-  document.getElementById("menu").classList.remove("open");
-  document.getElementById("overlay").style.display="none";
+setPlayer(player)
 }
 
-/* ===== PLAYER UI SYNC ===== */
-function updateTopUI(){
-  document.getElementById("lvl").innerText=player.level;
-  document.getElementById("energy").innerText=player.energy;
-  document.getElementById("yton").innerText=player.yton;
-
-  document.getElementById("xpFill").style.width=
-    (player.xp/player.xpNext*100)+"%";
-
-  document.getElementById("energyFill").style.width=
-    (player.energy/100*100)+"%";
+/* ===== ENERGY REGEN ===== */
+function regen(){
+let p=getPlayer()
+if(p.energy>=MAX_ENERGY)return
+let now=Date.now()
+let sec=Math.floor((now-p.lastEnergyTick)/1000)
+if(sec>=ENERGY_REGEN){
+let gain=Math.floor(sec/ENERGY_REGEN)
+p.energy=Math.min(MAX_ENERGY,p.energy+gain)
+p.lastEnergyTick+=gain*ENERGY_REGEN*1000
+setPlayer(p)
+}
 }
 
-setInterval(updateTopUI,500);
-updateTopUI();
+/* ===== UI UPDATE ===== */
+function updateUI(){
+let p=getPlayer()
+document.getElementById("lvl").innerText=p.level
+document.getElementById("energy").innerText=p.energy
+document.getElementById("yton").innerText=p.yton
+document.getElementById("xpFill").style.width=(p.xp/p.xpNext*100)+"%"
+document.getElementById("energyFill").style.width=(p.energy/100*100)+"%"
+}
 
-/* ===== GAME BANK ===== */
-let gameBank=parseInt(localStorage.getItem("gameBank"))||0;
+setInterval(()=>{regen();updateUI()},1000)
+updateUI()
 
 /* ===== MISSIONS ===== */
 const missionsData=[
- {name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
- {name:"Kaçak Mal",energy:15,xp:30,yton:80,risk:30}
-];
+{name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
+{name:"Kaçak Mal Taşıma",energy:15,xp:30,yton:80,risk:25},
+{name:"Gece Baskını",energy:20,xp:50,yton:120,risk:35}
+]
 
-let history=JSON.parse(localStorage.getItem("missionHistory"))||[];
-let repeatCounter=JSON.parse(localStorage.getItem("missionRepeat"))||{};
-let stats=JSON.parse(localStorage.getItem("missionStats"))||{success:0,fail:0};
-
-const box=document.getElementById("missions");
-
+function loadMissions(){
+const box=document.getElementById("missions")
+box.innerHTML=""
 missionsData.forEach(m=>{
-  box.innerHTML+=`
-  <div class="mission">
-    <b>${m.name}</b><br>
-    ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton}
-    <button onclick="startMission('${m.name}',${m.energy},${m.xp},${m.yton},${m.risk})">
-      Başlat
-    </button>
-  </div>`;
-});
+box.innerHTML+=`
+<div class="mission">
+<b>${m.name}</b><br>
+⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon | Risk ${m.risk}%
+<button onclick="startMission('${m.name}')">Başlat</button>
+</div>
+`
+})
+}
 
-function startMission(name,energy,xp,yton,baseRisk){
+function startMission(name){
+let p=getPlayer()
+let m=missionsData.find(x=>x.name===name)
 
-  if(Date.now()<player.hospitalUntil){
-    alert("🏥 Hastanedesin!");
-    return;
-  }
+/* HASTANE KONTROL */
+if(Date.now()<p.hospitalUntil){
+alert("Hastanedesin! Çıkmadan görev yapamazsın.")
+return
+}
 
-  if(!useEnergy(energy)){
-    alert("Enerji yetersiz");
-    return;
-  }
+if(p.energy<m.energy){
+alert("Yeterli enerji yok")
+return
+}
 
-  if(!repeatCounter[name]) repeatCounter[name]=0;
-  repeatCounter[name]++;
+/* TEKRAR RİSK */
+let repeat=p.missionRepeat[name]||0
+let finalRisk=m.risk
+if(repeat>=10){
+finalRisk*=2
+}
 
-  let riskMultiplier=Math.floor(repeatCounter[name]/10);
-  let finalRisk=baseRisk*(1+riskMultiplier);
+let success=Math.random()*100>finalRisk
 
-  let success=Math.random()*100>finalRisk;
-  let time=new Date().toLocaleTimeString();
+p.energy-=m.energy
 
-  if(success){
-    addXP(xp);
-    addYton(yton);
-    stats.success++;
-    history.unshift({name,time,result:"success"});
-  }else{
-    stats.fail++;
-    let lost=Math.floor(yton/2);
-    removeYton(lost);
-    gameBank+=lost;
-    localStorage.setItem("gameBank",gameBank);
-    addXP(-Math.floor(xp/2));
+if(success){
+p.xp+=m.xp
+p.yton+=m.yton
+p.missionStats.success++
+}else{
+p.xp=Math.max(0,p.xp-m.xp)
+let loss=Math.floor(m.yton/2)
+p.yton=Math.max(0,p.yton-loss)
+p.missionStats.fail++
 
-    if(Math.random()<0.5){
-      player.hospitalUntil=Date.now()+600000;
-      savePlayer();
-    }
+if(Math.random()<0.5){
+p.hospitalUntil=Date.now()+600000
+}
+}
 
-    history.unshift({name,time,result:"fail"});
-  }
+/* LEVEL UP */
+if(p.xp>=p.xpNext){
+p.level++
+p.xp=0
+p.xpNext+=100
+}
 
-  localStorage.setItem("missionHistory",JSON.stringify(history));
-  localStorage.setItem("missionRepeat",JSON.stringify(repeatCounter));
-  localStorage.setItem("missionStats",JSON.stringify(stats));
+p.missionRepeat[name]=(repeat+1)
+p.missionHistory.unshift({
+name:name,
+time:new Date().toLocaleTimeString(),
+result:success?"success":"fail"
+})
 
-  renderStats();
+setPlayer(p)
+updateUI()
+renderStats()
 }
 
 function renderStats(){
-  document.getElementById("statsBox").innerHTML=
-  `✅ ${stats.success} <br> ❌ ${stats.fail} <br> 🏦 ${gameBank} YTon`;
+let p=getPlayer()
+document.getElementById("statsBox").innerHTML=
+"Başarılı: "+p.missionStats.success+
+"<br>Başarısız: "+p.missionStats.fail
 
-  let h="";
-  history.slice(0,15).forEach(x=>{
-    h+=`<div class="row ${x.result}">
-      ${x.time} - ${x.name} - 
-      ${x.result==="success"?"Başarılı":"Başarısız"}
-    </div>`;
-  });
-  document.getElementById("historyBox").innerHTML=h;
+let history=""
+p.missionHistory.slice(0,10).forEach(h=>{
+history+=`<div class="row ${h.result}">
+${h.time} - ${h.name}
+</div>`
+})
+document.getElementById("historyBox").innerHTML=history
 }
 
-renderStats();
+function toggleMenu(){
+document.getElementById("menu").classList.toggle("open")
+document.getElementById("overlay").style.display="block"
+}
+function closeMenu(){
+document.getElementById("menu").classList.remove("open")
+document.getElementById("overlay").style.display="none"
+}
+
+loadMissions()
+renderStats()
 
 </script>
+
 </body>
 </html>
