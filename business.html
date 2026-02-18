@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>İş Hayatı</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+  padding:15px;
+}
+h1{margin-bottom:10px}
+.card{
+  background:#151515;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
+}
+button{
+  background:#ff9800;
+  border:none;
+  border-radius:8px;
+  padding:10px 15px;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:disabled{
+  background:#555;
+  cursor:not-allowed;
+}
+input{
+  width:100%;
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  margin-top:5px;
+}
+.small{font-size:13px;opacity:.8}
+.lock{
+  text-align:center;
+  padding:40px 20px;
+}
+.lock h2{color:#ff5252}
+.product{
+  display:flex;
+  justify-content:space-between;
+  margin:8px 0;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏢 İş Hayatı</h1>
+
+<div id="content"></div>
+
+<script>
+/* =========================
+   OYUNCU VERİLERİ (DEMO)
+   ========================= */
+const player = {
+  level: 42,        // 🔁 test için değiştir (50 yap → açılır)
+  premium: false,   // 🔁 true yap → direkt açılır
+  yton: 1200,
+};
+
+/* =========================
+   BİNA VERİLERİ
+   ========================= */
+let building = null;
+
+/* =========================
+   GİRİŞ KONTROLÜ
+   ========================= */
+function canAccess(){
+  return player.premium || player.level >= 50;
+}
+
+/* =========================
+   EKRANLAR
+   ========================= */
+function render(){
+  const c = document.getElementById("content");
+  c.innerHTML = "";
+
+  if(!canAccess()){
+    c.innerHTML = `
+      <div class="card lock">
+        <h2>🔒 İş Hayatı Kilitli</h2>
+        <p>Bu alan <b>Level 50</b>’de açılır.</p>
+        <p>⭐ Premium üyeler için direkt açıktır.</p>
+        <p class="small">Mevcut level: ${player.level}</p>
+      </div>
+    `;
+    return;
+  }
+
+  if(!building){
+    c.innerHTML = `
+      <div class="card">
+        <h2>🏗️ Bina Satın Al</h2>
+        <p>Bir bina satın alarak iş hayatına başla.</p>
+        <p><b>Fiyat:</b> 1000 YTon</p>
+        <button onclick="buyBuilding()">Satın Al</button>
+      </div>
+    `;
+    return;
+  }
+
+  renderBuilding();
+}
+
+/* =========================
+   BİNA SATIN AL
+   ========================= */
+function buyBuilding(){
+  if(player.yton < 1000){
+    alert("Yeterli YTon yok");
+    return;
+  }
+
+  player.yton -= 1000;
+
+  building = {
+    name: "Yeraltı Fabrikası",
+    product: "Kaçak Ürün",
+    stock: 100,        // günlük üretim
+    price: 20,         // patron belirler
+    safe: 0
+  };
+
+  render();
+}
+
+/* =========================
+   BİNA PANELİ
+   ========================= */
+function renderBuilding(){
+  const c = document.getElementById("content");
+  c.innerHTML = `
+    <div class="card">
+      <h2>🏭 ${building.name}</h2>
+
+      <div class="product">
+        <span>📦 Stok:</span>
+        <b>${building.stock}</b>
+      </div>
+
+      <div class="product">
+        <span>💰 Kasa:</span>
+        <b>${building.safe} YTon</b>
+      </div>
+
+      <div class="product">
+        <span>🏷️ Ürün Fiyatı:</span>
+        <b>${building.price} YTon</b>
+      </div>
+
+      <hr style="margin:10px 0;border-color:#222">
+
+      <label>Yeni fiyat belirle:</label>
+      <input type="number" id="newPrice" value="${building.price}">
+      <button onclick="setPrice()">Fiyatı Güncelle</button>
+
+      <hr style="margin:10px 0;border-color:#222">
+
+      <button onclick="sellProducts()">📤 Satış Yap</button>
+      <p class="small">Günde otomatik 100 adet üretim (demo)</p>
+    </div>
+  `;
+}
+
+/* =========================
+   FİYAT BELİRLE
+   ========================= */
+function setPrice(){
+  const p = Number(document.getElementById("newPrice").value);
+  if(p <= 0){ alert("Geçersiz fiyat"); return; }
+  building.price = p;
+  render();
+}
+
+/* =========================
+   SATIŞ
+   ========================= */
+function sellProducts(){
+  if(building.stock <= 0){
+    alert("Stok yok");
+    return;
+  }
+
+  const income = building.stock * building.price;
+  building.safe += income;
+  building.stock = 0;
+
+  alert("Satış yapıldı: +" + income + " YTon");
+  render();
+}
+
+/* =========================
+   GÜNLÜK ÜRETİM (DEMO)
+   ========================= */
+setInterval(()=>{
+  if(building){
+    building.stock += 100;
+    if(building.stock > 1000) building.stock = 1000;
+    render();
+  }
+}, 15000); // 15 sn = 1 gün (demo)
+
+/* ========================= */
+render();
+</script>
+
+</body>
+</html>
