@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Silah Tüccarı</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  margin:0;
+  background:#0b0b0b;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.header{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:60px;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-bottom:1px solid #222;
+  z-index:10;
+}
+.container{
+  padding:80px 15px 20px;
+}
+.card{
+  background:#151515;
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
+}
+.card h3{
+  margin:0 0 6px;
+}
+.info{
+  font-size:14px;
+  color:#aaa;
+}
+.price{
+  margin-top:6px;
+  font-weight:bold;
+}
+button{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  background:#1f1f1f;
+  color:#fff;
+  font-size:16px;
+}
+button:hover{background:#333}
+.back{
+  background:#500;
+  margin-top:20px;
+}
+.center{text-align:center}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <b>🔫 Silah Tüccarı</b>
+</div>
+
+<div class="container" id="weapons">
+  Yükleniyor...
+</div>
+
+<button class="back" onclick="location.href='index.html'">⬅ Ana Menü</button>
+
+<script>
+// =================================================
+// ŞİMDİLİK SABİT LİSTE (DB BAĞLANTISI YOK)
+// =================================================
+
+const weapons = [
+  { name:"Taktik Bıçak", type:"Yakın Dövüş", effect:"Enerji -1", price:30 },
+  { name:"Susturuculu Tabanca", type:"Hafif Silah", effect:"Risk -2%", price:90 },
+  { name:"Glock 19", type:"Tabanca", effect:"Başarı +3%", price:120 },
+  { name:"Desert Eagle", type:"Ağır Tabanca", effect:"Hasar +", price:180 },
+  { name:"Pompalı Tüfek", type:"Yakın Menzil", effect:"Boss avantajı", price:260 },
+  { name:"Uzi SMG", type:"Otomatik", effect:"Çoklu görev bonus", price:350 },
+  { name:"AK-47", type:"Taarruz", effect:"Zor görev avantajı", price:500 },
+  { name:"M4A1", type:"Elite Taarruz", effect:"Elite görev bonusu", price:750 },
+  { name:"Keskin Nişancı", type:"Uzun Menzil", effect:"PvP avantajı", price:1200 },
+  { name:"El Bombası", type:"Tek Kullanım", effect:"Anlık güç", price:300 }
+];
+
+function loadWeapons(){
+  let html = "";
+  weapons.forEach((w,i)=>{
+    html += `
+      <div class="card">
+        <h3>${w.name}</h3>
+        <div class="info">Tür: ${w.type}</div>
+        <div class="info">Etki: ${w.effect}</div>
+        <div class="price">💰 ${w.price} YTon</div>
+        <button onclick="buyWeapon(${i})">Satın Al</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("weapons").innerHTML = html;
+}
+
+function buyWeapon(i){
+  const w = weapons[i];
+  alert(
+    "🔫 Satın alındı!\n\n" +
+    w.name + "\n" +
+    "Etki: " + w.effect
+  );
+}
+
+// BAŞLAT
+loadWeapons();
+</script>
+
+</body>
+</html>
