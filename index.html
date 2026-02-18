@@ -215,6 +215,21 @@ body{
 </div>
 
 <script src="engine.js"></script>
+  setInterval(() => {
+
+  const p = JSON.parse(localStorage.getItem("player"));
+  if (!p) return;
+
+  const energyEl = document.getElementById("energy");
+  const energyFill = document.getElementById("energyFill");
+
+  if (energyEl) energyEl.innerText = p.energy;
+
+  if (energyFill) {
+    energyFill.style.width = (p.energy / 100) * 100 + "%";
+  }
+
+}, 1000);
 <script>
 
 /* ===== MENU ===== */
