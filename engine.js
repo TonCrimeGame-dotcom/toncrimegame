@@ -5,28 +5,28 @@ const ENERGY_REGEN_SECONDS = 60; // 1 enerji = 60 saniye
 
 let player = JSON.parse(localStorage.getItem("player"));
 
-if(!player){
+if (!player) {
   player = {
-    level:1,
-    xp:0,
-    xpNext:100,
-    energy:80,
-    yton:120,
-    premium:false,
-    hospitalUntil:0,
+    level: 1,
+    xp: 0,
+    xpNext: 100,
+    energy: 80,
+    yton: 120,
+    premium: false,
+    hospitalUntil: 0,
     lastEnergyTick: Date.now()
   };
-  savePlayer();
-}
-
-/* ===== SAVE ===== */
-function savePlayer(){
   localStorage.setItem("player", JSON.stringify(player));
 }
 
-/* ===== ENERGY USE ===== */
-function useEnergy(amount){
-  if(player.energy < amount) return false;
+/* ===== SAVE ===== */
+function savePlayer() {
+  localStorage.setItem("player", JSON.stringify(player));
+}
+
+/* ===== ENERGY KULLAN ===== */
+function useEnergy(amount) {
+  if (player.energy < amount) return false;
 
   player.energy -= amount;
   player.lastEnergyTick = Date.now();
@@ -35,30 +35,32 @@ function useEnergy(amount){
 }
 
 /* ===== ENERGY REGEN ===== */
-function regenerateEnergy(){
-
+function regenerateEnergy() {
   const now = Date.now();
 
-  if(player.energy >= MAX_ENERGY){
+  if (!player.lastEnergyTick) {
     player.lastEnergyTick = now;
+    savePlayer();
     return;
   }
 
-  const diff = Math.floor((now - player.lastEnergyTick) / 1000);
+  if (player.energy >= MAX_ENERGY) return;
 
-  if(diff >= ENERGY_REGEN_SECONDS){
+  const secondsPassed = Math.floor((now - player.lastEnergyTick) / 1000);
 
-    const gained = Math.floor(diff / ENERGY_REGEN_SECONDS);
+  if (secondsPassed >= ENERGY_REGEN_SECONDS) {
 
-    player.energy = Math.min(MAX_ENERGY, player.energy + gained);
+    const energyToAdd = Math.floor(secondsPassed / ENERGY_REGEN_SECONDS);
 
-    player.lastEnergyTick += gained * ENERGY_REGEN_SECONDS * 1000;
+    player.energy = Math.min(MAX_ENERGY, player.energy + energyToAdd);
+
+    player.lastEnergyTick += energyToAdd * ENERGY_REGEN_SECONDS * 1000;
 
     savePlayer();
   }
 }
 
-/* ===== AUTO LOOP ===== */
-setInterval(()=>{
+/* ===== GLOBAL LOOP ===== */
+setInterval(() => {
   regenerateEnergy();
-},1000);
+}, 1000);
