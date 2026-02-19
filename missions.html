@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <title>Görevler</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <style>
 body{margin:0;background:#000;color:#fff;font-family:Arial}
 .topbar{height:60px;background:#111;display:flex;align-items:center;padding:0 15px}
@@ -18,6 +22,7 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 .row{border-bottom:1px solid #222;padding:5px 0;font-size:13px}
 .success{color:#0f0}
 .fail{color:#f33}
+.hospital{color:#ff4444;font-weight:bold}
 </style>
 </head>
 <body>
@@ -28,6 +33,7 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 Level: <span id="lvl"></span> |
 ⚡ <span id="energy"></span> |
 💰 <span id="yton"></span>
+<span id="hospitalInfo"></span>
 </div>
 </div>
 
@@ -46,10 +52,11 @@ Level: <span id="lvl"></span> |
 </div>
 
 <script>
+const VERSION = "1.0.0";
 
 /* PLAYER INIT */
 function getPlayer(){
-let p = JSON.parse(localStorage.getItem("player"))
+let p = JSON.parse(localStorage.getItem("player_v1"));
 if(!p){
 p={
 level:1,
@@ -62,21 +69,29 @@ missionStats:{success:0,fail:0},
 missionHistory:[],
 missionRepeat:{}
 }
-localStorage.setItem("player",JSON.stringify(p))
+savePlayer(p);
 }
-return p
+return p;
 }
 
 function savePlayer(p){
-localStorage.setItem("player",JSON.stringify(p))
+localStorage.setItem("player_v1",JSON.stringify(p));
 }
 
 /* UI */
 function updateUI(){
-let p=getPlayer()
-document.getElementById("lvl").innerText=p.level
-document.getElementById("energy").innerText=p.energy
-document.getElementById("yton").innerText=p.yton
+let p=getPlayer();
+
+document.getElementById("lvl").innerText=p.level;
+document.getElementById("energy").innerText=p.energy;
+document.getElementById("yton").innerText=p.yton;
+
+if(Date.now()<p.hospitalUntil){
+let remain=Math.floor((p.hospitalUntil-Date.now())/1000);
+document.getElementById("hospitalInfo").innerHTML=" | 🏥 "+remain+"s";
+}else{
+document.getElementById("hospitalInfo").innerHTML="";
+}
 }
 
 /* MISSIONS */
@@ -84,125 +99,122 @@ const missionsData=[
 {id:1,name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
 {id:2,name:"Kaçak Mal",energy:15,xp:30,yton:80,risk:25},
 {id:3,name:"Gece Baskını",energy:20,xp:50,yton:120,risk:35}
-]
+];
 
 function loadMissions(){
-const box=document.getElementById("missions")
-box.innerHTML=""
+const box=document.getElementById("missions");
+box.innerHTML="";
 
 missionsData.forEach(m=>{
-let div=document.createElement("div")
-div.className="mission"
+let div=document.createElement("div");
+div.className="mission";
 
 div.innerHTML=
 "<b>"+m.name+"</b><br>"+
-"⚡ "+m.energy+" | ⭐ "+m.xp+" | 💰 "+m.yton+" | Risk "+m.risk+"%"
+"⚡ "+m.energy+" | ⭐ "+m.xp+" | 💰 "+m.yton+" | Risk "+m.risk+"%";
 
-let btn=document.createElement("button")
-btn.innerText="Başlat"
+let btn=document.createElement("button");
+btn.innerText="Başlat";
 
-btn.onclick=function(){
-startMission(m.id)
+btn.addEventListener("click",function(){
+startMission(m.id);
+});
+
+div.appendChild(btn);
+box.appendChild(div);
+});
 }
 
-div.appendChild(btn)
-box.appendChild(div)
-})
-}
-
-/* MISSION START */
+/* MISSION */
 function startMission(id){
-
-let p=getPlayer()
-let m=missionsData.find(x=>x.id===id)
-
-if(!m){
-alert("Görev bulunamadı")
-return
-}
+let p=getPlayer();
+let m=missionsData.find(x=>x.id===id);
 
 if(Date.now()<p.hospitalUntil){
-alert("🏥 Hastanedesin")
-return
+alert("🏥 Hastanedesin!");
+return;
 }
 
 if(p.energy<m.energy){
-alert("⚡ Enerji yetersiz")
-return
+alert("⚡ Enerji yetersiz!");
+return;
 }
 
-/* Enerji düş */
-p.energy -= m.energy
+p.energy-=m.energy;
 
-/* Risk artışı */
-let repeat=p.missionRepeat[id]||0
-let finalRisk = repeat>=10 ? m.risk*2 : m.risk
-
-let success = Math.random()*100 > finalRisk
+let repeat=p.missionRepeat[id]||0;
+let finalRisk=repeat>=10?m.risk*2:m.risk;
+let success=Math.random()*100>finalRisk;
 
 if(success){
-p.xp += m.xp
-p.yton += m.yton
-p.missionStats.success++
-alert("✅ Başarılı")
+p.xp+=m.xp;
+p.yton+=m.yton;
+p.missionStats.success++;
+alert("✅ Başarılı!");
 }else{
-let loss=Math.floor(m.yton/2)
-p.yton=Math.max(0,p.yton-loss)
-p.xp=Math.max(0,p.xp-m.xp)
-p.missionStats.fail++
-alert("❌ Başarısız")
+let loss=Math.floor(m.yton/2);
+p.yton=Math.max(0,p.yton-loss);
+p.missionStats.fail++;
+alert("❌ Başarısız!");
 
 if(Math.random()<0.5){
-p.hospitalUntil=Date.now()+600000
-alert("🏥 Hastaneye düştün")
+p.hospitalUntil=Date.now()+600000;
+alert("🏥 Hastaneye düştün!");
 }
 }
 
-/* LEVEL */
 if(p.xp>=p.xpNext){
-p.level++
-p.xp=0
-p.xpNext+=100
+p.level++;
+p.xp=0;
+p.xpNext+=100;
+alert("🎉 Level Atladın!");
 }
 
-/* Repeat */
-p.missionRepeat[id]=(repeat+1)
+p.missionRepeat[id]=repeat+1;
 
-/* History */
 p.missionHistory.unshift({
 name:m.name,
 time:new Date().toLocaleTimeString(),
 result:success?"success":"fail"
-})
+});
 
-savePlayer(p)
-updateUI()
-renderStats()
+savePlayer(p);
+updateUI();
+renderStats();
 }
 
 /* STATS */
 function renderStats(){
-let p=getPlayer()
+let p=getPlayer();
 
 document.getElementById("statsBox").innerHTML=
 "Başarılı: "+p.missionStats.success+
-"<br>Başarısız: "+p.missionStats.fail
+"<br>Başarısız: "+p.missionStats.fail;
 
-let history=""
+let history="";
 p.missionHistory.slice(0,10).forEach(h=>{
-history += "<div class='row "+h.result+"'>"+
+history+="<div class='row "+h.result+"'>"+
 h.time+" - "+h.name+
-"</div>"
-})
+"</div>";
+});
 
-document.getElementById("historyBox").innerHTML=history
+document.getElementById("historyBox").innerHTML=history;
 }
 
-/* INIT */
-updateUI()
-loadMissions()
-renderStats()
+/* ENERGY REGEN */
+setInterval(()=>{
+let p=getPlayer();
+if(p.energy<100){
+p.energy+=1;
+savePlayer(p);
+updateUI();
+}
+},60000);
 
+/* INIT */
+updateUI();
+loadMissions();
+renderStats();
 </script>
 
 </body>
