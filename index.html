@@ -6,191 +6,213 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-    margin:0;
-    background:#0e0e0e;
-    font-family:Arial;
-    color:white;
-}
-
-/* HEADER */
-.header{
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-    height:60px;
-    background:#111;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 15px;
-    z-index:1000;
-    border-bottom:1px solid #222;
-}
-
-.logo{
-    font-size:22px;
-    font-weight:bold;
-    color:#ffb300;
-    cursor:pointer;
-}
-
-.stats{
-    font-size:14px;
-}
-
-/* USER PANEL */
-.userPanel{
-    margin-top:70px;
-    background:#1a1a1a;
-    padding:15px;
-    border-radius:8px;
-    margin-left:15px;
-    margin-right:15px;
-}
-
-/* MENU */
-.menu{
-    position:fixed;
-    top:0;
-    left:-250px;
-    width:250px;
-    height:100%;
-    background:#181818;
-    transition:0.3s;
-    padding-top:60px;
-    z-index:2000;
-}
-
-.menu a{
-    display:block;
-    padding:15px;
-    color:white;
-    text-decoration:none;
-    border-bottom:1px solid #222;
-}
-
-.menu a:hover{
-    background:#222;
-}
-
-.menuBtn{
-    cursor:pointer;
-    font-size:22px;
-    margin-right:10px;
-}
-
-.overlay{
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
-    background:rgba(0,0,0,0.6);
-    display:none;
-    z-index:1500;
-}
-
-.content{
-    padding:15px;
-    margin-top:10px;
-}
+body{margin:0;background:#0e0e0e;color:white;font-family:Arial;}
+.login-screen{position:fixed;width:100%;height:100%;background:#0e0e0e;display:flex;justify-content:center;align-items:center;flex-direction:column;z-index:5000;}
+.login-box{background:#1b1b1b;padding:40px;border-radius:12px;width:320px;text-align:center;}
+input{width:100%;padding:10px;margin:10px 0;border:none;border-radius:6px;}
+button{width:100%;padding:12px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;}
+button:hover{opacity:0.9}
+.topbar{background:#111;padding:18px 40px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;}
+.left-top{display:flex;align-items:center;gap:15px;}
+.menu-btn{font-size:22px;cursor:pointer;}
+.logo{font-size:24px;font-weight:bold;color:gold;}
+.right-stats{width:420px;}
+.stat-text{text-align:right;margin-bottom:6px;}
+.bar-label{font-size:12px;text-align:right;margin-bottom:3px;}
+.bar{width:100%;height:8px;background:#333;border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.bar-fill{height:100%;transition:0.3s;}
+.xp-fill{background:limegreen;}
+.energy-fill{background:gold;}
+.energy-timer{font-size:11px;text-align:right;color:#aaa;}
+.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#151515;padding:25px;transition:0.3s;z-index:2000;}
+.sidebar.open{left:0;}
+.overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:1500;}
+.overlay.show{display:block;}
+.main{display:flex;justify-content:center;gap:40px;padding:40px;}
+.center-area{width:55%;}
+.userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;height:fit-content;}
+.card{background:#1b1b1b;padding:18px;margin-bottom:25px;border-radius:10px;}
+@media(max-width:1100px){.main{flex-direction:column;align-items:center;}.center-area,.userpanel{width:90%;}}
 </style>
 </head>
 <body>
 
-<div class="header">
-    <div>
-        <span class="menuBtn" onclick="openMenu()">☰</span>
-        <span class="logo">TonCrime</span>
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h2 style="color:gold;">TonCrime</h2>
+    <p>18 yaşından büyük müsün?</p>
+    <button onclick="confirmAge()">Evet, 18+</button>
+    <div id="nickArea" style="display:none;">
+      <input id="nicknameInput" placeholder="Takma ad gir">
+      <button onclick="startGame()">Oyuna Başla</button>
     </div>
-    <div class="stats" id="topStats">
-        Yükleniyor...
+  </div>
+</div>
+
+<div class="sidebar" id="sidebar">
+  <h3 style="color:gold">Menü</h3>
+  <p>🏠 Ana Sayfa</p>
+  <p onclick="location.href='missions.html'">🎯 Görevler</p>
+  <p>⚔ PvP</p>
+  <p>🔫 Silahlar</p>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="topbar">
+  <div class="left-top">
+    <div class="menu-btn" onclick="openMenu()">☰</div>
+    <div class="logo">TonCrime</div>
+  </div>
+
+  <div class="right-stats">
+    <div class="stat-text" id="stats"></div>
+    <div class="bar-label">XP</div>
+    <div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
+    <div class="bar-label">Enerji</div>
+    <div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
+    <div class="energy-timer" id="energyTimer"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="center-area">
+    <div class="card">
+      <h3>🏆 Haftalık Turnuva</h3>
+      Ödül Havuzu: 500 Yton<br>
+      Süre: 3 Gün<br>
+      Katılım: 6 Yton
     </div>
-</div>
-
-<div class="menu" id="sideMenu">
-    <a href="index.html">🏠 Ana Sayfa</a>
-    <a href="missions.html">📋 Görevler</a>
-    <a href="pvp.html">⚔ PvP</a>
-    <a href="weapons.html">🔫 Silah Kaçakçısı</a>
-    <a href="nightclub.html">🌙 Gece Kulübü</a>
-    <a href="smoke.html">💨 Smoke & Smart</a>
-    <a href="brothel.html">❤️ Genel Ev</a>
-    <a href="hospital.html">🏥 Hastane</a>
-    <a href="business.html">💼 İş Hayatı</a>
-    <a href="tournament.html">🏆 Turnuva</a>
-</div>
-
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
-
-<div class="userPanel" id="userPanel">
-    Yükleniyor...
-</div>
-
-<div class="content">
-    <!-- SAYFA İÇERİĞİ BURAYA GELECEK -->
+    <div class="card">
+      <h3>👑 En İyiler</h3>
+      1. ShadowBoss - 1200 XP<br>
+      2. DarkWolf - 980 XP<br>
+      3. KingTR - 870 XP
+    </div>
+  </div>
+  <div class="userpanel" id="userinfo"></div>
 </div>
 
 <script>
-const supabaseClient = supabase.createClient(
-"https://hwhscuyudwphnsipibpy.supabase.co",
-"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
-);
+const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let userId = 1; // Şimdilik sabit test id
+let userId=localStorage.getItem("tc_user");
+
+const MAX_ENERGY=100;
+const MAX_XP=100;
+const ENERGY_INTERVAL=5*60*1000;
 
 function openMenu(){
-    document.getElementById("sideMenu").style.left="0";
-    document.getElementById("overlay").style.display="block";
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
+}
+document.getElementById("overlay").onclick=()=>{
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+};
+
+function confirmAge(){
+  document.getElementById("nickArea").style.display="block";
 }
 
-function closeMenu(){
-    document.getElementById("sideMenu").style.left="-250px";
-    document.getElementById("overlay").style.display="none";
+async function startGame(){
+  const nick=document.getElementById("nicknameInput").value.trim();
+  if(!nick) return alert("Nickname gir");
+
+  const newId=Date.now().toString();
+  userId=newId;
+
+  await db.from("users").insert([{
+    id:newId,
+    nickname:nick,
+    level:1,
+    xp:0,
+    energy:100,
+    yton:10,
+    last_energy_tick:Date.now()
+  }]);
+
+  localStorage.setItem("tc_user",newId);
+  document.getElementById("loginScreen").style.display="none";
+  render();
 }
 
-async function loadPlayer(){
-    let {data} = await supabaseClient
-    .from("users")
-    .select("*")
-    .eq("id",userId)
-    .single();
-
-    if(!data){
-        document.getElementById("topStats").innerHTML="Kullanıcı yok";
-        return;
-    }
-
-    document.getElementById("topStats").innerHTML =
-    `Lv ${data.level} | XP ${data.xp}/${Math.floor(100*Math.pow(1.05,data.level-1))} | ⚡ ${data.energy}/100 | 💰 ${data.yton}`;
-
-    document.getElementById("userPanel").innerHTML =
-    `ID: ${data.id}<br>
-     Takma Ad: ${data.nickname}<br>
-     Level: ${data.level}<br>
-     XP: ${data.xp}`;
+async function loadUser(){
+  if(!userId) return null;
+  const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
+  return data;
 }
 
-async function energyRegen(){
-    let {data} = await supabaseClient
-    .from("users")
-    .select("*")
-    .eq("id",userId)
-    .single();
+async function regenEnergy(user){
+  const now=Date.now();
+  const diff=now-user.last_energy_tick;
+  const add=Math.floor(diff/ENERGY_INTERVAL);
 
-    if(data.energy < 100){
-        await supabaseClient
-        .from("users")
-        .update({energy:data.energy+1})
-        .eq("id",userId);
-    }
-    loadPlayer();
+  if(add>0 && user.energy<MAX_ENERGY){
+    let newEnergy=Math.min(MAX_ENERGY,user.energy+add);
+    let newTick=user.last_energy_tick+(add*ENERGY_INTERVAL);
+
+    await db.from("users").update({
+      energy:newEnergy,
+      last_energy_tick:newTick
+    }).eq("id",userId);
+
+    user.energy=newEnergy;
+    user.last_energy_tick=newTick;
+  }
+  return user;
 }
 
-setInterval(energyRegen,300000); // 5 dakika
-loadPlayer();
+function updateBars(user){
+  document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
+  document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
+
+  const remaining=ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
+
+  if(user.energy<MAX_ENERGY){
+    const sec=Math.floor(remaining/1000)%60;
+    const min=Math.floor(remaining/60000);
+    document.getElementById("energyTimer").innerText=
+      "Sonraki enerji: "+min+"m "+sec+"s";
+  }else{
+    document.getElementById("energyTimer").innerText="Enerji Full";
+  }
+}
+
+async function render(){
+  if(!userId){
+    document.getElementById("loginScreen").style.display="flex";
+    return;
+  }
+
+  const user=await loadUser();
+
+  if(!user){
+    localStorage.removeItem("tc_user");
+    userId=null;
+    document.getElementById("loginScreen").style.display="flex";
+    return;
+  }
+
+  document.getElementById("loginScreen").style.display="none";
+
+  const updated=await regenEnergy(user);
+
+  document.getElementById("stats").innerHTML=
+  `Lv ${updated.level} | XP ${updated.xp}/100 | ⚡ ${updated.energy} | 💰 ${Number(updated.yton).toFixed(2)}`;
+
+  updateBars(updated);
+
+  document.getElementById("userinfo").innerHTML=
+  `ID: ${updated.id}<br>
+   Takma Ad: ${updated.nickname}<br>
+   Seviye: ${updated.level}<br>
+   Yton: ${updated.yton}`;
+}
+
+render();
+setInterval(render,1000);
 </script>
 
 </body>
