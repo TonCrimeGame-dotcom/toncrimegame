@@ -47,9 +47,10 @@ Level: <span id="lvl"></span> |
 
 <script>
 
-const MAX_ENERGY=100;
+/* ===== SCRIPT TEST ===== */
+console.log("SCRIPT LOADED");
 
-/* PLAYER LOAD */
+/* PLAYER */
 function getPlayer(){
 let p=JSON.parse(localStorage.getItem("player"));
 if(!p){
@@ -97,21 +98,16 @@ div.className="mission";
 div.innerHTML=`
 <b>${m.name}</b><br>
 ⚡ ${m.energy} | ⭐ ${m.xp} | 💰 ${m.yton} | Risk ${m.risk}%
-<button data-id="${m.id}">Başlat</button>
+<button onclick="startMission(${m.id})">Başlat</button>
 `;
 box.appendChild(div);
-});
-
-/* BUTTON EVENTS */
-document.querySelectorAll(".mission button").forEach(btn=>{
-btn.addEventListener("click",function(){
-let id=parseInt(this.getAttribute("data-id"));
-startMission(id);
-});
 });
 }
 
 function startMission(id){
+
+console.log("BUTONA BASILDI",id);
+alert("Buton çalıştı!");
 
 let p=getPlayer();
 let m=missionsData.find(x=>x.id===id);
@@ -127,14 +123,11 @@ alert("⚡ Enerji yetersiz");
 return;
 }
 
-/* ENERGY */
 p.energy-=m.energy;
 
-/* RISK SYSTEM */
 let repeat=p.missionRepeat[id]||0;
 let finalRisk=repeat>=10 ? m.risk*2 : m.risk;
 
-/* RESULT */
 let success=Math.random()*100>finalRisk;
 
 if(success){
@@ -151,21 +144,18 @@ alert("❌ Başarısız");
 
 if(Math.random()<0.5){
 p.hospitalUntil=Date.now()+600000;
-alert("🏥 Hastaneye düştün (10 dakika)");
+alert("🏥 Hastaneye düştün");
 }
 }
 
-/* LEVEL UP */
 if(p.xp>=p.xpNext){
 p.level++;
 p.xp=0;
 p.xpNext+=100;
 }
 
-/* REPEAT COUNT */
 p.missionRepeat[id]=(repeat+1);
 
-/* HISTORY */
 p.missionHistory.unshift({
 name:m.name,
 time:new Date().toLocaleTimeString(),
@@ -192,7 +182,6 @@ ${h.time} - ${h.name}
 document.getElementById("historyBox").innerHTML=history;
 }
 
-/* INIT */
 updateUI();
 loadMissions();
 renderStats();
