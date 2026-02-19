@@ -1,16 +1,69 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yeraltı Şehri</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+margin:0;
+background:#000;
+color:#fff;
+font-family:Arial;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+text-align:center;
+}
+.box{
+background:#111;
+padding:25px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+}
+h2{color:#f90}
+button{
+margin-top:12px;
+width:100%;
+padding:12px;
+background:#f90;
+border:none;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="box" id="content">
+<h2>Yükleniyor...</h2>
+</div>
+
 <script>
 
+/* AGE */
 if(localStorage.getItem("ageVerified")!=="true"){
 window.location.href="index.html";
 }
 
-const supabase = window.supabase.createClient(
+/* SUPABASE */
+const supabaseClient = supabase.createClient(
 "https://hwhscuyudwphnsipibpy.supabase.co",
 "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
 
+/* TELEGRAM */
 const tg = window.Telegram?.WebApp;
-let user = tg?.initDataUnsafe?.user;
+if(tg){ tg.expand(); }
+
+const user = tg?.initDataUnsafe?.user;
 
 if(!user){
 document.getElementById("content").innerHTML =
@@ -21,43 +74,45 @@ initUser(user.id);
 
 async function initUser(userId){
 
-let { data } = await supabase
+let { data } = await supabaseClient
 .from("users")
 .select("*")
 .eq("id", userId)
-.single();
+.maybeSingle();
 
 if(!data){
-await supabase.from("users").insert({ id: userId });
-let { data: newUser } = await supabase
+await supabaseClient.from("users").insert({ id: userId });
+let { data: newUser } = await supabaseClient
 .from("users")
 .select("*")
 .eq("id", userId)
 .single();
-showGame(newUser);
-}else{
-await handleEnergyRegen(data);
+data = newUser;
 }
 
+await handleEnergy(data);
 }
 
-async function handleEnergyRegen(data){
+async function handleEnergy(data){
 
 let now = Math.floor(Date.now()/1000);
 
+/* HASTANE */
 if(now < data.hospital_until){
-showGame(data,true);
+render(data,true);
 return;
 }
 
+/* ENERGY REGEN */
 if(data.energy < 100){
 
 let diff = now - data.last_energy_update;
-let gained = Math.floor(diff / 300); // 5 dk = 300 sn
+let gain = Math.floor(diff / 300);
 
-if(gained > 0){
-let newEnergy = Math.min(100, data.energy + gained);
-await supabase
+if(gain > 0){
+let newEnergy = Math.min(100, data.energy + gain);
+
+await supabaseClient
 .from("users")
 .update({
 energy: newEnergy,
@@ -66,20 +121,21 @@ last_energy_update: now
 .eq("id", data.id);
 
 data.energy = newEnergy;
-data.last_energy_update = now;
 }
 }
 
-showGame(data,false);
+render(data,false);
 }
 
-function showGame(data,inHospital){
+function render(data,inHospital){
 
-let hospitalText = "";
+let hospitalBlock = "";
 
 if(inHospital){
-hospitalText = `<p style="color:#ff4444;">🏥 Hastanedeysin</p>
-<button onclick="buyEnergy(${data.id})">1 Enerji = 1 YTON</button>`;
+hospitalBlock = `
+<p style="color:#ff4444;">🏥 Hastanedeysin</p>
+<button onclick="buyEnergy(${data.id})">1 Enerji = 1 YTON</button>
+`;
 }
 
 document.getElementById("content").innerHTML = `
@@ -89,14 +145,14 @@ document.getElementById("content").innerHTML = `
 <p>Level: ${data.level}</p>
 <p>⚡ ${data.energy}/100</p>
 <p>💰 ${data.yton}</p>
-${hospitalText}
-<button onclick="simulateHospital(${data.id})">Test: Hastaneye Düş</button>
+${hospitalBlock}
+<button onclick="testHospital(${data.id})">Test: Hastaneye Düş</button>
 `;
 }
 
 async function buyEnergy(userId){
 
-let { data } = await supabase
+let { data } = await supabaseClient
 .from("users")
 .select("*")
 .eq("id", userId)
@@ -107,7 +163,7 @@ alert("YTON yetersiz");
 return;
 }
 
-await supabase
+await supabaseClient
 .from("users")
 .update({
 energy: data.energy + 1,
@@ -118,11 +174,11 @@ yton: data.yton - 1
 location.reload();
 }
 
-async function simulateHospital(userId){
+async function testHospital(userId){
 
 let now = Math.floor(Date.now()/1000);
 
-await supabase
+await supabaseClient
 .from("users")
 .update({
 hospital_until: now + 600
@@ -133,3 +189,6 @@ location.reload();
 }
 
 </script>
+
+</body>
+</html>
