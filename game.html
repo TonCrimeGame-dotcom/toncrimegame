@@ -3,25 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yeraltı Şehri - Oyun</title>
+<title>Yeraltı Şehri</title>
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <style>
-body{background:#000;color:#fff;font-family:Arial;text-align:center;padding-top:100px}
-button{padding:10px 20px;background:#f90;border:none;border-radius:8px;font-weight:bold}
+body{
+margin:0;
+background:#000;
+color:#fff;
+font-family:Arial;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+text-align:center;
+}
+h2{color:#f90}
 </style>
 </head>
 <body>
 
-<h2>Oyun Alanı (Bir Sonraki Adım)</h2>
-
-<button onclick="logout()">Yaş Onayını Sıfırla</button>
+<h2>🔥 Oyun Alanı (Sonraki Adım: Telegram Login)</h2>
 
 <script>
+/* Eğer yaş onayı yoksa geri at */
 if(localStorage.getItem("ageVerified")!=="true"){
-window.location.href="index.html";
-}
-
-function logout(){
-localStorage.removeItem("ageVerified");
 window.location.href="index.html";
 }
 </script>
