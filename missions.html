@@ -2,57 +2,31 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>TonCrimeGame – Görevler</title>
+<title>Görevler</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-
 body{margin:0;background:#000;color:#fff;font-family:Arial}
-
-.topbar{
-position:fixed;top:0;left:0;right:0;height:60px;
-background:#050505;display:flex;align-items:center;
-padding:0 12px;border-bottom:1px solid #222;
-}
-
-.logo{color:#f90;font-weight:bold;width:150px}
-
-.xp-box{flex:1}
-.xp-bar{height:8px;background:#222;border-radius:10px;overflow:hidden}
-.xp-fill{height:100%;width:0%;background:linear-gradient(90deg,#f90,#ff0);transition:.4s}
-
-.stats{text-align:right;width:120px;font-size:13px}
-
-.wrapper{display:flex;padding-top:80px}
-
-.left{width:60%;padding:15px}
-.right{width:40%;padding:15px;border-left:1px solid #222}
-
+.topbar{height:60px;background:#111;display:flex;align-items:center;padding:0 15px}
+.logo{color:#f90;font-weight:bold;margin-right:20px}
+.stats{margin-left:auto;font-size:13px}
+.wrapper{display:flex;padding:15px}
+.left{width:60%}
+.right{width:40%;padding-left:15px}
 .mission{background:#111;padding:12px;border-radius:10px;margin-bottom:12px}
-.mission button{
-width:100%;margin-top:8px;padding:10px;
-background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
-}
-
-.table{background:#111;border-radius:10px;padding:10px}
-
+.mission button{width:100%;margin-top:8px;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
+.table{background:#111;padding:10px;border-radius:10px}
 .row{border-bottom:1px solid #222;padding:5px 0;font-size:13px}
 .success{color:#0f0}
 .fail{color:#f33}
-
 </style>
 </head>
 <body>
 
 <div class="topbar">
 <div class="logo">🔥 Yeraltı Şehri</div>
-
-<div class="xp-box">
-<div style="font-size:11px">Level <span id="lvl"></span></div>
-<div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
-</div>
-
 <div class="stats">
-⚡ <span id="energy"></span><br>
+Level: <span id="lvl"></span> |
+⚡ <span id="energy"></span> |
 💰 <span id="yton"></span>
 </div>
 </div>
@@ -65,7 +39,7 @@ background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
 <b>📊 İstatistik</b>
 <div id="statsBox"></div>
 <hr>
-<b>🕒 Son İşlemler</b>
+<b>🕒 Geçmiş</b>
 <div id="historyBox"></div>
 </div>
 </div>
@@ -73,62 +47,42 @@ background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
 
 <script>
 
-document.addEventListener("DOMContentLoaded",function(){
-
 const MAX_ENERGY=100
-const ENERGY_REGEN=60
 
-function getPlayer(){return JSON.parse(localStorage.getItem("player"))}
-function setPlayer(p){localStorage.setItem("player",JSON.stringify(p))}
-
-let player=getPlayer()
-
-if(!player){
-player={
-level:1,xp:0,xpNext:100,
-energy:80,yton:120,
+function getPlayer(){
+let p=JSON.parse(localStorage.getItem("player"))
+if(!p){
+p={
+level:1,
+xp:0,
+xpNext:100,
+energy:80,
+yton:120,
 hospitalUntil:0,
-lastEnergyTick:Date.now(),
 missionStats:{success:0,fail:0},
 missionHistory:[],
 missionRepeat:{}
 }
-setPlayer(player)
+localStorage.setItem("player",JSON.stringify(p))
+}
+return p
 }
 
-/* ===== ENERGY REGEN ===== */
-function regen(){
-let p=getPlayer()
-let now=Date.now()
-
-if(p.energy<MAX_ENERGY){
-let sec=Math.floor((now-p.lastEnergyTick)/1000)
-if(sec>=ENERGY_REGEN){
-let gain=Math.floor(sec/ENERGY_REGEN)
-p.energy=Math.min(MAX_ENERGY,p.energy+gain)
-p.lastEnergyTick+=gain*ENERGY_REGEN*1000
-setPlayer(p)
-}
-}
+function setPlayer(p){
+localStorage.setItem("player",JSON.stringify(p))
 }
 
-/* ===== UI ===== */
 function updateUI(){
 let p=getPlayer()
 document.getElementById("lvl").innerText=p.level
 document.getElementById("energy").innerText=p.energy
 document.getElementById("yton").innerText=p.yton
-document.getElementById("xpFill").style.width=(p.xp/p.xpNext*100)+"%"
 }
 
-setInterval(()=>{regen();updateUI()},1000)
-updateUI()
-
-/* ===== MISSIONS ===== */
 const missionsData=[
-{id:1,name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
-{id:2,name:"Kaçak Mal",energy:15,xp:30,yton:80,risk:25},
-{id:3,name:"Gece Baskını",energy:20,xp:50,yton:120,risk:35}
+{id:1,name:"Sokak",energy:10,xp:20,yton:50,risk:20},
+{id:2,name:"Kacak",energy:15,xp:30,yton:80,risk:25},
+{id:3,name:"Baskin",energy:20,xp:50,yton:120,risk:35}
 ]
 
 function loadMissions(){
@@ -136,18 +90,17 @@ const box=document.getElementById("missions")
 box.innerHTML=""
 
 missionsData.forEach(m=>{
-box.innerHTML+=`
-<div class="mission">
+let div=document.createElement("div")
+div.className="mission"
+div.innerHTML=`
 <b>${m.name}</b><br>
-⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon | Risk ${m.risk}%
-<button data-id="${m.id}">Başlat</button>
-</div>`
+⚡ ${m.energy} | ⭐ ${m.xp} | 💰 ${m.yton} | Risk ${m.risk}%
+<button>Başlat</button>
+`
+div.querySelector("button").addEventListener("click",function(){
+startMission(m.id)
 })
-
-document.querySelectorAll("button").forEach(btn=>{
-btn.addEventListener("click",function(){
-startMission(parseInt(this.dataset.id))
-})
+box.appendChild(div)
 })
 }
 
@@ -156,20 +109,25 @@ function startMission(id){
 let p=getPlayer()
 let m=missionsData.find(x=>x.id===id)
 
+if(!m){
+alert("Görev bulunamadı")
+return
+}
+
 if(Date.now()<p.hospitalUntil){
-alert("🏥 Hastanedesin!")
+alert("🏥 Hastanedesin")
 return
 }
 
 if(p.energy<m.energy){
-alert("⚡ Enerji yetersiz!")
+alert("⚡ Enerji yetersiz")
 return
 }
 
-let repeat=p.missionRepeat[m.name]||0
-let finalRisk=repeat>=10?m.risk*2:m.risk
-
 p.energy-=m.energy
+
+let repeat=p.missionRepeat[id]||0
+let finalRisk=repeat>=10?m.risk*2:m.risk
 
 let success=Math.random()*100>finalRisk
 
@@ -177,15 +135,17 @@ if(success){
 p.xp+=m.xp
 p.yton+=m.yton
 p.missionStats.success++
+alert("✅ Başarılı")
 }else{
-p.xp=Math.max(0,p.xp-m.xp)
 let loss=Math.floor(m.yton/2)
 p.yton=Math.max(0,p.yton-loss)
+p.xp=Math.max(0,p.xp-m.xp)
 p.missionStats.fail++
+alert("❌ Başarısız")
 
 if(Math.random()<0.5){
 p.hospitalUntil=Date.now()+600000
-alert("🏥 Hastaneye düştün!")
+alert("🏥 Hastaneye düştün")
 }
 }
 
@@ -195,7 +155,7 @@ p.xp=0
 p.xpNext+=100
 }
 
-p.missionRepeat[m.name]=(repeat+1)
+p.missionRepeat[id]=(repeat+1)
 
 p.missionHistory.unshift({
 name:m.name,
@@ -210,7 +170,6 @@ renderStats()
 
 function renderStats(){
 let p=getPlayer()
-
 document.getElementById("statsBox").innerHTML=
 "Başarılı: "+p.missionStats.success+
 "<br>Başarısız: "+p.missionStats.fail
@@ -224,11 +183,10 @@ ${h.time} - ${h.name}
 document.getElementById("historyBox").innerHTML=history
 }
 
+updateUI()
 loadMissions()
 renderStats()
 
-})
 </script>
-
 </body>
 </html>
