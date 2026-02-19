@@ -29,12 +29,23 @@ max-width:400px;
 }
 
 h2{color:#f90}
+
+button{
+margin-top:15px;
+width:100%;
+padding:12px;
+background:#f90;
+border:none;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+}
 </style>
 </head>
 <body>
 
 <div class="box" id="content">
-<h2>Telegram kontrol ediliyor...</h2>
+<h2>Yükleniyor...</h2>
 </div>
 
 <script>
@@ -44,30 +55,29 @@ if(localStorage.getItem("ageVerified")!=="true"){
 window.location.href="index.html";
 }
 
-/* Telegram WebApp */
-const tg = window.Telegram.WebApp;
+const tg = window.Telegram?.WebApp;
+let user = tg?.initDataUnsafe?.user;
 
-if(!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user){
-document.getElementById("content").innerHTML =
-"<h2>Bu oyun Telegram içinden açılmalıdır.</h2>";
+/* Eğer Telegram user yoksa fallback göster */
+if(!user){
+document.getElementById("content").innerHTML = `
+<h2>🔥 Yeraltı Şehri</h2>
+<p>Telegram kullanıcı bilgisi alınamadı.</p>
+<p>Lütfen bot içinden tekrar aç.</p>
+`;
 }else{
-
-let user = tg.initDataUnsafe.user;
 
 let nickname = localStorage.getItem("nickname");
 
 if(!nickname){
 document.getElementById("content").innerHTML = `
 <h2>Takma Ad Belirle</h2>
-<input id="nickInput" placeholder="Takma ad"
+<input id="nickInput"
 style="width:100%;padding:10px;margin-top:10px;background:#222;border:none;color:#fff;border-radius:6px;">
-<button onclick="saveNick()"
-style="margin-top:15px;width:100%;padding:12px;background:#f90;border:none;border-radius:8px;font-weight:bold;">
-Kaydet
-</button>
+<button onclick="saveNick()">Kaydet</button>
 `;
 }else{
-showGame(user,nickname);
+showGame();
 }
 
 window.saveNick = function(){
@@ -77,18 +87,17 @@ alert("En az 3 karakter");
 return;
 }
 localStorage.setItem("nickname",nick);
-showGame(user,nick);
+showGame();
 }
 
-function showGame(user,nick){
+function showGame(){
+let nick = localStorage.getItem("nickname");
+
 document.getElementById("content").innerHTML = `
 <h2>🔥 Yeraltı Şehri</h2>
 <p>ID: ${user.id}</p>
 <p>👤 ${nick}</p>
-<button onclick="connectWallet()"
-style="margin-top:15px;width:100%;padding:12px;background:#f90;border:none;border-radius:8px;font-weight:bold;">
-TON Cüzdan Bağla
-</button>
+<button onclick="connectWallet()">TON Cüzdan Bağla</button>
 `;
 }
 
