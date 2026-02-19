@@ -39,12 +39,14 @@ background:#0a0a0a;transition:.3s;z-index:999;
 .left{width:55%;padding:15px}
 .right{width:45%;padding:15px;border-left:1px solid #222}
 
-/* ===== MISSION ===== */
+/* ===== MISSIONS ===== */
 .mission{background:#111;padding:12px;border-radius:10px;margin-bottom:12px}
 .mission button{
 width:100%;margin-top:8px;padding:10px;
 background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
 }
+
+/* ===== TABLE ===== */
 .table{background:#111;border-radius:10px;padding:10px}
 .row{border-bottom:1px solid #222;padding:6px 0;font-size:13px}
 .success{color:#0f0}
@@ -84,7 +86,7 @@ background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
 <b>📊 İstatistik</b>
 <div id="statsBox"></div>
 <hr>
-<b>🕒 Geçmiş</b>
+<b>🕒 Son İşlemler</b>
 <div id="historyBox"></div>
 </div>
 </div>
@@ -92,7 +94,7 @@ background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
 
 <script>
 
-/* ===== CORE PLAYER ===== */
+/* ===== PLAYER CORE ===== */
 const MAX_ENERGY=100;
 const ENERGY_REGEN=60;
 
@@ -103,8 +105,9 @@ let player=getPlayer();
 if(!player){
 player={
 level:1,xp:0,xpNext:100,
-energy:80,yton:120,premium:false,
-hospitalUntil:0,lastEnergyTick:Date.now(),
+energy:80,yton:120,
+hospitalUntil:0,
+lastEnergyTick:Date.now(),
 missionStats:{success:0,fail:0},
 missionHistory:[],
 missionRepeat:{}
@@ -139,7 +142,7 @@ document.getElementById("energyFill").style.width=(p.energy/100*100)+"%"
 setInterval(()=>{regen();updateUI()},1000)
 updateUI()
 
-/* ===== MISSIONS ===== */
+/* ===== MISSIONS DATA ===== */
 const missionsData=[
 {name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
 {name:"Kaçak Mal Taşıma",energy:15,xp:30,yton:80,risk:25},
@@ -161,30 +164,30 @@ box.innerHTML+=`
 }
 
 function startMission(name){
+
 let p=getPlayer()
 let m=missionsData.find(x=>x.name===name)
 
-/* HASTANE KONTROL */
 if(Date.now()<p.hospitalUntil){
-alert("Hastanedesin! Çıkmadan görev yapamazsın.")
+alert("🏥 Hastanedesin!")
 return
 }
 
 if(p.energy<m.energy){
-alert("Yeterli enerji yok")
+alert("⚡ Enerji yetersiz")
 return
 }
 
-/* TEKRAR RİSK */
+/* Risk Artışı */
 let repeat=p.missionRepeat[name]||0
 let finalRisk=m.risk
 if(repeat>=10){
 finalRisk*=2
 }
 
-let success=Math.random()*100>finalRisk
-
 p.energy-=m.energy
+
+let success=Math.random()*100>finalRisk
 
 if(success){
 p.xp+=m.xp
@@ -198,6 +201,7 @@ p.missionStats.fail++
 
 if(Math.random()<0.5){
 p.hospitalUntil=Date.now()+600000
+alert("🏥 Hastaneye düştün!")
 }
 }
 
@@ -208,7 +212,10 @@ p.xp=0
 p.xpNext+=100
 }
 
+/* Repeat count */
 p.missionRepeat[name]=(repeat+1)
+
+/* History */
 p.missionHistory.unshift({
 name:name,
 time:new Date().toLocaleTimeString(),
@@ -248,6 +255,5 @@ loadMissions()
 renderStats()
 
 </script>
-
 </body>
 </html>
