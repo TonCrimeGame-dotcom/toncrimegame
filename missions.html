@@ -13,46 +13,60 @@ body{
   font-family:Arial;
 }
 
+/* TOPBAR */
 .topbar{
   background:#111;
   padding:15px 35px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
   border-bottom:1px solid #222;
 }
 
-.menu-btn{
-  font-size:24px;
-  cursor:pointer;
-  margin-left:10px;
+.top-stats{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-.sidebar{
-  position:fixed;
-  top:0;
-  left:-260px;
-  width:250px;
-  height:100%;
-  background:#151515;
-  padding:25px;
-  transition:0.3s;
-  z-index:1000;
+.bars{
+  margin-top:10px;
 }
 
-.sidebar.open{ left:0; }
+.bar-container{
+  margin-bottom:8px;
+}
 
-.overlay{
-  position:fixed;
+.bar-label{
+  font-size:12px;
+  margin-bottom:4px;
+}
+
+.bar{
   width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.6);
-  display:none;
-  z-index:900;
+  height:8px;
+  background:#333;
+  border-radius:5px;
+  overflow:hidden;
 }
 
-.overlay.show{ display:block; }
+.bar-fill{
+  height:100%;
+  transition:0.3s;
+}
 
+.xp-fill{
+  background:limegreen;
+}
+
+.energy-fill{
+  background:gold;
+}
+
+.energy-timer{
+  font-size:11px;
+  color:#aaa;
+  margin-top:2px;
+}
+
+/* LAYOUT */
 .main{
   display:flex;
   justify-content:center;
@@ -67,7 +81,6 @@ body{
   background:#151515;
   padding:20px;
   border-radius:10px;
-  height:fit-content;
 }
 
 .card{
@@ -92,25 +105,34 @@ button:hover{ opacity:0.9; }
 
 @media(max-width:1100px){
   .main{ flex-direction:column; align-items:center; }
-  .missions, .userpanel{ width:90%; }
+  .missions,.userpanel{ width:90%; }
 }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="menu-btn" onclick="openMenu()">☰</div>
-  <div><b>TonCrime</b></div>
-  <div id="stats">Yükleniyor...</div>
-</div>
+  <div class="top-stats">
+    <div id="stats">Yükleniyor...</div>
+  </div>
 
-<div class="sidebar" id="sidebar">
-  <h3>Menü</h3>
-  <p>🏠 Ana Sayfa</p>
-  <p>🎯 Görevler</p>
-</div>
+  <div class="bars">
+    <div class="bar-container">
+      <div class="bar-label">XP</div>
+      <div class="bar">
+        <div class="bar-fill xp-fill" id="xpBar"></div>
+      </div>
+    </div>
 
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+    <div class="bar-container">
+      <div class="bar-label">Enerji</div>
+      <div class="bar">
+        <div class="bar-fill energy-fill" id="energyBar"></div>
+      </div>
+      <div class="energy-timer" id="energyTimer"></div>
+    </div>
+  </div>
+</div>
 
 <div class="main">
   <div class="missions" id="missions"></div>
@@ -124,16 +146,10 @@ const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const userId="591676206";
 
 const MAX_ENERGY=100;
-const ENERGY_INTERVAL=5*60*1000; // 5 dakika
+const MAX_XP=100;
+const ENERGY_INTERVAL=5*60*1000;
 
-function openMenu(){
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("overlay").classList.add("show");
-}
-function closeMenu(){
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
-}
+let currentUser=null;
 
 async function loadUser(){
   const {data}=await supabaseClient.from("users").select("*").eq("id",userId).single();
@@ -146,7 +162,7 @@ async function regenEnergy(user){
     await supabaseClient.from("users")
     .update({last_energy_tick:now})
     .eq("id",userId);
-    return user;
+    user.last_energy_tick=now;
   }
 
   const diff=now-user.last_energy_tick;
@@ -164,7 +180,26 @@ async function regenEnergy(user){
     user.energy=newEnergy;
     user.last_energy_tick=newTick;
   }
+
   return user;
+}
+
+function updateBars(user){
+  const xpPercent=(user.xp/MAX_XP)*100;
+  const energyPercent=(user.energy/MAX_ENERGY)*100;
+
+  document.getElementById("xpBar").style.width=xpPercent+"%";
+  document.getElementById("energyBar").style.width=energyPercent+"%";
+
+  const remaining=ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
+  if(user.energy<MAX_ENERGY){
+    const sec=Math.floor(remaining/1000)%60;
+    const min=Math.floor(remaining/60000);
+    document.getElementById("energyTimer").innerText=
+      "Sonraki enerji: "+min+"m "+sec+"s";
+  }else{
+    document.getElementById("energyTimer").innerText="Enerji Full";
+  }
 }
 
 async function loadMissions(){
@@ -175,20 +210,14 @@ async function loadMissions(){
 async function render(){
   let user=await loadUser();
   user=await regenEnergy(user);
-  const missions=await loadMissions();
+  currentUser=user;
 
   document.getElementById("stats").innerHTML=
   `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
 
-  document.getElementById("userinfo").innerHTML=`
-    <h3>Kullanıcı</h3>
-    ID: ${user.id}<br><br>
-    Takma Ad: ${user.nickname}<br><br>
-    Toplam Görev: ${user.total_missions || 0}<br>
-    Kazanma: ${user.wins || 0}<br>
-    Kaybetme: ${user.losses || 0}
-  `;
+  updateBars(user);
 
+  const missions=await loadMissions();
   let html="";
   missions.forEach(m=>{
     html+=`
@@ -202,8 +231,14 @@ async function render(){
     </div>
     `;
   });
-
   document.getElementById("missions").innerHTML=html;
+
+  document.getElementById("userinfo").innerHTML=
+  `ID: ${user.id}<br>
+   Takma Ad: ${user.nickname}<br>
+   Toplam Görev: ${user.total_missions||0}<br>
+   Kazanma: ${user.wins||0}<br>
+   Kaybetme: ${user.losses||0}`;
 }
 
 async function startMission(id){
@@ -234,10 +269,8 @@ async function startMission(id){
     yton+=mission.yton_reward;
     wins++;
     if(xp>=100){level++;xp-=100;}
-    alert("Başarılı!");
   }else{
     losses++;
-    alert("Başarısız!");
   }
 
   await supabaseClient.from("users").update({
@@ -248,7 +281,7 @@ async function startMission(id){
 }
 
 render();
-setInterval(render,60000); // her 1 dk kontrol
+setInterval(render,1000);
 </script>
 
 </body>
