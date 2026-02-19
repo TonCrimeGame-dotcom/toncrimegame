@@ -1,113 +1,135 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yeraltı Şehri</title>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<style>
-body{
-margin:0;
-background:#000;
-color:#fff;
-font-family:Arial;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-text-align:center;
-}
-
-.box{
-background:#111;
-padding:25px;
-border-radius:12px;
-width:90%;
-max-width:400px;
-}
-
-h2{color:#f90}
-
-button{
-margin-top:15px;
-width:100%;
-padding:12px;
-background:#f90;
-border:none;
-border-radius:8px;
-font-weight:bold;
-cursor:pointer;
-}
-</style>
-</head>
-<body>
-
-<div class="box" id="content">
-<h2>Yükleniyor...</h2>
-</div>
-
 <script>
 
-/* Age kontrol */
 if(localStorage.getItem("ageVerified")!=="true"){
 window.location.href="index.html";
 }
 
+const supabase = window.supabase.createClient(
+"https://hwhscuyudwphnsipibpy.supabase.co",
+"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
+);
+
 const tg = window.Telegram?.WebApp;
 let user = tg?.initDataUnsafe?.user;
 
-/* Eğer Telegram user yoksa fallback göster */
 if(!user){
-document.getElementById("content").innerHTML = `
-<h2>🔥 Yeraltı Şehri</h2>
-<p>Telegram kullanıcı bilgisi alınamadı.</p>
-<p>Lütfen bot içinden tekrar aç.</p>
-`;
+document.getElementById("content").innerHTML =
+"<h2>Telegram kullanıcı bilgisi alınamadı.</h2>";
 }else{
-
-let nickname = localStorage.getItem("nickname");
-
-if(!nickname){
-document.getElementById("content").innerHTML = `
-<h2>Takma Ad Belirle</h2>
-<input id="nickInput"
-style="width:100%;padding:10px;margin-top:10px;background:#222;border:none;color:#fff;border-radius:6px;">
-<button onclick="saveNick()">Kaydet</button>
-`;
-}else{
-showGame();
+initUser(user.id);
 }
 
-window.saveNick = function(){
-let nick=document.getElementById("nickInput").value.trim();
-if(nick.length<3){
-alert("En az 3 karakter");
+async function initUser(userId){
+
+let { data } = await supabase
+.from("users")
+.select("*")
+.eq("id", userId)
+.single();
+
+if(!data){
+await supabase.from("users").insert({ id: userId });
+let { data: newUser } = await supabase
+.from("users")
+.select("*")
+.eq("id", userId)
+.single();
+showGame(newUser);
+}else{
+await handleEnergyRegen(data);
+}
+
+}
+
+async function handleEnergyRegen(data){
+
+let now = Math.floor(Date.now()/1000);
+
+if(now < data.hospital_until){
+showGame(data,true);
 return;
 }
-localStorage.setItem("nickname",nick);
-showGame();
+
+if(data.energy < 100){
+
+let diff = now - data.last_energy_update;
+let gained = Math.floor(diff / 300); // 5 dk = 300 sn
+
+if(gained > 0){
+let newEnergy = Math.min(100, data.energy + gained);
+await supabase
+.from("users")
+.update({
+energy: newEnergy,
+last_energy_update: now
+})
+.eq("id", data.id);
+
+data.energy = newEnergy;
+data.last_energy_update = now;
+}
 }
 
-function showGame(){
-let nick = localStorage.getItem("nickname");
+showGame(data,false);
+}
+
+function showGame(data,inHospital){
+
+let hospitalText = "";
+
+if(inHospital){
+hospitalText = `<p style="color:#ff4444;">🏥 Hastanedeysin</p>
+<button onclick="buyEnergy(${data.id})">1 Enerji = 1 YTON</button>`;
+}
 
 document.getElementById("content").innerHTML = `
 <h2>🔥 Yeraltı Şehri</h2>
-<p>ID: ${user.id}</p>
-<p>👤 ${nick}</p>
-<button onclick="connectWallet()">TON Cüzdan Bağla</button>
+<p>ID: ${data.id}</p>
+<p>👤 ${data.nickname || "Takma ad yok"}</p>
+<p>Level: ${data.level}</p>
+<p>⚡ ${data.energy}/100</p>
+<p>💰 ${data.yton}</p>
+${hospitalText}
+<button onclick="simulateHospital(${data.id})">Test: Hastaneye Düş</button>
 `;
 }
 
-window.connectWallet = function(){
-alert("TON Connect sonraki adımda entegre edilecek.");
+async function buyEnergy(userId){
+
+let { data } = await supabase
+.from("users")
+.select("*")
+.eq("id", userId)
+.single();
+
+if(data.yton < 1){
+alert("YTON yetersiz");
+return;
 }
 
+await supabase
+.from("users")
+.update({
+energy: data.energy + 1,
+yton: data.yton - 1
+})
+.eq("id", userId);
+
+location.reload();
+}
+
+async function simulateHospital(userId){
+
+let now = Math.floor(Date.now()/1000);
+
+await supabase
+.from("users")
+.update({
+hospital_until: now + 600
+})
+.eq("id", userId);
+
+location.reload();
 }
 
 </script>
-
-</body>
-</html>
