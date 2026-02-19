@@ -3,11 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>TonCrime - Missions</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{margin:0;background:#0e0e0e;font-family:Arial;color:white}
+body{margin:0;background:#0e0e0e;color:white;font-family:Arial}
 .topbar{
 background:#111;
 padding:12px;
@@ -18,24 +17,23 @@ font-weight:bold;
 position:fixed;
 width:100%;
 top:0;
+z-index:999;
 border-bottom:1px solid #222;
 }
-.logo{color:#ffb300;font-size:20px}
-.container{padding-top:70px}
+.container{padding:80px 20px}
 .card{
 background:#1a1a1a;
-margin:15px;
 padding:15px;
-border-radius:10px;
+margin-bottom:15px;
+border-radius:8px;
 }
 button{
-background:#ffb300;
+background:#f5b400;
 border:none;
 padding:10px;
 width:100%;
 margin-top:10px;
 font-weight:bold;
-border-radius:6px;
 cursor:pointer;
 }
 </style>
@@ -43,115 +41,106 @@ cursor:pointer;
 <body>
 
 <div class="topbar">
-<div class="logo">TonCrime</div>
+<div>TonCrime</div>
 <div id="stats">Yükleniyor...</div>
 </div>
 
-<div class="container">
-<div id="playerInfo" class="card"></div>
-<div id="missions"></div>
-</div>
+<div class="container" id="missions"></div>
 
 <script>
+const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY = "BURAYA_ANON_KEYINI_YAPISTIR";
 
-const supabase = supabase.createClient(
-"https://hwhscuyudwphnsipibpy.supabase.co",
-"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
-);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let userId = 591676206;
+const userId = 591676206; // KENDI USER ID'N
 
-function xpNeeded(level){
-return Math.floor(100 * Math.pow(1.05, level-1));
-}
-
-async function getUser(){
-const { data } = await supabase
-.from("users")
-.select("*")
-.eq("id", userId)
-.single();
+async function loadUser(){
+let { data } = await supabase.from("users").select("*").eq("id",userId).single();
 return data;
 }
 
-async function renderUser(){
-let user = await getUser();
-if(!user) return;
-
-let needed = xpNeeded(user.level);
-
-document.getElementById("stats").innerHTML =
-`Lv ${user.level} | XP ${user.xp}/${needed} | ⚡ ${user.energy}/100 | 💰 ${user.yton}`;
-
-document.getElementById("playerInfo").innerHTML = `
-ID: ${user.id}<br>
-Takma Ad: ${user.nickname}<br>
-Level: ${user.level}<br>
-XP: ${user.xp}/${needed}
-`;
+async function updateUser(values){
+await supabase.from("users").update(values).eq("id",userId);
 }
 
 async function loadMissions(){
-const { data } = await supabase.from("missions").select("*");
+let { data } = await supabase.from("missions").select("*");
+return data;
+}
 
-let html="";
-data.forEach(m=>{
-html+=`
+async function render(){
+let user = await loadUser();
+let missions = await loadMissions();
+
+document.getElementById("stats").innerHTML =
+`Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy}/100 | 💰 ${user.yton}`;
+
+let html = "";
+
+missions.forEach(m=>{
+html += `
 <div class="card">
 <b>${m.name}</b><br>
 Enerji: ${m.energy_cost}<br>
 XP: ${m.xp_reward}<br>
-Kazanç: ${m.yton_reward} YTon<br>
+Kazanç: ${m.yton_reward} Yton<br>
 Başarı: %${m.success_rate}
-<button onclick="startMission(${m.id})">Başlat</button>
-</div>`;
+<button onclick="startMission(${m.id},${m.energy_cost},${m.xp_reward},${m.yton_reward},${m.success_rate})">
+Başlat
+</button>
+</div>
+`;
 });
-document.getElementById("missions").innerHTML=html;
+
+document.getElementById("missions").innerHTML = html;
 }
 
-async function startMission(id){
+async function startMission(id,energyCost,xpReward,ytonReward,successRate){
 
-let player = await getUser();
-const { data: mission } = await supabase
-.from("missions")
-.select("*")
-.eq("id", id)
-.single();
+let user = await loadUser();
 
-if(Number(player.energy) < Number(mission.energy_cost)){
-alert("Enerji yetersiz!");
+if(user.energy < energyCost){
+alert("Yetersiz enerji");
 return;
 }
 
-let success = Math.random()*100 < Number(mission.success_rate);
-
-let newEnergy = Number(player.energy) - Number(mission.energy_cost);
-let newXp = Number(player.xp);
-let newYton = Number(player.yton);
+let newEnergy = user.energy - energyCost;
+let success = Math.random()*100 < successRate;
 
 if(success){
-newXp += Number(mission.xp_reward);
-newYton += Number(mission.yton_reward);
+
+let newXp = user.xp + xpReward;
+let newYton = user.yton + ytonReward;
+let newLevel = user.level;
+
+if(newXp >= 100){
+newLevel++;
+newXp = newXp - 100;
+}
+
+await updateUser({
+energy:newEnergy,
+xp:newXp,
+yton:newYton,
+level:newLevel
+});
+
 alert("Başarılı!");
+
 }else{
+
+await updateUser({
+energy:newEnergy
+});
+
 alert("Başarısız!");
 }
 
-await supabase
-.from("users")
-.update({
-energy:newEnergy,
-xp:newXp,
-yton:newYton
-})
-.eq("id", userId);
-
-renderUser();
+render();
 }
 
-renderUser();
-loadMissions();
-
+render();
 </script>
 
 </body>
