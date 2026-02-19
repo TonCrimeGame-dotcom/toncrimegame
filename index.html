@@ -32,9 +32,19 @@ max-width:400px;
 
 h2{color:#f90;margin-bottom:15px}
 
+input[type="date"]{
+width:100%;
+padding:10px;
+margin-top:8px;
+border-radius:6px;
+border:none;
+background:#222;
+color:#fff;
+}
+
 label{
 display:block;
-margin:10px 0;
+margin:12px 0;
 font-size:14px;
 }
 
@@ -54,10 +64,10 @@ background:#555;
 cursor:not-allowed;
 }
 
-.footer{
-margin-top:15px;
-font-size:12px;
-color:#888;
+.error{
+color:#ff4444;
+font-size:13px;
+margin-top:10px;
 }
 </style>
 </head>
@@ -67,12 +77,9 @@ color:#888;
 <div class="box">
 <h2>🔥 Yeraltı Şehri</h2>
 
-<p>Bu oyun 18 yaş ve üzeri kullanıcılar içindir.</p>
+<p>Bu oyun yalnızca 18 yaş ve üzeri kullanıcılar içindir.</p>
 
-<label>
-<input type="checkbox" id="ageCheck">
-18 yaşından büyük olduğumu onaylıyorum
-</label>
+<input type="date" id="birthDate">
 
 <label>
 <input type="checkbox" id="termsCheck">
@@ -81,34 +88,50 @@ Kullanım şartlarını ve gizlilik politikasını kabul ediyorum
 
 <button id="continueBtn" disabled>Devam Et</button>
 
-<div class="footer">
-Devam ederek tüm sorumluluğu kabul etmiş olursunuz.
-</div>
+<div id="errorMsg" class="error"></div>
+
 </div>
 
 <script>
 
-/* Eğer zaten onay verilmişse direkt game.html'e git */
+/* Önceden doğrulandıysa geç */
 if(localStorage.getItem("ageVerified")==="true"){
 window.location.href="game.html";
 }
 
-const ageCheck=document.getElementById("ageCheck");
+const birthInput=document.getElementById("birthDate");
 const termsCheck=document.getElementById("termsCheck");
 const btn=document.getElementById("continueBtn");
+const errorMsg=document.getElementById("errorMsg");
 
-/* Checkbox kontrol */
+/* Kontrol */
 function validate(){
-btn.disabled = !(ageCheck.checked && termsCheck.checked);
+btn.disabled = !(birthInput.value && termsCheck.checked);
 }
 
-ageCheck.addEventListener("change",validate);
+birthInput.addEventListener("change",validate);
 termsCheck.addEventListener("change",validate);
 
-/* Devam */
 btn.addEventListener("click",function(){
+
+let birthDate=new Date(birthInput.value);
+let today=new Date();
+
+let age=today.getFullYear()-birthDate.getFullYear();
+let m=today.getMonth()-birthDate.getMonth();
+
+if(m<0 || (m===0 && today.getDate()<birthDate.getDate())){
+age--;
+}
+
+if(age<18){
+errorMsg.innerText="18 yaşından küçük kullanıcılar erişemez.";
+return;
+}
+
 localStorage.setItem("ageVerified","true");
 window.location.href="game.html";
+
 });
 
 </script>
