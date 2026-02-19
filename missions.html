@@ -89,7 +89,8 @@ const supabaseClient = supabase.createClient(
 "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
 
-let userId = 591676206; // kendi id ni yaz
+/* DOĞRU USER ID */
+let userId = 591676206;
 
 function openMenu(){
 document.getElementById("sideMenu").style.left="0";
@@ -105,7 +106,10 @@ async function loadPlayer(){
 let {data} = await supabaseClient
 .from("users").select("*").eq("id",userId).single();
 
-if(!data) return;
+if(!data){
+document.getElementById("topStats").innerHTML="Kullanıcı bulunamadı";
+return;
+}
 
 document.getElementById("topStats").innerHTML =
 `Lv ${data.level} | XP ${data.xp}/100 | ⚡ ${data.energy}/100 | 💰 ${data.yton}`;
@@ -187,6 +191,7 @@ loadPlayer();
 }
 
 setInterval(energyRegen,300000);
+
 loadPlayer();
 loadMissions();
 </script>
