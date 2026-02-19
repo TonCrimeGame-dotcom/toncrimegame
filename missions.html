@@ -6,61 +6,142 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body { margin:0; background:#0e0e0e; color:white; font-family:Arial; }
+body {
+  margin:0;
+  background:#0e0e0e;
+  color:white;
+  font-family:Arial;
+  overflow-x:hidden;
+}
 
+/* TOPBAR */
 .topbar {
-background:#111;
-padding:10px 20px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-font-weight:bold;
-border-bottom:1px solid #222;
+  background:#111;
+  padding:10px 15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:bold;
+  border-bottom:1px solid #222;
 }
 
-.userbox {
-padding:15px;
-background:#151515;
-margin:15px;
-border-radius:8px;
+.menu-btn {
+  cursor:pointer;
+  font-size:22px;
 }
 
+/* SIDE MENU */
+.sidebar {
+  position:fixed;
+  left:-250px;
+  top:0;
+  width:250px;
+  height:100%;
+  background:#151515;
+  padding:20px;
+  transition:0.3s;
+  z-index:1000;
+}
+
+.sidebar.open {
+  left:0;
+}
+
+.overlay {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  z-index:900;
+}
+
+.overlay.show {
+  display:block;
+}
+
+/* MAIN LAYOUT */
+.container {
+  display:flex;
+  padding:15px;
+  gap:20px;
+}
+
+.missions {
+  flex:2;
+}
+
+.userpanel {
+  flex:1;
+  background:#151515;
+  padding:15px;
+  border-radius:8px;
+  height:fit-content;
+}
+
+/* CARDS */
 .card {
-background:#1b1b1b;
-padding:15px;
-margin:15px;
-border-radius:8px;
+  background:#1b1b1b;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:8px;
 }
 
 button {
-width:100%;
-padding:10px;
-background:gold;
-border:none;
-font-weight:bold;
-cursor:pointer;
+  width:100%;
+  padding:10px;
+  background:gold;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
 }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-<div>TonCrime</div>
-<div id="stats">Yükleniyor...</div>
+  <div class="menu-btn" onclick="openMenu()">☰</div>
+  <div>TonCrime</div>
+  <div id="stats">Yükleniyor...</div>
 </div>
 
-<div class="userbox" id="userinfo"></div>
-<div id="missions"></div>
+<div class="sidebar" id="sidebar">
+  <h3>Menü</h3>
+  <p>🏠 Ana Sayfa</p>
+  <p>🎯 Görevler</p>
+  <p>🛒 Market</p>
+  <p>⚔ PvP</p>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<div class="container">
+  <div class="missions" id="missions"></div>
+  <div class="userpanel" id="userinfo"></div>
+</div>
 
 <script>
 
 const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const userId = "591676206";
 
+/* MENU */
+function openMenu(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
+}
+
+function closeMenu(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+}
+
+/* DATA */
 async function loadUser(){
   const { data } = await supabaseClient
     .from("users")
@@ -78,7 +159,6 @@ async function loadMissions(){
 }
 
 async function render(){
-
   const user = await loadUser();
   const missions = await loadMissions();
 
@@ -86,26 +166,26 @@ async function render(){
     `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
 
   document.getElementById("userinfo").innerHTML = `
-  <b>ID:</b> ${user.id}<br>
-  <b>Takma Ad:</b> ${user.nickname || "Yok"}<br>
-  <b>Silah Avantajı:</b> x1.00<br>
-  <b>Toplam Görev:</b> ${user.total_missions || 0}<br>
-  <b>Kazanma:</b> ${user.wins || 0}<br>
-  <b>Kaybetme:</b> ${user.losses || 0}
+    <h3>Kullanıcı</h3>
+    <b>ID:</b> ${user.id}<br>
+    <b>Takma Ad:</b> ${user.nickname || "Yok"}<br>
+    <b>Silah Avantajı:</b> x1.00<br>
+    <b>Toplam Görev:</b> ${user.total_missions || 0}<br>
+    <b>Kazanma:</b> ${user.wins || 0}<br>
+    <b>Kaybetme:</b> ${user.losses || 0}
   `;
 
   let html = "";
-
   missions.forEach(m=>{
     html += `
-    <div class="card">
-      <b>${m.name}</b><br>
-      Enerji: ${m.energy_cost}<br>
-      XP: ${m.xp_reward}<br>
-      Kazanç: ${m.yton_reward} Yton<br>
-      Başarı: %${m.success_rate}<br><br>
-      <button onclick="startMission(${m.id})">Başlat</button>
-    </div>
+      <div class="card">
+        <b>${m.name}</b><br>
+        Enerji: ${m.energy_cost}<br>
+        XP: ${m.xp_reward}<br>
+        Kazanç: ${m.yton_reward} Yton<br>
+        Başarı: %${m.success_rate}<br><br>
+        <button onclick="startMission(${m.id})">Başlat</button>
+      </div>
     `;
   });
 
@@ -113,9 +193,7 @@ async function render(){
 }
 
 async function startMission(missionId){
-
   const user = await loadUser();
-
   const { data: mission } = await supabaseClient
     .from("missions")
     .select("*")
