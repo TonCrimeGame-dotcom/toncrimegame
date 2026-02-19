@@ -48,173 +48,177 @@ XP: <span id="xp"></span> |
 
 <script>
 
-/* ================= CORE ================= */
+/* ============================= */
+/* PLAYER CORE */
+/* ============================= */
 
 function getPlayer(){
-let p = JSON.parse(localStorage.getItem("player"));
-
+let p=JSON.parse(localStorage.getItem("player"))
 if(!p){
-p = {
+p={
 level:1,
 xp:0,
 xpNext:100,
-energy:80,
-yton:120,
+energy:100,
+yton:200,
 hospitalUntil:0,
 missionStats:{success:0,fail:0},
 missionHistory:[],
-missionRepeat:{}
-};
-localStorage.setItem("player", JSON.stringify(p));
+missionRepeat:{},
+gameBank:0
 }
-
-return p;
+localStorage.setItem("player",JSON.stringify(p))
+}
+return p
 }
 
 function setPlayer(p){
-localStorage.setItem("player", JSON.stringify(p));
+localStorage.setItem("player",JSON.stringify(p))
 }
 
-/* ================= UI ================= */
+/* ============================= */
+/* UI UPDATE */
+/* ============================= */
 
 function updateUI(){
-let p = getPlayer();
-
-document.getElementById("lvl").innerText = p.level;
-document.getElementById("xp").innerText = p.xp + "/" + p.xpNext;
-document.getElementById("energy").innerText = p.energy;
-document.getElementById("yton").innerText = p.yton;
+let p=getPlayer()
+document.getElementById("lvl").innerText=p.level
+document.getElementById("xp").innerText=p.xp+"/"+p.xpNext
+document.getElementById("energy").innerText=p.energy
+document.getElementById("yton").innerText=p.yton
 }
 
-/* ================= MISSIONS ================= */
+/* ============================= */
+/* MISSIONS DATA */
+/* ============================= */
 
 const missionsData=[
-{id:1,name:"Sokak",energy:10,xp:20,yton:50,risk:20},
-{id:2,name:"Kacak",energy:15,xp:30,yton:80,risk:25},
-{id:3,name:"Baskin",energy:20,xp:50,yton:120,risk:35}
-];
+{id:1,name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
+{id:2,name:"Kaçak Mal",energy:15,xp:30,yton:80,risk:25},
+{id:3,name:"Gece Baskını",energy:20,xp:50,yton:120,risk:35}
+]
 
 function loadMissions(){
-const box=document.getElementById("missions");
-box.innerHTML="";
+const box=document.getElementById("missions")
+box.innerHTML=""
 
 missionsData.forEach(m=>{
-let div=document.createElement("div");
-div.className="mission";
-
+let div=document.createElement("div")
+div.className="mission"
 div.innerHTML=`
 <b>${m.name}</b><br>
-⚡ ${m.energy} | ⭐ ${m.xp} | 💰 ${m.yton} | Risk ${m.risk}%
+⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon | Risk ${m.risk}%
 <button>Başlat</button>
-`;
-
-div.querySelector("button").addEventListener("click", function(){
-startMission(m.id);
-});
-
-box.appendChild(div);
-});
+`
+div.querySelector("button").onclick=function(){
+startMission(m.id)
+}
+box.appendChild(div)
+})
 }
 
-/* ================= START ================= */
+/* ============================= */
+/* START MISSION */
+/* ============================= */
 
 function startMission(id){
 
-let p = getPlayer();
-let m = missionsData.find(x=>x.id===id);
+let p=getPlayer()
+let m=missionsData.find(x=>x.id===id)
 
 if(!m){
-alert("Görev bulunamadı");
-return;
+alert("Görev bulunamadı")
+return
 }
 
-if(Date.now() < p.hospitalUntil){
-alert("🏥 Hastanedesin");
-return;
+if(Date.now()<p.hospitalUntil){
+alert("🏥 Hastanedesin")
+return
 }
 
-if(p.energy < m.energy){
-alert("⚡ Enerji yetersiz");
-return;
+if(p.energy<m.energy){
+alert("⚡ Enerji yetersiz")
+return
 }
 
 /* Enerji düş */
-p.energy -= m.energy;
+p.energy-=m.energy
 
-/* Risk hesap */
-let repeat = p.missionRepeat[id] || 0;
-let finalRisk = repeat >= 10 ? m.risk * 2 : m.risk;
+/* Risk artışı */
+let repeat=p.missionRepeat[id]||0
+let finalRisk=repeat>=10?m.risk*2:m.risk
 
-let success = Math.random()*100 > finalRisk;
+let success=Math.random()*100>finalRisk
 
 if(success){
-
-p.xp += m.xp;
-p.yton += m.yton;
-p.missionStats.success++;
-alert("✅ Başarılı");
-
+p.xp+=m.xp
+p.yton+=m.yton
+p.missionStats.success++
+alert("✅ Başarılı!")
 }else{
+let loss=Math.floor(m.yton/2)
+p.yton=Math.max(0,p.yton-loss)
+p.xp=Math.max(0,p.xp-m.xp)
+p.missionStats.fail++
+p.gameBank+=loss
 
-let loss = Math.floor(m.yton/2);
-p.yton = Math.max(0, p.yton - loss);
-p.xp = Math.max(0, p.xp - m.xp);
-p.missionStats.fail++;
+alert("❌ Başarısız!")
 
-alert("❌ Başarısız");
-
-if(Math.random() < 0.5){
-p.hospitalUntil = Date.now() + 600000;
-alert("🏥 Hastaneye düştün");
+if(Math.random()<0.5){
+p.hospitalUntil=Date.now()+600000
+alert("🏥 Hastaneye düştün (10 dakika)")
 }
-
 }
 
 /* Level up */
-if(p.xp >= p.xpNext){
-p.level++;
-p.xp = p.xp - p.xpNext;
-p.xpNext += 100;
+if(p.xp>=p.xpNext){
+p.level++
+p.xp=0
+p.xpNext+=100
+alert("🎉 Level Atladın!")
 }
 
-/* Repeat artır */
-p.missionRepeat[id] = repeat + 1;
+p.missionRepeat[id]=(repeat+1)
 
-/* History */
 p.missionHistory.unshift({
 name:m.name,
 time:new Date().toLocaleTimeString(),
-result:success ? "success":"fail"
-});
+result:success?"success":"fail"
+})
 
-setPlayer(p);
-updateUI();
-renderStats();
+setPlayer(p)
+updateUI()
+renderStats()
 }
 
-/* ================= STATS ================= */
+/* ============================= */
+/* STATS RENDER */
+/* ============================= */
 
 function renderStats(){
-let p = getPlayer();
+let p=getPlayer()
 
-document.getElementById("statsBox").innerHTML =
+document.getElementById("statsBox").innerHTML=
 "Başarılı: "+p.missionStats.success+
-"<br>Başarısız: "+p.missionStats.fail;
+"<br>Başarısız: "+p.missionStats.fail+
+"<br>Oyun Kasası: "+p.gameBank
 
-let history="";
+let history=""
 p.missionHistory.slice(0,10).forEach(h=>{
 history+=`<div class="row ${h.result}">
 ${h.time} - ${h.name}
-</div>`;
-});
-
-document.getElementById("historyBox").innerHTML = history;
+</div>`
+})
+document.getElementById("historyBox").innerHTML=history
 }
 
+/* ============================= */
 /* INIT */
-updateUI();
-loadMissions();
-renderStats();
+/* ============================= */
+
+updateUI()
+loadMissions()
+renderStats()
 
 </script>
 </body>
