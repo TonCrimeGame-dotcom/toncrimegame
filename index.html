@@ -1,1 +1,117 @@
-<button onclick="alert('Çalıştı')">Test</button>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yeraltı Şehri</title>
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<style>
+body{
+margin:0;
+background:#000;
+color:#fff;
+font-family:Arial;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+text-align:center;
+}
+
+.box{
+background:#111;
+padding:25px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+}
+
+h2{color:#f90;margin-bottom:15px}
+
+label{
+display:block;
+margin:10px 0;
+font-size:14px;
+}
+
+button{
+margin-top:15px;
+width:100%;
+padding:12px;
+background:#f90;
+border:none;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:disabled{
+background:#555;
+cursor:not-allowed;
+}
+
+.footer{
+margin-top:15px;
+font-size:12px;
+color:#888;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+<h2>🔥 Yeraltı Şehri</h2>
+
+<p>Bu oyun 18 yaş ve üzeri kullanıcılar içindir.</p>
+
+<label>
+<input type="checkbox" id="ageCheck">
+18 yaşından büyük olduğumu onaylıyorum
+</label>
+
+<label>
+<input type="checkbox" id="termsCheck">
+Kullanım şartlarını ve gizlilik politikasını kabul ediyorum
+</label>
+
+<button id="continueBtn" disabled>Devam Et</button>
+
+<div class="footer">
+Devam ederek tüm sorumluluğu kabul etmiş olursunuz.
+</div>
+</div>
+
+<script>
+
+/* Eğer zaten onay verilmişse direkt game.html'e git */
+if(localStorage.getItem("ageVerified")==="true"){
+window.location.href="game.html";
+}
+
+const ageCheck=document.getElementById("ageCheck");
+const termsCheck=document.getElementById("termsCheck");
+const btn=document.getElementById("continueBtn");
+
+/* Checkbox kontrol */
+function validate(){
+btn.disabled = !(ageCheck.checked && termsCheck.checked);
+}
+
+ageCheck.addEventListener("change",validate);
+termsCheck.addEventListener("change",validate);
+
+/* Devam */
+btn.addEventListener("click",function(){
+localStorage.setItem("ageVerified","true");
+window.location.href="game.html";
+});
+
+</script>
+
+</body>
+</html>
