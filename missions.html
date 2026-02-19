@@ -1,183 +1,195 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Görevler - TonCrime</title>
+<title>TonCrime - Görevler</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
 <style>
-body{margin:0;background:#000;color:#fff;font-family:Arial}
-.topbar{height:60px;background:#111;display:flex;align-items:center;padding:0 15px}
-.logo{color:#f90;font-weight:bold}
-.wrapper{padding:15px}
-.card{background:#111;padding:15px;border-radius:12px;margin-bottom:15px}
-button{width:100%;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold;margin-top:8px;cursor:pointer}
-.small{font-size:12px;color:#aaa}
+body{margin:0;background:#0e0e0e;font-family:Arial;color:white}
+
+/* HEADER */
+.header{
+position:fixed;top:0;left:0;right:0;height:60px;
+background:#111;display:flex;align-items:center;
+justify-content:space-between;padding:0 15px;
+z-index:1000;border-bottom:1px solid #222;
+}
+
+.logo{font-size:22px;font-weight:bold;color:#ffb300}
+.stats{font-size:14px}
+.menuBtn{font-size:22px;cursor:pointer;margin-right:10px}
+
+/* USER PANEL */
+.userPanel{
+margin-top:70px;background:#1a1a1a;padding:15px;
+border-radius:8px;margin:70px 15px 10px 15px
+}
+
+/* MENU */
+.menu{
+position:fixed;top:0;left:-250px;width:250px;height:100%;
+background:#181818;transition:.3s;padding-top:60px;z-index:2000
+}
+
+.menu a{
+display:block;padding:15px;color:white;
+text-decoration:none;border-bottom:1px solid #222
+}
+
+.menu a:hover{background:#222}
+
+.overlay{
+position:fixed;top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,.6);display:none;z-index:1500
+}
+
+/* CONTENT */
+.content{padding:15px}
+
+.card{
+background:#1a1a1a;padding:15px;border-radius:8px;
+margin-bottom:15px
+}
+
+button{
+width:100%;padding:10px;border:none;
+background:#ffb300;color:black;
+border-radius:6px;font-weight:bold;cursor:pointer
+}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-<div class="logo">TonCrime - Görevler</div>
+<div class="header">
+<div>
+<span class="menuBtn" onclick="openMenu()">☰</span>
+<span class="logo">TonCrime</span>
+</div>
+<div class="stats" id="topStats">Yükleniyor...</div>
 </div>
 
-<div class="wrapper" id="missions"></div>
+<div class="menu" id="sideMenu">
+<a href="index.html">🏠 Ana Sayfa</a>
+<a href="missions.html">📋 Görevler</a>
+<a href="#">⚔ PvP</a>
+<a href="#">🔫 Silah Kaçakçısı</a>
+<a href="#">🏥 Hastane</a>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<div class="userPanel" id="userPanel">Yükleniyor...</div>
+
+<div class="content" id="missionsArea"></div>
 
 <script>
-
 const supabaseClient = supabase.createClient(
 "https://hwhscuyudwphnsipibpy.supabase.co",
 "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
 
-let userId = localStorage.getItem("toncrime_user");
+let userId = 591676206; // kendi id ni yaz
 
-init();
-
-async function init(){
-renderMissions();
+function openMenu(){
+document.getElementById("sideMenu").style.left="0";
+document.getElementById("overlay").style.display="block";
 }
 
-async function renderMissions(){
-let { data } = await supabaseClient.from("missions").select("*");
+function closeMenu(){
+document.getElementById("sideMenu").style.left="-250px";
+document.getElementById("overlay").style.display="none";
+}
 
-let html = "";
+async function loadPlayer(){
+let {data} = await supabaseClient
+.from("users").select("*").eq("id",userId).single();
+
+if(!data) return;
+
+document.getElementById("topStats").innerHTML =
+`Lv ${data.level} | XP ${data.xp}/100 | ⚡ ${data.energy}/100 | 💰 ${data.yton}`;
+
+document.getElementById("userPanel").innerHTML =
+`ID: ${data.id}<br>
+Takma Ad: ${data.nickname}<br>
+Level: ${data.level}<br>
+XP: ${data.xp}`;
+}
+
+async function loadMissions(){
+let {data} = await supabaseClient.from("missions").select("*");
+
+let html="";
 data.forEach(m=>{
-html += `
+html+=`
 <div class="card">
 <b>${m.name}</b><br>
 Enerji: ${m.energy_cost}<br>
 XP: ${m.xp_reward}<br>
 Kazanç: ${m.yton_reward} YTon<br>
 Başarı Oranı: %${m.success_rate}
+<br><br>
 <button onclick="startMission(${m.id})">Başlat</button>
-</div>
-`;
+</div>`;
 });
-
-document.getElementById("missions").innerHTML = html;
+document.getElementById("missionsArea").innerHTML=html;
 }
 
-async function startMission(missionId){
+async function startMission(id){
 
-let now = Math.floor(Date.now()/1000);
-let today = new Date().toISOString().split("T")[0];
+let {data:user} = await supabaseClient
+.from("users").select("*").eq("id",userId).single();
 
-let { data:user } = await supabaseClient
-.from("users")
-.select("*")
-.eq("id", userId)
-.single();
+let {data:mission} = await supabaseClient
+.from("missions").select("*").eq("id",id).single();
 
-if(user.energy <= 0){
+if(user.energy < mission.energy_cost){
 alert("Yeterli enerji yok!");
 return;
 }
 
-let { data:mission } = await supabaseClient
-.from("missions")
-.select("*")
-.eq("id", missionId)
-.single();
-
-let { data:stat } = await supabaseClient
-.from("user_mission_stats")
-.select("*")
-.eq("user_id", userId)
-.eq("mission_id", missionId)
-.maybeSingle();
-
-if(!stat){
-await supabaseClient.from("user_mission_stats").insert({
-user_id:userId,
-mission_id:missionId,
-repeat_count:0,
-last_reset:today
-});
-stat = { repeat_count:0, last_reset:today };
-}
-
-if(stat.last_reset !== today){
-await supabaseClient
-.from("user_mission_stats")
-.update({ repeat_count:0, last_reset:today })
-.eq("id", stat.id);
-stat.repeat_count = 0;
-}
-
-let repeat = stat.repeat_count + 1;
-
-let successRate = mission.success_rate;
-
-if(repeat > 10){
-let risk = 100 - successRate;
-risk = Math.min(risk * 2, 95);
-successRate = 100 - risk;
-}
-
-let success = Math.random()*100 < successRate;
+let success = Math.random()*100 <= mission.success_rate;
 
 let newEnergy = user.energy - mission.energy_cost;
-if(newEnergy < 0){
-alert("Yeterli enerji yok!");
-return;
-}
-
-let updateUser = {
-energy:newEnergy,
-last_active:now
-};
-
-let logText = "";
+let newXp = user.xp;
+let newYton = user.yton;
 
 if(success){
-
-let newXp = user.xp + mission.xp_reward;
-let newYton = parseFloat(user.yton) + parseFloat(mission.yton_reward);
-let level = user.level;
-let xpReq = user.xp_required;
-
-if(newXp >= xpReq){
-newXp -= xpReq;
-level += 1;
-xpReq = Math.ceil(xpReq * 1.05);
-}
-
-updateUser.xp = newXp;
-updateUser.yton = newYton;
-updateUser.level = level;
-updateUser.xp_required = xpReq;
-
-logText = "Başarılı: " + mission.name;
-
+newXp += mission.xp_reward;
+newYton += mission.yton_reward;
+alert("Başarılı: "+mission.name);
 }else{
-
-if(Math.random()*100 < 70){
-updateUser.hospital_until = now + 7200;
-logText = "Dayak yedin ve hastanelik oldun!";
-}else{
-logText = "Başarısız: " + mission.name;
-}
+alert("Başarısız oldun!");
 }
 
-await supabaseClient.from("users").update(updateUser).eq("id", userId);
+await supabaseClient.from("users")
+.update({
+energy:newEnergy,
+xp:newXp,
+yton:newYton
+})
+.eq("id",userId);
 
-await supabaseClient
-.from("user_mission_stats")
-.update({ repeat_count: repeat })
-.eq("user_id", userId)
-.eq("mission_id", missionId);
-
-await supabaseClient.from("activity_log").insert({
-user_id:userId,
-type:"Mission",
-description:logText
-});
-
-alert(logText);
-location.reload();
+loadPlayer();
 }
 
+async function energyRegen(){
+let {data} = await supabaseClient
+.from("users").select("*").eq("id",userId).single();
+
+if(data.energy < 100){
+await supabaseClient.from("users")
+.update({energy:data.energy+1})
+.eq("id",userId);
+}
+loadPlayer();
+}
+
+setInterval(energyRegen,300000);
+loadPlayer();
+loadMissions();
 </script>
+
 </body>
 </html>
