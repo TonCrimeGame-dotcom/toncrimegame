@@ -13,21 +13,39 @@ body{
   font-family:Arial;
 }
 
-/* TOPBAR */
+/* ===== TOPBAR ===== */
 .topbar{
   background:#111;
-  padding:15px 35px;
+  padding:20px 50px;
   border-bottom:1px solid #222;
-}
-
-.top-stats{
   display:flex;
   justify-content:space-between;
-  align-items:center;
+  align-items:flex-start;
+  position:relative;
 }
 
-.bars{
-  margin-top:10px;
+.logo{
+  font-size:28px;
+  font-weight:bold;
+  color:gold;
+  margin-left:35px;
+}
+
+.menu-btn{
+  position:absolute;
+  left:20px;
+  top:22px;
+  font-size:22px;
+  cursor:pointer;
+}
+
+.right-stats{
+  width:420px;
+}
+
+.stat-text{
+  text-align:right;
+  margin-bottom:10px;
 }
 
 .bar-container{
@@ -37,6 +55,7 @@ body{
 .bar-label{
   font-size:12px;
   margin-bottom:4px;
+  text-align:right;
 }
 
 .bar{
@@ -52,21 +71,53 @@ body{
   transition:0.3s;
 }
 
-.xp-fill{
-  background:limegreen;
-}
-
-.energy-fill{
-  background:gold;
-}
+.xp-fill{ background:limegreen; }
+.energy-fill{ background:gold; }
 
 .energy-timer{
   font-size:11px;
   color:#aaa;
-  margin-top:2px;
+  text-align:right;
+  margin-top:3px;
 }
 
-/* LAYOUT */
+/* ===== SIDEBAR MENU ===== */
+.sidebar{
+  position:fixed;
+  top:0;
+  left:-260px;
+  width:250px;
+  height:100%;
+  background:#151515;
+  padding:30px;
+  transition:0.3s;
+  z-index:1000;
+}
+
+.sidebar.open{ left:0; }
+
+.sidebar h3{
+  margin-top:0;
+  color:gold;
+}
+
+.sidebar p{
+  margin:15px 0;
+  cursor:pointer;
+}
+
+.overlay{
+  position:fixed;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  z-index:900;
+}
+
+.overlay.show{ display:block; }
+
+/* ===== LAYOUT ===== */
 .main{
   display:flex;
   justify-content:center;
@@ -81,6 +132,7 @@ body{
   background:#151515;
   padding:20px;
   border-radius:10px;
+  height:fit-content;
 }
 
 .card{
@@ -111,12 +163,30 @@ button:hover{ opacity:0.9; }
 </head>
 <body>
 
+<!-- MENU -->
+<div class="sidebar" id="sidebar">
+  <h3>Menü</h3>
+  <p>🏠 Ana Sayfa</p>
+  <p>🎯 Görevler</p>
+  <p>⚔ PvP</p>
+  <p>🔫 Silahlar</p>
+</div>
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<!-- TOPBAR -->
 <div class="topbar">
-  <div class="top-stats">
-    <div id="stats">Yükleniyor...</div>
+  <div class="menu-btn" onclick="openMenu()">☰</div>
+
+  <div class="logo">
+    TonCrime
   </div>
 
-  <div class="bars">
+  <div class="right-stats">
+
+    <div class="stat-text" id="stats">
+      Yükleniyor...
+    </div>
+
     <div class="bar-container">
       <div class="bar-label">XP</div>
       <div class="bar">
@@ -131,6 +201,7 @@ button:hover{ opacity:0.9; }
       </div>
       <div class="energy-timer" id="energyTimer"></div>
     </div>
+
   </div>
 </div>
 
@@ -149,7 +220,14 @@ const MAX_ENERGY=100;
 const MAX_XP=100;
 const ENERGY_INTERVAL=5*60*1000;
 
-let currentUser=null;
+function openMenu(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
+}
+function closeMenu(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+}
 
 async function loadUser(){
   const {data}=await supabaseClient.from("users").select("*").eq("id",userId).single();
@@ -192,6 +270,7 @@ function updateBars(user){
   document.getElementById("energyBar").style.width=energyPercent+"%";
 
   const remaining=ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
+
   if(user.energy<MAX_ENERGY){
     const sec=Math.floor(remaining/1000)%60;
     const min=Math.floor(remaining/60000);
@@ -210,12 +289,18 @@ async function loadMissions(){
 async function render(){
   let user=await loadUser();
   user=await regenEnergy(user);
-  currentUser=user;
 
   document.getElementById("stats").innerHTML=
   `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
 
   updateBars(user);
+
+  document.getElementById("userinfo").innerHTML=
+  `ID: ${user.id}<br>
+   Takma Ad: ${user.nickname}<br>
+   Toplam Görev: ${user.total_missions||0}<br>
+   Kazanma: ${user.wins||0}<br>
+   Kaybetme: ${user.losses||0}`;
 
   const missions=await loadMissions();
   let html="";
@@ -232,13 +317,6 @@ async function render(){
     `;
   });
   document.getElementById("missions").innerHTML=html;
-
-  document.getElementById("userinfo").innerHTML=
-  `ID: ${user.id}<br>
-   Takma Ad: ${user.nickname}<br>
-   Toplam Görev: ${user.total_missions||0}<br>
-   Kazanma: ${user.wins||0}<br>
-   Kaybetme: ${user.losses||0}`;
 }
 
 async function startMission(id){
