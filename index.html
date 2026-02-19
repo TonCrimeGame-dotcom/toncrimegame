@@ -1,163 +1,197 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
 <style>
-body{margin:0;background:#000;color:#fff;font-family:Arial}
-.topbar{height:60px;background:#111;display:flex;align-items:center;padding:0 15px}
-.logo{color:#f90;font-weight:bold;font-size:18px}
-.topstats{margin-left:auto;font-size:13px;text-align:right}
-.band{background:#151515;padding:8px 15px;font-size:13px;border-bottom:1px solid #222}
-.wrapper{padding:15px}
-.card{background:#111;padding:15px;border-radius:12px;margin-bottom:15px}
+body{
+    margin:0;
+    background:#0e0e0e;
+    font-family:Arial;
+    color:white;
+}
+
+/* HEADER */
+.header{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    height:60px;
+    background:#111;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 15px;
+    z-index:1000;
+    border-bottom:1px solid #222;
+}
+
+.logo{
+    font-size:22px;
+    font-weight:bold;
+    color:#ffb300;
+    cursor:pointer;
+}
+
+.stats{
+    font-size:14px;
+}
+
+/* USER PANEL */
+.userPanel{
+    margin-top:70px;
+    background:#1a1a1a;
+    padding:15px;
+    border-radius:8px;
+    margin-left:15px;
+    margin-right:15px;
+}
+
+/* MENU */
+.menu{
+    position:fixed;
+    top:0;
+    left:-250px;
+    width:250px;
+    height:100%;
+    background:#181818;
+    transition:0.3s;
+    padding-top:60px;
+    z-index:2000;
+}
+
+.menu a{
+    display:block;
+    padding:15px;
+    color:white;
+    text-decoration:none;
+    border-bottom:1px solid #222;
+}
+
+.menu a:hover{
+    background:#222;
+}
+
+.menuBtn{
+    cursor:pointer;
+    font-size:22px;
+    margin-right:10px;
+}
+
+.overlay{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    background:rgba(0,0,0,0.6);
+    display:none;
+    z-index:1500;
+}
+
+.content{
+    padding:15px;
+    margin-top:10px;
+}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-<div class="logo">TonCrime</div>
-<div class="topstats" id="topStats">Yükleniyor...</div>
+<div class="header">
+    <div>
+        <span class="menuBtn" onclick="openMenu()">☰</span>
+        <span class="logo">TonCrime</span>
+    </div>
+    <div class="stats" id="topStats">
+        Yükleniyor...
+    </div>
 </div>
 
-<div class="band" id="cityBand">Yükleniyor...</div>
-<div class="wrapper" id="content"></div>
+<div class="menu" id="sideMenu">
+    <a href="index.html">🏠 Ana Sayfa</a>
+    <a href="missions.html">📋 Görevler</a>
+    <a href="pvp.html">⚔ PvP</a>
+    <a href="weapons.html">🔫 Silah Kaçakçısı</a>
+    <a href="nightclub.html">🌙 Gece Kulübü</a>
+    <a href="smoke.html">💨 Smoke & Smart</a>
+    <a href="brothel.html">❤️ Genel Ev</a>
+    <a href="hospital.html">🏥 Hastane</a>
+    <a href="business.html">💼 İş Hayatı</a>
+    <a href="tournament.html">🏆 Turnuva</a>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+<div class="userPanel" id="userPanel">
+    Yükleniyor...
+</div>
+
+<div class="content">
+    <!-- SAYFA İÇERİĞİ BURAYA GELECEK -->
+</div>
 
 <script>
-
 const supabaseClient = supabase.createClient(
 "https://hwhscuyudwphnsipibpy.supabase.co",
 "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
 
-let userId = localStorage.getItem("toncrime_user");
-if(!userId){
-userId = Math.floor(Math.random()*1000000000);
-localStorage.setItem("toncrime_user", userId);
+let userId = 1; // Şimdilik sabit test id
+
+function openMenu(){
+    document.getElementById("sideMenu").style.left="0";
+    document.getElementById("overlay").style.display="block";
 }
 
-init();
-
-async function init(){
-try{
-let now = Math.floor(Date.now()/1000);
-
-let { data, error } = await supabaseClient
-.from("users")
-.select("*")
-.eq("id", userId)
-.maybeSingle();
-
-if(error) throw error;
-
-if(!data){
-let insert = await supabaseClient.from("users").insert({
-id:userId,
-nickname:"TestUser",
-level:1,
-xp:0,
-xp_required:100,
-energy:100,
-yton:10,
-last_energy_update:now,
-last_active:now,
-hospital_until:0
-});
-if(insert.error) throw insert.error;
-
-let res = await supabaseClient.from("users").select("*").eq("id",userId).single();
-if(res.error) throw res.error;
-data = res.data;
+function closeMenu(){
+    document.getElementById("sideMenu").style.left="-250px";
+    document.getElementById("overlay").style.display="none";
 }
 
-await supabaseClient.from("users")
-.update({ last_active: now })
-.eq("id", userId);
+async function loadPlayer(){
+    let {data} = await supabaseClient
+    .from("users")
+    .select("*")
+    .eq("id",userId)
+    .single();
 
-data = await handleEnergy(data);
-render(data);
-updateCityBand();
+    if(!data){
+        document.getElementById("topStats").innerHTML="Kullanıcı yok";
+        return;
+    }
 
-}catch(e){
-document.getElementById("content").innerHTML =
-"<div class='card'>HATA: "+ e.message +"</div>";
-console.error(e);
-}
-}
+    document.getElementById("topStats").innerHTML =
+    `Lv ${data.level} | XP ${data.xp}/${Math.floor(100*Math.pow(1.05,data.level-1))} | ⚡ ${data.energy}/100 | 💰 ${data.yton}`;
 
-async function handleEnergy(data){
-try{
-let now = Math.floor(Date.now()/1000);
-
-if(now < data.hospital_until) return data;
-
-if(data.energy < 100){
-let diff = now - data.last_energy_update;
-let gain = Math.floor(diff / 300);
-
-if(gain > 0){
-let newEnergy = Math.min(100, data.energy + gain);
-
-let update = await supabaseClient
-.from("users")
-.update({
-energy:newEnergy,
-last_energy_update:now
-})
-.eq("id", data.id);
-
-if(update.error) throw update.error;
-
-data.energy = newEnergy;
-}
-}
-return data;
-}catch(e){
-console.error(e);
-return data;
-}
+    document.getElementById("userPanel").innerHTML =
+    `ID: ${data.id}<br>
+     Takma Ad: ${data.nickname}<br>
+     Level: ${data.level}<br>
+     XP: ${data.xp}`;
 }
 
-function render(data){
-document.getElementById("topStats").innerHTML =
-`Lv ${data.level}<br>XP ${data.xp}/${data.xp_required}<br>⚡ ${data.energy}/100<br>💰 ${data.yton}`;
+async function energyRegen(){
+    let {data} = await supabaseClient
+    .from("users")
+    .select("*")
+    .eq("id",userId)
+    .single();
 
-document.getElementById("content").innerHTML = `
-<div class="card">
-<b>ID:</b> ${data.id}<br>
-<b>Takma Ad:</b> ${data.nickname}<br>
-<b>Level:</b> ${data.level}<br>
-<b>XP:</b> ${data.xp}/${data.xp_required}
-</div>
-`;
+    if(data.energy < 100){
+        await supabaseClient
+        .from("users")
+        .update({energy:data.energy+1})
+        .eq("id",userId);
+    }
+    loadPlayer();
 }
 
-async function updateCityBand(){
-try{
-let now = Math.floor(Date.now()/1000);
-
-let { count, error } = await supabaseClient
-.from("users")
-.select("*",{count:"exact",head:true})
-.gte("last_active", now-300);
-
-if(error) throw error;
-
-let date = new Date();
-let formatted = date.toLocaleDateString("tr-TR");
-let time = date.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
-
-document.getElementById("cityBand").innerHTML =
-`📅 ${formatted} | 🕒 ${time} | 👥 ${count} aktif`;
-}catch(e){
-console.error(e);
-}
-}
-
-setInterval(updateCityBand,60000);
-
+setInterval(energyRegen,300000); // 5 dakika
+loadPlayer();
 </script>
+
 </body>
 </html>
