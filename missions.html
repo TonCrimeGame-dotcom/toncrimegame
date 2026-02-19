@@ -53,7 +53,7 @@ const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const userId = 591676206; // KENDI USER ID'N
+const userId = 591676206;
 
 async function loadUser(){
 let { data } = await supabase.from("users").select("*").eq("id",userId).single();
