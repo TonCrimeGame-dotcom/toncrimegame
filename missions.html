@@ -2,220 +2,182 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Görevler</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-
+<title>Görevler - TonCrime</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <style>
 body{margin:0;background:#000;color:#fff;font-family:Arial}
 .topbar{height:60px;background:#111;display:flex;align-items:center;padding:0 15px}
-.logo{color:#f90;font-weight:bold;margin-right:20px}
-.stats{margin-left:auto;font-size:13px}
-.wrapper{display:flex;padding:15px}
-.left{width:60%}
-.right{width:40%;padding-left:15px}
-.mission{background:#111;padding:12px;border-radius:10px;margin-bottom:12px}
-.mission button{width:100%;margin-top:8px;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
-.table{background:#111;padding:10px;border-radius:10px}
-.row{border-bottom:1px solid #222;padding:5px 0;font-size:13px}
-.success{color:#0f0}
-.fail{color:#f33}
-.hospital{color:#ff4444;font-weight:bold}
+.logo{color:#f90;font-weight:bold}
+.wrapper{padding:15px}
+.card{background:#111;padding:15px;border-radius:12px;margin-bottom:15px}
+button{width:100%;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold;margin-top:8px;cursor:pointer}
+.small{font-size:12px;color:#aaa}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-<div class="logo">🔥 Yeraltı Şehri</div>
-<div class="stats">
-Level: <span id="lvl"></span> |
-⚡ <span id="energy"></span> |
-💰 <span id="yton"></span>
-<span id="hospitalInfo"></span>
-</div>
+<div class="logo">TonCrime - Görevler</div>
 </div>
 
-<div class="wrapper">
-<div class="left" id="missions"></div>
-
-<div class="right">
-<div class="table">
-<b>📊 İstatistik</b>
-<div id="statsBox"></div>
-<hr>
-<b>🕒 Geçmiş</b>
-<div id="historyBox"></div>
-</div>
-</div>
-</div>
+<div class="wrapper" id="missions"></div>
 
 <script>
-const VERSION = "1.0.0";
 
-/* PLAYER INIT */
-function getPlayer(){
-let p = JSON.parse(localStorage.getItem("player_v1"));
-if(!p){
-p={
-level:1,
-xp:0,
-xpNext:100,
-energy:80,
-yton:120,
-hospitalUntil:0,
-missionStats:{success:0,fail:0},
-missionHistory:[],
-missionRepeat:{}
-}
-savePlayer(p);
-}
-return p;
+const supabaseClient = supabase.createClient(
+"https://hwhscuyudwphnsipibpy.supabase.co",
+"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
+);
+
+let userId = localStorage.getItem("toncrime_user");
+
+init();
+
+async function init(){
+renderMissions();
 }
 
-function savePlayer(p){
-localStorage.setItem("player_v1",JSON.stringify(p));
-}
+async function renderMissions(){
+let { data } = await supabaseClient.from("missions").select("*");
 
-/* UI */
-function updateUI(){
-let p=getPlayer();
-
-document.getElementById("lvl").innerText=p.level;
-document.getElementById("energy").innerText=p.energy;
-document.getElementById("yton").innerText=p.yton;
-
-if(Date.now()<p.hospitalUntil){
-let remain=Math.floor((p.hospitalUntil-Date.now())/1000);
-document.getElementById("hospitalInfo").innerHTML=" | 🏥 "+remain+"s";
-}else{
-document.getElementById("hospitalInfo").innerHTML="";
-}
-}
-
-/* MISSIONS */
-const missionsData=[
-{id:1,name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
-{id:2,name:"Kaçak Mal",energy:15,xp:30,yton:80,risk:25},
-{id:3,name:"Gece Baskını",energy:20,xp:50,yton:120,risk:35}
-];
-
-function loadMissions(){
-const box=document.getElementById("missions");
-box.innerHTML="";
-
-missionsData.forEach(m=>{
-let div=document.createElement("div");
-div.className="mission";
-
-div.innerHTML=
-"<b>"+m.name+"</b><br>"+
-"⚡ "+m.energy+" | ⭐ "+m.xp+" | 💰 "+m.yton+" | Risk "+m.risk+"%";
-
-let btn=document.createElement("button");
-btn.innerText="Başlat";
-
-btn.addEventListener("click",function(){
-startMission(m.id);
+let html = "";
+data.forEach(m=>{
+html += `
+<div class="card">
+<b>${m.name}</b><br>
+Enerji: ${m.energy_cost}<br>
+XP: ${m.xp_reward}<br>
+Kazanç: ${m.yton_reward} YTon<br>
+Başarı Oranı: %${m.success_rate}
+<button onclick="startMission(${m.id})">Başlat</button>
+</div>
+`;
 });
 
-div.appendChild(btn);
-box.appendChild(div);
-});
+document.getElementById("missions").innerHTML = html;
 }
 
-/* MISSION */
-function startMission(id){
-let p=getPlayer();
-let m=missionsData.find(x=>x.id===id);
+async function startMission(missionId){
 
-if(Date.now()<p.hospitalUntil){
-alert("🏥 Hastanedesin!");
+let now = Math.floor(Date.now()/1000);
+let today = new Date().toISOString().split("T")[0];
+
+let { data:user } = await supabaseClient
+.from("users")
+.select("*")
+.eq("id", userId)
+.single();
+
+if(user.energy <= 0){
+alert("Yeterli enerji yok!");
 return;
 }
 
-if(p.energy<m.energy){
-alert("⚡ Enerji yetersiz!");
+let { data:mission } = await supabaseClient
+.from("missions")
+.select("*")
+.eq("id", missionId)
+.single();
+
+let { data:stat } = await supabaseClient
+.from("user_mission_stats")
+.select("*")
+.eq("user_id", userId)
+.eq("mission_id", missionId)
+.maybeSingle();
+
+if(!stat){
+await supabaseClient.from("user_mission_stats").insert({
+user_id:userId,
+mission_id:missionId,
+repeat_count:0,
+last_reset:today
+});
+stat = { repeat_count:0, last_reset:today };
+}
+
+if(stat.last_reset !== today){
+await supabaseClient
+.from("user_mission_stats")
+.update({ repeat_count:0, last_reset:today })
+.eq("id", stat.id);
+stat.repeat_count = 0;
+}
+
+let repeat = stat.repeat_count + 1;
+
+let successRate = mission.success_rate;
+
+if(repeat > 10){
+let risk = 100 - successRate;
+risk = Math.min(risk * 2, 95);
+successRate = 100 - risk;
+}
+
+let success = Math.random()*100 < successRate;
+
+let newEnergy = user.energy - mission.energy_cost;
+if(newEnergy < 0){
+alert("Yeterli enerji yok!");
 return;
 }
 
-p.energy-=m.energy;
+let updateUser = {
+energy:newEnergy,
+last_active:now
+};
 
-let repeat=p.missionRepeat[id]||0;
-let finalRisk=repeat>=10?m.risk*2:m.risk;
-let success=Math.random()*100>finalRisk;
+let logText = "";
 
 if(success){
-p.xp+=m.xp;
-p.yton+=m.yton;
-p.missionStats.success++;
-alert("✅ Başarılı!");
+
+let newXp = user.xp + mission.xp_reward;
+let newYton = parseFloat(user.yton) + parseFloat(mission.yton_reward);
+let level = user.level;
+let xpReq = user.xp_required;
+
+if(newXp >= xpReq){
+newXp -= xpReq;
+level += 1;
+xpReq = Math.ceil(xpReq * 1.05);
+}
+
+updateUser.xp = newXp;
+updateUser.yton = newYton;
+updateUser.level = level;
+updateUser.xp_required = xpReq;
+
+logText = "Başarılı: " + mission.name;
+
 }else{
-let loss=Math.floor(m.yton/2);
-p.yton=Math.max(0,p.yton-loss);
-p.missionStats.fail++;
-alert("❌ Başarısız!");
 
-if(Math.random()<0.5){
-p.hospitalUntil=Date.now()+600000;
-alert("🏥 Hastaneye düştün!");
+if(Math.random()*100 < 70){
+updateUser.hospital_until = now + 7200;
+logText = "Dayak yedin ve hastanelik oldun!";
+}else{
+logText = "Başarısız: " + mission.name;
 }
 }
 
-if(p.xp>=p.xpNext){
-p.level++;
-p.xp=0;
-p.xpNext+=100;
-alert("🎉 Level Atladın!");
-}
+await supabaseClient.from("users").update(updateUser).eq("id", userId);
 
-p.missionRepeat[id]=repeat+1;
+await supabaseClient
+.from("user_mission_stats")
+.update({ repeat_count: repeat })
+.eq("user_id", userId)
+.eq("mission_id", missionId);
 
-p.missionHistory.unshift({
-name:m.name,
-time:new Date().toLocaleTimeString(),
-result:success?"success":"fail"
+await supabaseClient.from("activity_log").insert({
+user_id:userId,
+type:"Mission",
+description:logText
 });
 
-savePlayer(p);
-updateUI();
-renderStats();
+alert(logText);
+location.reload();
 }
 
-/* STATS */
-function renderStats(){
-let p=getPlayer();
-
-document.getElementById("statsBox").innerHTML=
-"Başarılı: "+p.missionStats.success+
-"<br>Başarısız: "+p.missionStats.fail;
-
-let history="";
-p.missionHistory.slice(0,10).forEach(h=>{
-history+="<div class='row "+h.result+"'>"+
-h.time+" - "+h.name+
-"</div>";
-});
-
-document.getElementById("historyBox").innerHTML=history;
-}
-
-/* ENERGY REGEN */
-setInterval(()=>{
-let p=getPlayer();
-if(p.energy<100){
-p.energy+=1;
-savePlayer(p);
-updateUI();
-}
-},60000);
-
-/* INIT */
-updateUI();
-loadMissions();
-renderStats();
 </script>
-
 </body>
 </html>
