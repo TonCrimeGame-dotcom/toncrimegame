@@ -9,7 +9,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:#000;color:#fff;font-family:Arial}
 
-/* ===== TOPBAR ===== */
+/* TOPBAR */
 .topbar{
 position:fixed;top:0;left:0;right:0;height:60px;
 background:#050505;display:flex;align-items:center;
@@ -24,29 +24,28 @@ padding:0 12px;border-bottom:1px solid #222;z-index:1000;
 .energy-fill{height:100%;width:0%;background:linear-gradient(90deg,#0ff,#0f0);transition:.4s}
 .stats{text-align:right;font-size:13px}
 
-/* ===== MENU ===== */
+/* MENU */
 .side-menu{
 position:fixed;top:60px;left:-240px;width:240px;height:100%;
 background:#0a0a0a;transition:.3s;z-index:999;
 }
 .side-menu.open{left:0}
 .side-menu a{display:block;padding:14px;color:#fff;text-decoration:none;border-bottom:1px solid #222}
-.side-menu a:hover{background:#111}
 #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:998}
 
-/* ===== LAYOUT ===== */
+/* LAYOUT */
 .wrapper{display:flex;padding-top:80px}
 .left{width:55%;padding:15px}
 .right{width:45%;padding:15px;border-left:1px solid #222}
 
-/* ===== MISSIONS ===== */
+/* MISSIONS */
 .mission{background:#111;padding:12px;border-radius:10px;margin-bottom:12px}
 .mission button{
 width:100%;margin-top:8px;padding:10px;
 background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
 }
 
-/* ===== TABLE ===== */
+/* TABLE */
 .table{background:#111;border-radius:10px;padding:10px}
 .row{border-bottom:1px solid #222;padding:6px 0;font-size:13px}
 .success{color:#0f0}
@@ -94,10 +93,10 @@ background:#f90;border:none;border-radius:8px;font-weight:bold;cursor:pointer
 
 <script>
 
+/* ===== PLAYER CORE ===== */
 const MAX_ENERGY=100
 const ENERGY_REGEN=60
 
-/* ===== SAFE PLAYER LOAD ===== */
 function getPlayer(){
 let p=JSON.parse(localStorage.getItem("player"))
 if(!p){
@@ -120,7 +119,7 @@ function setPlayer(p){
 localStorage.setItem("player",JSON.stringify(p))
 }
 
-/* ===== ENERGY REGEN ===== */
+/* ENERGY REGEN */
 function regen(){
 let p=getPlayer()
 if(p.energy>=MAX_ENERGY)return
@@ -134,7 +133,7 @@ setPlayer(p)
 }
 }
 
-/* ===== UI UPDATE ===== */
+/* UI */
 function updateUI(){
 let p=getPlayer()
 document.getElementById("lvl").innerText=p.level
@@ -147,13 +146,14 @@ document.getElementById("energyFill").style.width=(p.energy/MAX_ENERGY*100)+"%"
 setInterval(()=>{regen();updateUI()},1000)
 updateUI()
 
-/* ===== MISSIONS ===== */
+/* MISSIONS DATA */
 const missionsData=[
-{name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
-{name:"Kaçak Mal Taşıma",energy:15,xp:30,yton:80,risk:25},
-{name:"Gece Baskını",energy:20,xp:50,yton:120,risk:35}
+{id:1,name:"Sokak Temizligi",energy:10,xp:20,yton:50,risk:20},
+{id:2,name:"Kacak Mal Tasima",energy:15,xp:30,yton:80,risk:25},
+{id:3,name:"Gece Baskini",energy:20,xp:50,yton:120,risk:35}
 ]
 
+/* LOAD MISSIONS */
 function loadMissions(){
 const box=document.getElementById("missions")
 box.innerHTML=""
@@ -161,17 +161,25 @@ missionsData.forEach(m=>{
 box.innerHTML+=`
 <div class="mission">
 <b>${m.name}</b><br>
-⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon | Risk ${m.risk}%
-<button onclick="startMission('${m.name}')">Başlat</button>
+⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} | Risk ${m.risk}%
+<button data-id="${m.id}" class="startBtn">Başlat</button>
 </div>`
+})
+
+/* BUTTON EVENT BIND */
+document.querySelectorAll(".startBtn").forEach(btn=>{
+btn.addEventListener("click",function(){
+let id=parseInt(this.dataset.id)
+startMission(id)
+})
 })
 }
 
-function startMission(name){
+function startMission(id){
 
 let p=getPlayer()
-let m=missionsData.find(x=>x.name===name)
-if(!m){alert("Görev yok");return}
+let m=missionsData.find(x=>x.id===id)
+if(!m)return
 
 if(Date.now()<p.hospitalUntil){
 alert("🏥 Hastanedesin")
@@ -183,8 +191,7 @@ alert("⚡ Enerji yetersiz")
 return
 }
 
-/* Risk artışı */
-let repeat=p.missionRepeat[name]||0
+let repeat=p.missionRepeat[id]||0
 let multiplier=Math.floor(repeat/10)
 let finalRisk=m.risk*Math.pow(2,multiplier)
 
@@ -196,35 +203,31 @@ if(success){
 p.xp+=m.xp
 p.yton+=m.yton
 p.missionStats.success++
-alert("✅ Başarılı!")
+alert("✅ Başarılı")
 }else{
 let loss=Math.floor(m.yton/2)
 p.yton=Math.max(0,p.yton-loss)
 p.gameBank+=loss
 p.xp=Math.max(0,p.xp-m.xp)
 p.missionStats.fail++
-
 if(Math.random()<0.5){
 p.hospitalUntil=Date.now()+600000
-alert("🏥 Hastaneye düştün!")
+alert("🏥 Hastaneye düştün")
 }else{
-alert("❌ Başarısız oldun!")
+alert("❌ Başarısız")
 }
 }
 
-/* LEVEL UP */
 if(p.xp>=p.xpNext){
 p.level++
 p.xp=0
 p.xpNext+=100
 }
 
-/* Repeat */
-p.missionRepeat[name]=(repeat+1)
+p.missionRepeat[id]=(repeat+1)
 
-/* History */
 p.missionHistory.unshift({
-name:name,
+name:m.name,
 time:new Date().toLocaleTimeString(),
 result:success?"success":"fail"
 })
