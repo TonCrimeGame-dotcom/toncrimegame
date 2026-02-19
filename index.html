@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Yeraltı Şehri</title>
 
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
 body{
@@ -30,7 +28,7 @@ width:90%;
 max-width:400px;
 }
 
-h2{color:#f90;margin-bottom:15px}
+h2{color:#f90}
 
 input[type="date"]{
 width:100%;
@@ -83,18 +81,19 @@ margin-top:10px;
 
 <label>
 <input type="checkbox" id="termsCheck">
-Kullanım şartlarını ve gizlilik politikasını kabul ediyorum
+Kullanım şartlarını kabul ediyorum
 </label>
 
 <button id="continueBtn" disabled>Devam Et</button>
 
 <div id="errorMsg" class="error"></div>
-
 </div>
 
 <script>
 
-/* Önceden doğrulandıysa geç */
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.expand(); }
+
 if(localStorage.getItem("ageVerified")==="true"){
 window.location.href="game.html";
 }
@@ -104,7 +103,6 @@ const termsCheck=document.getElementById("termsCheck");
 const btn=document.getElementById("continueBtn");
 const errorMsg=document.getElementById("errorMsg");
 
-/* Kontrol */
 function validate(){
 btn.disabled = !(birthInput.value && termsCheck.checked);
 }
@@ -130,7 +128,13 @@ return;
 }
 
 localStorage.setItem("ageVerified","true");
+
+/* Telegram içindeyse düzgün yönlendir */
+if(tg){
+window.location.replace("game.html");
+}else{
 window.location.href="game.html";
+}
 
 });
 
