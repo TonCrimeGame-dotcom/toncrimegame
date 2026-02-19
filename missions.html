@@ -1,1 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TonCrime - Missions</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
+<style>
+body{margin:0;background:#0e0e0e;color:white;font-family:Arial}
+.topbar{
+background:#111;
+padding:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-weight:bold;
+position:fixed;
+width:100%;
+top:0;
+z-index:999;
+border-bottom:1px solid #222;
+}
+.container{padding:80px 20px}
+.card{
+background:#1a1a1a;
+padding:15px;
+margin-bottom:15px;
+border-radius:8px;
+}
+button{
+background:#f5b400;
+border:none;
+padding:10px;
+width:100%;
+margin-top:10px;
+font-weight:bold;
+cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+<div>TonCrime</div>
+<div id="stats">Yükleniyor...</div>
+</div>
+
+<div class="container" id="missions"></div>
+
+<script>
+const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const userId = 591676206;
+
+async function loadUser(){
+let { data } = await supabase.from("users").select("*").eq("id",userId).single();
+return data;
+}
+
+async function updateUser(values){
+await supabase.from("users").update(values).eq("id",userId);
+}
+
+async function loadMissions(){
+let { data } = await supabase.from("missions").select("*");
+return data;
+}
+
+async function render(){
+let user = await loadUser();
+let missions = await loadMissions();
+
+document.getElementById("stats").innerHTML =
+`Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy}/100 | 💰 ${user.yton}`;
+
+let html = "";
+
+missions.forEach(m=>{
+html += `
+<div class="card">
+<b>${m.name}</b><br>
+Enerji: ${m.energy_cost}<br>
+XP: ${m.xp_reward}<br>
+Kazanç: ${m.yton_reward} Yton<br>
+Başarı: %${m.success_rate}
+<button onclick="startMission(${m.id},${m.energy_cost},${m.xp_reward},${m.yton_reward},${m.success_rate})">
+Başlat
+</button>
+</div>
+`;
+});
+
+document.getElementById("missions").innerHTML = html;
+}
+
+async function startMission(id,energyCost,xpReward,ytonReward,successRate){
+
+let user = await loadUser();
+
+if(user.energy < energyCost){
+alert("Yetersiz enerji");
+return;
+}
+
+let newEnergy = user.energy - energyCost;
+let success = Math.random()*100 < successRate;
+
+if(success){
+
+let newXp = user.xp + xpReward;
+let newYton = user.yton + ytonReward;
+let newLevel = user.level;
+
+if(newXp >= 100){
+newLevel++;
+newXp = newXp - 100;
+}
+
+await updateUser({
+energy:newEnergy,
+xp:newXp,
+yton:newYton,
+level:newLevel
+});
+
+alert("Başarılı!");
+
+}else{
+
+await updateUser({
+energy:newEnergy
+});
+
+alert("Başarısız!");
+}
+
+render();
+}
+
+render();
+</script>
+
+</body>
+</html>
