@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
-
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
 <style>
 body{margin:0;background:#000;color:#fff;font-family:Arial}
 .topbar{height:60px;background:#111;display:flex;align-items:center;padding:0 15px}
@@ -15,18 +13,16 @@ body{margin:0;background:#000;color:#fff;font-family:Arial}
 .band{background:#151515;padding:8px 15px;font-size:13px;border-bottom:1px solid #222}
 .wrapper{padding:15px}
 .card{background:#111;padding:15px;border-radius:12px;margin-bottom:15px}
-button{width:100%;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold;margin-top:8px;cursor:pointer}
 </style>
 </head>
 <body>
 
 <div class="topbar">
 <div class="logo">TonCrime</div>
-<div class="topstats" id="topStats"></div>
+<div class="topstats" id="topStats">Yükleniyor...</div>
 </div>
 
 <div class="band" id="cityBand">Yükleniyor...</div>
-
 <div class="wrapper" id="content"></div>
 
 <script>
@@ -37,32 +33,42 @@ const supabaseClient = supabase.createClient(
 );
 
 let userId = localStorage.getItem("toncrime_user");
-
 if(!userId){
 userId = Math.floor(Math.random()*1000000000);
 localStorage.setItem("toncrime_user", userId);
 }
 
-init(userId);
+init();
 
-async function init(userId){
-
+async function init(){
+try{
 let now = Math.floor(Date.now()/1000);
 
-let { data } = await supabaseClient
+let { data, error } = await supabaseClient
 .from("users")
 .select("*")
 .eq("id", userId)
 .maybeSingle();
 
+if(error) throw error;
+
 if(!data){
-await supabaseClient.from("users").insert({
+let insert = await supabaseClient.from("users").insert({
 id:userId,
 nickname:"TestUser",
+level:1,
+xp:0,
+xp_required:100,
+energy:100,
+yton:10,
 last_energy_update:now,
-last_active:now
+last_active:now,
+hospital_until:0
 });
+if(insert.error) throw insert.error;
+
 let res = await supabaseClient.from("users").select("*").eq("id",userId).single();
+if(res.error) throw res.error;
 data = res.data;
 }
 
@@ -73,23 +79,28 @@ await supabaseClient.from("users")
 data = await handleEnergy(data);
 render(data);
 updateCityBand();
+
+}catch(e){
+document.getElementById("content").innerHTML =
+"<div class='card'>HATA: "+ e.message +"</div>";
+console.error(e);
+}
 }
 
 async function handleEnergy(data){
-
+try{
 let now = Math.floor(Date.now()/1000);
 
 if(now < data.hospital_until) return data;
 
 if(data.energy < 100){
-
 let diff = now - data.last_energy_update;
 let gain = Math.floor(diff / 300);
 
 if(gain > 0){
 let newEnergy = Math.min(100, data.energy + gain);
 
-await supabaseClient
+let update = await supabaseClient
 .from("users")
 .update({
 energy:newEnergy,
@@ -97,21 +108,21 @@ last_energy_update:now
 })
 .eq("id", data.id);
 
+if(update.error) throw update.error;
+
 data.energy = newEnergy;
 }
 }
 return data;
+}catch(e){
+console.error(e);
+return data;
+}
 }
 
-async function render(data){
-
+function render(data){
 document.getElementById("topStats").innerHTML =
 `Lv ${data.level}<br>XP ${data.xp}/${data.xp_required}<br>⚡ ${data.energy}/100<br>💰 ${data.yton}`;
-
-let hospitalBlock = "";
-if(Math.floor(Date.now()/1000) < data.hospital_until){
-hospitalBlock = `<p style="color:#ff4444">🏥 Hastanedeysin</p>`;
-}
 
 document.getElementById("content").innerHTML = `
 <div class="card">
@@ -120,33 +131,29 @@ document.getElementById("content").innerHTML = `
 <b>Level:</b> ${data.level}<br>
 <b>XP:</b> ${data.xp}/${data.xp_required}
 </div>
-
-<div class="card">
-<b>Enerji:</b> ${data.energy}/100
-${hospitalBlock}
-</div>
 `;
 }
 
 async function updateCityBand(){
-
+try{
 let now = Math.floor(Date.now()/1000);
 
-let { count } = await supabaseClient
+let { count, error } = await supabaseClient
 .from("users")
 .select("*",{count:"exact",head:true})
 .gte("last_active", now-300);
 
+if(error) throw error;
+
 let date = new Date();
-let formatted = date.toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"});
+let formatted = date.toLocaleDateString("tr-TR");
 let time = date.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
 
-let status = "Şehir sessiz";
-if(count>50) status="Şehir hareketli";
-if(count>150) status="Şehir kaynıyor";
-
 document.getElementById("cityBand").innerHTML =
-`📅 ${formatted} | 🕒 ${time} | 👥 ${count} oyuncu aktif | 🔥 ${status}`;
+`📅 ${formatted} | 🕒 ${time} | 👥 ${count} aktif`;
+}catch(e){
+console.error(e);
+}
 }
 
 setInterval(updateCityBand,60000);
