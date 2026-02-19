@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>TonCrime - Missions</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
 
 <style>
 body{margin:0;background:#0e0e0e;font-family:Arial;color:white}
@@ -17,11 +18,10 @@ font-weight:bold;
 position:fixed;
 width:100%;
 top:0;
-z-index:999;
 border-bottom:1px solid #222;
 }
 .logo{color:#ffb300;font-size:20px}
-.container{padding-top:70px;padding-bottom:40px}
+.container{padding-top:70px}
 .card{
 background:#1a1a1a;
 margin:15px;
@@ -54,7 +54,7 @@ cursor:pointer;
 
 <script>
 
-const supabase = window.supabase.createClient(
+const supabase = supabase.createClient(
 "https://hwhscuyudwphnsipibpy.supabase.co",
 "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
@@ -74,15 +74,10 @@ const { data } = await supabase
 return data;
 }
 
-async function updateUser(obj){
-await supabase
-.from("users")
-.update(obj)
-.eq("id", userId);
-}
-
 async function renderUser(){
 let user = await getUser();
+if(!user) return;
+
 let needed = xpNeeded(user.level);
 
 document.getElementById("stats").innerHTML =
@@ -99,10 +94,9 @@ XP: ${user.xp}/${needed}
 async function loadMissions(){
 const { data } = await supabase.from("missions").select("*");
 
-let html = "";
-
+let html="";
 data.forEach(m=>{
-html += `
+html+=`
 <div class="card">
 <b>${m.name}</b><br>
 Enerji: ${m.energy_cost}<br>
@@ -110,11 +104,9 @@ XP: ${m.xp_reward}<br>
 Kazanç: ${m.yton_reward} YTon<br>
 Başarı: %${m.success_rate}
 <button onclick="startMission(${m.id})">Başlat</button>
-</div>
-`;
+</div>`;
 });
-
-document.getElementById("missions").innerHTML = html;
+document.getElementById("missions").innerHTML=html;
 }
 
 async function startMission(id){
@@ -136,7 +128,6 @@ let success = Math.random()*100 < Number(mission.success_rate);
 let newEnergy = Number(player.energy) - Number(mission.energy_cost);
 let newXp = Number(player.xp);
 let newYton = Number(player.yton);
-let newLevel = Number(player.level);
 
 if(success){
 newXp += Number(mission.xp_reward);
@@ -146,50 +137,17 @@ alert("Başarılı!");
 alert("Başarısız!");
 }
 
-let needed = xpNeeded(newLevel);
-while(newXp >= needed){
-newXp -= needed;
-newLevel++;
-needed = xpNeeded(newLevel);
-}
-
-await updateUser({
+await supabase
+.from("users")
+.update({
 energy:newEnergy,
 xp:newXp,
-yton:newYton,
-level:newLevel
-});
+yton:newYton
+})
+.eq("id", userId);
 
-await renderUser();
+renderUser();
 }
-
-/* 5 Dakika Enerji Regen */
-async function energyRegen(){
-let user = await getUser();
-if(user.energy >= 100) return;
-
-let now = Math.floor(Date.now()/1000);
-
-if(!user.last_energy_tick){
-await updateUser({last_energy_tick:now});
-return;
-}
-
-if(now - user.last_energy_tick >= 300){
-
-let newEnergy = Number(user.energy) + 1;
-if(newEnergy > 100) newEnergy = 100;
-
-await updateUser({
-energy:newEnergy,
-last_energy_tick:now
-});
-
-await renderUser();
-}
-}
-
-setInterval(energyRegen,10000);
 
 renderUser();
 loadMissions();
