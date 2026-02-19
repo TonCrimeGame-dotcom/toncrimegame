@@ -23,74 +23,42 @@ body{
   border-bottom:1px solid #222;
 }
 
-.menu-btn{
-  font-size:22px;
-  cursor:pointer;
-}
-
-/* SIDEBAR */
-.sidebar{
-  position:fixed;
-  top:0;
-  left:-260px;
-  width:250px;
-  height:100%;
-  background:#151515;
-  padding:20px;
-  transition:0.3s;
-  z-index:1000;
-}
-
-.sidebar.open{
-  left:0;
-}
-
-.overlay{
-  position:fixed;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.6);
-  top:0;
-  left:0;
-  display:none;
-  z-index:900;
-}
-
-.overlay.show{
-  display:block;
-}
-
-/* LAYOUT */
-.container{
+/* ANA WRAPPER */
+.wrapper{
+  width:75%;
+  margin:40px auto;
   display:flex;
-  gap:30px;
-  padding:30px;
+  gap:40px;
+  justify-content:center;
 }
 
+/* GÖREV ALANI */
 .missions{
-  flex:0 0 60%;
+  width:55%;
 }
 
+/* USER PANEL */
 .userpanel{
-  flex:0 0 40%;
+  width:30%;
   background:#151515;
-  padding:20px;
+  padding:15px;
   border-radius:10px;
   height:fit-content;
+  font-size:14px;
 }
 
-/* CARDS */
+/* CARD */
 .card{
   background:#1b1b1b;
-  padding:20px;
+  padding:15px;
   margin-bottom:20px;
-  border-radius:10px;
-  font-size:15px;
+  border-radius:8px;
+  font-size:14px;
 }
 
 button{
   width:100%;
-  padding:12px;
+  padding:10px;
   background:gold;
   border:none;
   font-weight:bold;
@@ -104,12 +72,14 @@ button:hover{
 }
 
 /* RESPONSIVE */
-@media(max-width:900px){
-  .container{
+@media(max-width:1000px){
+  .wrapper{
+    width:95%;
     flex-direction:column;
   }
-  .missions, .userpanel{
-    flex:100%;
+  .missions,
+  .userpanel{
+    width:100%;
   }
 }
 </style>
@@ -117,22 +87,11 @@ button:hover{
 <body>
 
 <div class="topbar">
-  <div class="menu-btn" onclick="openMenu()">☰</div>
   <div><b>TonCrime</b></div>
   <div id="stats">Yükleniyor...</div>
 </div>
 
-<div class="sidebar" id="sidebar">
-  <h3>Menü</h3>
-  <p>🏠 Ana Sayfa</p>
-  <p>🎯 Görevler</p>
-  <p>🛒 Market</p>
-  <p>⚔ PvP</p>
-</div>
-
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
-
-<div class="container">
+<div class="wrapper">
   <div class="missions" id="missions"></div>
   <div class="userpanel" id="userinfo"></div>
 </div>
@@ -142,15 +101,6 @@ const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
 const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const userId="591676206";
-
-function openMenu(){
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("overlay").classList.add("show");
-}
-function closeMenu(){
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
-}
 
 async function loadUser(){
   const {data}=await supabaseClient.from("users").select("*").eq("id",userId).single();
@@ -170,7 +120,7 @@ async function render(){
   `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
 
   document.getElementById("userinfo").innerHTML=`
-    <h3>Kullanıcı Bilgisi</h3>
+    <h3>Kullanıcı</h3>
     <b>ID:</b> ${user.id}<br><br>
     <b>Takma Ad:</b> ${user.nickname}<br><br>
     <b>Toplam Görev:</b> ${user.total_missions || 0}<br>
