@@ -2,39 +2,37 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TonCrime - Missions</title>
+<title>TonCrime</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body {
+body{
   margin:0;
   background:#0e0e0e;
   color:white;
   font-family:Arial;
-  overflow-x:hidden;
 }
 
 /* TOPBAR */
-.topbar {
+.topbar{
   background:#111;
-  padding:10px 15px;
+  padding:12px 20px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  font-weight:bold;
   border-bottom:1px solid #222;
 }
 
-.menu-btn {
-  cursor:pointer;
+.menu-btn{
   font-size:22px;
+  cursor:pointer;
 }
 
-/* SIDE MENU */
-.sidebar {
+/* SIDEBAR */
+.sidebar{
   position:fixed;
-  left:-250px;
   top:0;
+  left:-260px;
   width:250px;
   height:100%;
   background:#151515;
@@ -43,37 +41,37 @@ body {
   z-index:1000;
 }
 
-.sidebar.open {
+.sidebar.open{
   left:0;
 }
 
-.overlay {
+.overlay{
   position:fixed;
-  top:0;
-  left:0;
   width:100%;
   height:100%;
   background:rgba(0,0,0,0.6);
+  top:0;
+  left:0;
   display:none;
   z-index:900;
 }
 
-.overlay.show {
+.overlay.show{
   display:block;
 }
 
-/* MAIN LAYOUT */
-.container {
+/* LAYOUT */
+.container{
   display:flex;
-  padding:15px;
   gap:20px;
+  padding:20px;
 }
 
-.missions {
+.missions{
   flex:2;
 }
 
-.userpanel {
+.userpanel{
   flex:1;
   background:#151515;
   padding:15px;
@@ -82,14 +80,14 @@ body {
 }
 
 /* CARDS */
-.card {
+.card{
   background:#1b1b1b;
   padding:15px;
   margin-bottom:15px;
   border-radius:8px;
 }
 
-button {
+button{
   width:100%;
   padding:10px;
   background:gold;
@@ -97,13 +95,20 @@ button {
   font-weight:bold;
   cursor:pointer;
 }
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .container{
+    flex-direction:column;
+  }
+}
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="menu-btn" onclick="openMenu()">☰</div>
-  <div>TonCrime</div>
+  <div><b>TonCrime</b></div>
   <div id="stats">Yükleniyor...</div>
 </div>
 
@@ -123,133 +128,100 @@ button {
 </div>
 
 <script>
+const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const userId="591676206";
 
-const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const userId = "591676206";
-
-/* MENU */
 function openMenu(){
   document.getElementById("sidebar").classList.add("open");
   document.getElementById("overlay").classList.add("show");
 }
-
 function closeMenu(){
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("overlay").classList.remove("show");
 }
 
-/* DATA */
 async function loadUser(){
-  const { data } = await supabaseClient
-    .from("users")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const {data}=await supabaseClient.from("users").select("*").eq("id",userId).single();
   return data;
 }
 
 async function loadMissions(){
-  const { data } = await supabaseClient
-    .from("missions")
-    .select("*");
+  const {data}=await supabaseClient.from("missions").select("*");
   return data;
 }
 
 async function render(){
-  const user = await loadUser();
-  const missions = await loadMissions();
+  const user=await loadUser();
+  const missions=await loadMissions();
 
-  document.getElementById("stats").innerHTML =
-    `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
+  document.getElementById("stats").innerHTML=
+  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
 
-  document.getElementById("userinfo").innerHTML = `
+  document.getElementById("userinfo").innerHTML=`
     <h3>Kullanıcı</h3>
     <b>ID:</b> ${user.id}<br>
-    <b>Takma Ad:</b> ${user.nickname || "Yok"}<br>
-    <b>Silah Avantajı:</b> x1.00<br>
+    <b>Takma Ad:</b> ${user.nickname}<br>
     <b>Toplam Görev:</b> ${user.total_missions || 0}<br>
     <b>Kazanma:</b> ${user.wins || 0}<br>
     <b>Kaybetme:</b> ${user.losses || 0}
   `;
 
-  let html = "";
+  let html="";
   missions.forEach(m=>{
-    html += `
-      <div class="card">
-        <b>${m.name}</b><br>
-        Enerji: ${m.energy_cost}<br>
-        XP: ${m.xp_reward}<br>
-        Kazanç: ${m.yton_reward} Yton<br>
-        Başarı: %${m.success_rate}<br><br>
-        <button onclick="startMission(${m.id})">Başlat</button>
-      </div>
+    html+=`
+    <div class="card">
+      <b>${m.name}</b><br>
+      Enerji: ${m.energy_cost}<br>
+      XP: ${m.xp_reward}<br>
+      Kazanç: ${m.yton_reward} Yton<br>
+      Başarı: %${m.success_rate}<br><br>
+      <button onclick="startMission(${m.id})">Başlat</button>
+    </div>
     `;
   });
 
-  document.getElementById("missions").innerHTML = html;
+  document.getElementById("missions").innerHTML=html;
 }
 
-async function startMission(missionId){
-  const user = await loadUser();
-  const { data: mission } = await supabaseClient
-    .from("missions")
-    .select("*")
-    .eq("id", missionId)
-    .single();
+async function startMission(id){
+  const user=await loadUser();
+  const {data:mission}=await supabaseClient.from("missions").select("*").eq("id",id).single();
 
-  if(user.energy < mission.energy_cost){
-    alert("Yetersiz enerji!");
+  if(user.energy<mission.energy_cost){
+    alert("Yetersiz enerji");
     return;
   }
 
-  let newEnergy = user.energy - mission.energy_cost;
-  let newXp = user.xp;
-  let newYton = Number(user.yton);
-  let newLevel = user.level;
+  let energy=user.energy-mission.energy_cost;
+  let xp=user.xp;
+  let yton=Number(user.yton);
+  let level=user.level;
+  let total=(user.total_missions||0)+1;
+  let wins=user.wins||0;
+  let losses=user.losses||0;
 
-  let total = (user.total_missions || 0) + 1;
-  let wins = user.wins || 0;
-  let losses = user.losses || 0;
-
-  const success = Math.random()*100 < mission.success_rate;
-
-  if(success){
-    newXp += mission.xp_reward;
-    newYton += mission.yton_reward;
+  if(Math.random()*100<mission.success_rate){
+    xp+=mission.xp_reward;
+    yton+=mission.yton_reward;
     wins++;
-
-    if(newXp >= 100){
-      newLevel++;
-      newXp -= 100;
-    }
-
-    alert("Görev Başarılı!");
-  } else {
+    if(xp>=100){level++;xp-=100;}
+    alert("Başarılı!");
+  }else{
     losses++;
-    alert("Görev Başarısız!");
+    alert("Başarısız!");
   }
 
-  await supabaseClient
-    .from("users")
-    .update({
-      energy: newEnergy,
-      xp: newXp,
-      yton: newYton,
-      level: newLevel,
-      total_missions: total,
-      wins: wins,
-      losses: losses
-    })
-    .eq("id", userId);
+  await supabaseClient.from("users").update({
+    energy,xp,yton,level,total_missions:total,wins,losses
+  }).eq("id",userId);
 
   render();
 }
 
 render();
-
 </script>
+
 </body>
 </html>
