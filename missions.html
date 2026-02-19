@@ -48,10 +48,10 @@ XP: <span id="xp"></span> |
 
 <script>
 
-/* ================= PLAYER ================= */
+/* ========= PLAYER ========= */
 
 function getPlayer(){
-let p = JSON.parse(localStorage.getItem("player"))
+let p = JSON.parse(localStorage.getItem("player"));
 if(!p){
 p={
 level:1,
@@ -61,137 +61,124 @@ energy:80,
 yton:120,
 missionStats:{success:0,fail:0},
 missionHistory:[]
+};
+localStorage.setItem("player",JSON.stringify(p));
 }
-localStorage.setItem("player",JSON.stringify(p))
-}
-return p
+return p;
 }
 
 function setPlayer(p){
-localStorage.setItem("player",JSON.stringify(p))
+localStorage.setItem("player",JSON.stringify(p));
 }
 
-/* ================= UI ================= */
+/* ========= UI ========= */
 
 function updateUI(){
-let p=getPlayer()
-document.getElementById("lvl").innerText=p.level
-document.getElementById("xp").innerText=p.xp+"/"+p.xpNext
-document.getElementById("energy").innerText=p.energy
-document.getElementById("yton").innerText=p.yton
+let p=getPlayer();
+document.getElementById("lvl").innerText=p.level;
+document.getElementById("xp").innerText=p.xp+"/"+p.xpNext;
+document.getElementById("energy").innerText=p.energy;
+document.getElementById("yton").innerText=p.yton;
 }
 
-/* ================= MISSIONS ================= */
+/* ========= MISSIONS ========= */
 
 const missionsData=[
 {id:1,name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
 {id:2,name:"Kaçak Mal",energy:15,xp:30,yton:80,risk:30},
 {id:3,name:"Gece Baskını",energy:20,xp:50,yton:120,risk:40}
-]
+];
 
 function loadMissions(){
-const box=document.getElementById("missions")
-box.innerHTML=""
+let box=document.getElementById("missions");
+box.innerHTML="";
 
 missionsData.forEach(m=>{
-let div=document.createElement("div")
-div.className="mission"
-div.innerHTML=`
+box.innerHTML+=`
+<div class="mission">
 <b>${m.name}</b><br>
 ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon | Risk ${m.risk}%
-<button>Başlat</button>
-`
-div.querySelector("button").addEventListener("click",()=>{
-startMission(m.id)
-})
-box.appendChild(div)
-})
+<button onclick="startMission(${m.id})">Başlat</button>
+</div>
+`;
+});
 }
 
-/* ================= MISSION LOGIC ================= */
+/* ========= CORE ========= */
 
-function startMission(id){
+window.startMission=function(id){
 
-let p=getPlayer()
-let m=missionsData.find(x=>x.id===id)
+let p=getPlayer();
+let m=missionsData.find(x=>x.id===id);
 
 if(!m){
-alert("Görev bulunamadı")
-return
+alert("Görev bulunamadı");
+return;
 }
 
 if(p.energy < m.energy){
-alert("⚡ Enerji yetersiz")
-return
+alert("⚡ Enerji yetersiz");
+return;
 }
 
-/* Enerji düş */
-p.energy -= m.energy
+p.energy -= m.energy;
 
-/* Başarı kontrol */
-let roll = Math.random()*100
-let success = roll > m.risk
+let roll=Math.random()*100;
+let success=roll > m.risk;
 
 if(success){
-
-p.xp += m.xp
-p.yton += m.yton
-p.missionStats.success++
-
-alert("✅ Başarılı! +" + m.yton + " YTon")
-
+p.xp += m.xp;
+p.yton += m.yton;
+p.missionStats.success++;
+alert("✅ Başarılı! +"+m.yton+" YTon");
 }else{
-
-let loss = Math.floor(m.yton/2)
-p.yton = Math.max(0, p.yton - loss)
-p.xp = Math.max(0, p.xp - m.xp)
-p.missionStats.fail++
-
-alert("❌ Başarısız! -" + loss + " YTon")
-
+let loss=Math.floor(m.yton/2);
+p.yton=Math.max(0,p.yton-loss);
+p.xp=Math.max(0,p.xp-m.xp);
+p.missionStats.fail++;
+alert("❌ Başarısız! -"+loss+" YTon");
 }
 
-/* Level up */
 if(p.xp >= p.xpNext){
-p.level++
-p.xp = 0
-p.xpNext += 100
-alert("🎉 LEVEL UP!")
+p.level++;
+p.xp=0;
+p.xpNext+=100;
+alert("🎉 LEVEL UP!");
 }
 
 p.missionHistory.unshift({
 name:m.name,
 time:new Date().toLocaleTimeString(),
 result:success?"success":"fail"
-})
+});
 
-setPlayer(p)
-updateUI()
-renderStats()
-}
+setPlayer(p);
+updateUI();
+renderStats();
+};
 
-/* ================= STATS ================= */
+/* ========= STATS ========= */
 
 function renderStats(){
-let p=getPlayer()
+let p=getPlayer();
 document.getElementById("statsBox").innerHTML=
 "Başarılı: "+p.missionStats.success+
-"<br>Başarısız: "+p.missionStats.fail
+"<br>Başarısız: "+p.missionStats.fail;
 
-let history=""
+let history="";
 p.missionHistory.slice(0,10).forEach(h=>{
 history+=`<div class="row ${h.result}">
 ${h.time} - ${h.name}
-</div>`
-})
-document.getElementById("historyBox").innerHTML=history
+</div>`;
+});
+document.getElementById("historyBox").innerHTML=history;
 }
 
-/* ================= INIT ================= */
+/* ========= INIT ========= */
 
-updateUI()
-loadMissions()
-renderStats()
+updateUI();
+loadMissions();
+renderStats();
 
 </script>
 </body>
