@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>TonCrimeGame – Görevler</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#000;color:#fff;font-family:Arial}
@@ -110,7 +109,8 @@ hospitalUntil:0,
 lastEnergyTick:Date.now(),
 missionStats:{success:0,fail:0},
 missionHistory:[],
-missionRepeat:{}
+missionRepeat:{},
+gameBank:0
 }
 setPlayer(player)
 }
@@ -118,14 +118,16 @@ setPlayer(player)
 /* ===== ENERGY REGEN ===== */
 function regen(){
 let p=getPlayer()
-if(p.energy>=MAX_ENERGY)return
 let now=Date.now()
+
+if(p.energy<MAX_ENERGY){
 let sec=Math.floor((now-p.lastEnergyTick)/1000)
 if(sec>=ENERGY_REGEN){
 let gain=Math.floor(sec/ENERGY_REGEN)
 p.energy=Math.min(MAX_ENERGY,p.energy+gain)
 p.lastEnergyTick+=gain*ENERGY_REGEN*1000
 setPlayer(p)
+}
 }
 }
 
@@ -136,13 +138,13 @@ document.getElementById("lvl").innerText=p.level
 document.getElementById("energy").innerText=p.energy
 document.getElementById("yton").innerText=p.yton
 document.getElementById("xpFill").style.width=(p.xp/p.xpNext*100)+"%"
-document.getElementById("energyFill").style.width=(p.energy/100*100)+"%"
+document.getElementById("energyFill").style.width=(p.energy/MAX_ENERGY*100)+"%"
 }
 
 setInterval(()=>{regen();updateUI()},1000)
 updateUI()
 
-/* ===== MISSIONS DATA ===== */
+/* ===== MISSIONS ===== */
 const missionsData=[
 {name:"Sokak Temizliği",energy:10,xp:20,yton:50,risk:20},
 {name:"Kaçak Mal Taşıma",energy:15,xp:30,yton:80,risk:25},
@@ -158,8 +160,7 @@ box.innerHTML+=`
 <b>${m.name}</b><br>
 ⚡ ${m.energy} | ⭐ ${m.xp} XP | 💰 ${m.yton} YTon | Risk ${m.risk}%
 <button onclick="startMission('${m.name}')">Başlat</button>
-</div>
-`
+</div>`
 })
 }
 
@@ -169,7 +170,7 @@ let p=getPlayer()
 let m=missionsData.find(x=>x.name===name)
 
 if(Date.now()<p.hospitalUntil){
-alert("🏥 Hastanedesin!")
+alert("🏥 Hastanedesin! Çıkmadan görev yapamazsın.")
 return
 }
 
@@ -178,12 +179,10 @@ alert("⚡ Enerji yetersiz")
 return
 }
 
-/* Risk Artışı */
+/* Risk Katlanma Sistemi */
 let repeat=p.missionRepeat[name]||0
-let finalRisk=m.risk
-if(repeat>=10){
-finalRisk*=2
-}
+let multiplier=Math.floor(repeat/10)
+let finalRisk=m.risk*Math.pow(2,multiplier)
 
 p.energy-=m.energy
 
@@ -197,6 +196,7 @@ p.missionStats.success++
 p.xp=Math.max(0,p.xp-m.xp)
 let loss=Math.floor(m.yton/2)
 p.yton=Math.max(0,p.yton-loss)
+p.gameBank+=loss
 p.missionStats.fail++
 
 if(Math.random()<0.5){
@@ -205,17 +205,14 @@ alert("🏥 Hastaneye düştün!")
 }
 }
 
-/* LEVEL UP */
 if(p.xp>=p.xpNext){
 p.level++
 p.xp=0
 p.xpNext+=100
 }
 
-/* Repeat count */
-p.missionRepeat[name]=(repeat+1)
+p.missionRepeat[name]=repeat+1
 
-/* History */
 p.missionHistory.unshift({
 name:name,
 time:new Date().toLocaleTimeString(),
@@ -231,7 +228,8 @@ function renderStats(){
 let p=getPlayer()
 document.getElementById("statsBox").innerHTML=
 "Başarılı: "+p.missionStats.success+
-"<br>Başarısız: "+p.missionStats.fail
+"<br>Başarısız: "+p.missionStats.fail+
+"<br>Game Bank: "+p.gameBank+" YTon"
 
 let history=""
 p.missionHistory.slice(0,10).forEach(h=>{
@@ -243,9 +241,18 @@ document.getElementById("historyBox").innerHTML=history
 }
 
 function toggleMenu(){
-document.getElementById("menu").classList.toggle("open")
-document.getElementById("overlay").style.display="block"
+let menu=document.getElementById("menu")
+let overlay=document.getElementById("overlay")
+
+if(menu.classList.contains("open")){
+menu.classList.remove("open")
+overlay.style.display="none"
+}else{
+menu.classList.add("open")
+overlay.style.display="block"
 }
+}
+
 function closeMenu(){
 document.getElementById("menu").classList.remove("open")
 document.getElementById("overlay").style.display="none"
