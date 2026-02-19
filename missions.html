@@ -4,16 +4,52 @@
 <meta charset="UTF-8">
 <title>TonCrime - Missions</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
 <style>
-body { background:#0e0e0e; color:white; font-family:Arial; margin:0; }
-.topbar { background:#111; padding:12px; font-weight:bold; }
-.card { background:#1b1b1b; padding:15px; margin:15px; border-radius:8px; }
-button { width:100%; padding:10px; background:gold; border:none; font-weight:bold; cursor:pointer; }
+body { margin:0; background:#0e0e0e; color:white; font-family:Arial; }
+
+.topbar {
+background:#111;
+padding:10px 20px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-weight:bold;
+border-bottom:1px solid #222;
+}
+
+.userbox {
+padding:15px;
+background:#151515;
+margin:15px;
+border-radius:8px;
+}
+
+.card {
+background:#1b1b1b;
+padding:15px;
+margin:15px;
+border-radius:8px;
+}
+
+button {
+width:100%;
+padding:10px;
+background:gold;
+border:none;
+font-weight:bold;
+cursor:pointer;
+}
 </style>
 </head>
 <body>
 
-<div class="topbar" id="stats">Yükleniyor...</div>
+<div class="topbar">
+<div>TonCrime</div>
+<div id="stats">Yükleniyor...</div>
+</div>
+
+<div class="userbox" id="userinfo"></div>
 <div id="missions"></div>
 
 <script>
@@ -23,7 +59,7 @@ const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const userId = "591676206"; // STRING YAPTIK
+const userId = "591676206";
 
 async function loadUser(){
   const { data } = await supabaseClient
@@ -42,11 +78,21 @@ async function loadMissions(){
 }
 
 async function render(){
+
   const user = await loadUser();
   const missions = await loadMissions();
 
   document.getElementById("stats").innerHTML =
-    `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
+    `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
+
+  document.getElementById("userinfo").innerHTML = `
+  <b>ID:</b> ${user.id}<br>
+  <b>Takma Ad:</b> ${user.nickname || "Yok"}<br>
+  <b>Silah Avantajı:</b> x1.00<br>
+  <b>Toplam Görev:</b> ${user.total_missions || 0}<br>
+  <b>Kazanma:</b> ${user.wins || 0}<br>
+  <b>Kaybetme:</b> ${user.losses || 0}
+  `;
 
   let html = "";
 
@@ -83,14 +129,19 @@ async function startMission(missionId){
 
   let newEnergy = user.energy - mission.energy_cost;
   let newXp = user.xp;
-  let newYton = user.yton;
+  let newYton = Number(user.yton);
   let newLevel = user.level;
+
+  let total = (user.total_missions || 0) + 1;
+  let wins = user.wins || 0;
+  let losses = user.losses || 0;
 
   const success = Math.random()*100 < mission.success_rate;
 
   if(success){
     newXp += mission.xp_reward;
     newYton += mission.yton_reward;
+    wins++;
 
     if(newXp >= 100){
       newLevel++;
@@ -99,23 +150,22 @@ async function startMission(missionId){
 
     alert("Görev Başarılı!");
   } else {
+    losses++;
     alert("Görev Başarısız!");
   }
 
-  const { error } = await supabaseClient
+  await supabaseClient
     .from("users")
     .update({
       energy: newEnergy,
       xp: newXp,
       yton: newYton,
-      level: newLevel
+      level: newLevel,
+      total_missions: total,
+      wins: wins,
+      losses: losses
     })
     .eq("id", userId);
-
-  if(error){
-    console.log(error);
-    alert("Update hatası!");
-  }
 
   render();
 }
