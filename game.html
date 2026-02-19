@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Yeraltı Şehri</title>
 
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
 body{
@@ -21,18 +19,85 @@ align-items:center;
 height:100vh;
 text-align:center;
 }
+
+.box{
+background:#111;
+padding:25px;
+border-radius:12px;
+width:90%;
+max-width:400px;
+}
+
 h2{color:#f90}
 </style>
 </head>
 <body>
 
-<h2>🔥 Oyun Alanı (Sonraki Adım: Telegram Login)</h2>
+<div class="box" id="content">
+<h2>Telegram kontrol ediliyor...</h2>
+</div>
 
 <script>
-/* Eğer yaş onayı yoksa geri at */
+
+/* Age kontrol */
 if(localStorage.getItem("ageVerified")!=="true"){
 window.location.href="index.html";
 }
+
+/* Telegram WebApp */
+const tg = window.Telegram.WebApp;
+
+if(!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user){
+document.getElementById("content").innerHTML =
+"<h2>Bu oyun Telegram içinden açılmalıdır.</h2>";
+}else{
+
+let user = tg.initDataUnsafe.user;
+
+let nickname = localStorage.getItem("nickname");
+
+if(!nickname){
+document.getElementById("content").innerHTML = `
+<h2>Takma Ad Belirle</h2>
+<input id="nickInput" placeholder="Takma ad"
+style="width:100%;padding:10px;margin-top:10px;background:#222;border:none;color:#fff;border-radius:6px;">
+<button onclick="saveNick()"
+style="margin-top:15px;width:100%;padding:12px;background:#f90;border:none;border-radius:8px;font-weight:bold;">
+Kaydet
+</button>
+`;
+}else{
+showGame(user,nickname);
+}
+
+window.saveNick = function(){
+let nick=document.getElementById("nickInput").value.trim();
+if(nick.length<3){
+alert("En az 3 karakter");
+return;
+}
+localStorage.setItem("nickname",nick);
+showGame(user,nick);
+}
+
+function showGame(user,nick){
+document.getElementById("content").innerHTML = `
+<h2>🔥 Yeraltı Şehri</h2>
+<p>ID: ${user.id}</p>
+<p>👤 ${nick}</p>
+<button onclick="connectWallet()"
+style="margin-top:15px;width:100%;padding:12px;background:#f90;border:none;border-radius:8px;font-weight:bold;">
+TON Cüzdan Bağla
+</button>
+`;
+}
+
+window.connectWallet = function(){
+alert("TON Connect sonraki adımda entegre edilecek.");
+}
+
+}
+
 </script>
 
 </body>
