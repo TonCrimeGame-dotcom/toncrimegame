@@ -1,90 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TonCrime - Missions</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+body { background:#0e0e0e; color:white; font-family:Arial; margin:0; }
+.topbar { background:#111; padding:12px; font-weight:bold; }
+.card { background:#1b1b1b; padding:15px; margin:15px; border-radius:8px; }
+button { width:100%; padding:10px; background:gold; border:none; font-weight:bold; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<div class="topbar" id="stats">Yükleniyor...</div>
+<div id="missions"></div>
+
 <script>
+
 const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const userId = 591676206;
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const userId = "591676206"; // STRING YAPTIK
 
 async function loadUser(){
-let { data } = await db.from("users").select("*").eq("id",userId).single();
-return data;
+  const { data } = await supabaseClient
+    .from("users")
+    .select("*")
+    .eq("id", userId)
+    .single();
+  return data;
 }
 
 async function loadMissions(){
-let { data } = await db.from("missions").select("*");
-return data;
+  const { data } = await supabaseClient
+    .from("missions")
+    .select("*");
+  return data;
 }
 
 async function render(){
-let user = await loadUser();
-let missions = await loadMissions();
+  const user = await loadUser();
+  const missions = await loadMissions();
 
-document.getElementById("stats").innerHTML =
-`Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy}/100 | 💰 ${user.yton}`;
+  document.getElementById("stats").innerHTML =
+    `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
 
-let html = "";
+  let html = "";
 
-missions.forEach(m=>{
-html += `
-<div class="card">
-<b>${m.name}</b><br>
-Enerji: ${m.energy_cost}<br>
-XP: ${m.xp_reward}<br>
-Kazanç: ${m.yton_reward} Yton<br>
-Başarı: %${m.success_rate}
-<button onclick="startMission(${m.id})">Başlat</button>
-</div>
-`;
-});
+  missions.forEach(m=>{
+    html += `
+    <div class="card">
+      <b>${m.name}</b><br>
+      Enerji: ${m.energy_cost}<br>
+      XP: ${m.xp_reward}<br>
+      Kazanç: ${m.yton_reward} Yton<br>
+      Başarı: %${m.success_rate}<br><br>
+      <button onclick="startMission(${m.id})">Başlat</button>
+    </div>
+    `;
+  });
 
-document.getElementById("missions").innerHTML = html;
+  document.getElementById("missions").innerHTML = html;
 }
 
 async function startMission(missionId){
 
-let user = await loadUser();
-let { data: mission } = await db.from("missions").select("*").eq("id",missionId).single();
+  const user = await loadUser();
 
-if(user.energy < mission.energy_cost){
-alert("Yetersiz enerji");
-return;
-}
+  const { data: mission } = await supabaseClient
+    .from("missions")
+    .select("*")
+    .eq("id", missionId)
+    .single();
 
-let success = Math.random()*100 < mission.success_rate;
+  if(user.energy < mission.energy_cost){
+    alert("Yetersiz enerji!");
+    return;
+  }
 
-let newEnergy = user.energy - mission.energy_cost;
-let newXp = user.xp;
-let newYton = Number(user.yton);
-let newLevel = user.level;
+  let newEnergy = user.energy - mission.energy_cost;
+  let newXp = user.xp;
+  let newYton = user.yton;
+  let newLevel = user.level;
 
-if(success){
-newXp += mission.xp_reward;
-newYton += Number(mission.yton_reward);
+  const success = Math.random()*100 < mission.success_rate;
 
-if(newXp >= 100){
-newLevel++;
-newXp -= 100;
-}
+  if(success){
+    newXp += mission.xp_reward;
+    newYton += mission.yton_reward;
 
-alert("Başarılı!");
-}else{
-alert("Başarısız!");
-}
+    if(newXp >= 100){
+      newLevel++;
+      newXp -= 100;
+    }
 
-const { error } = await db.from("users").update({
-energy: newEnergy,
-xp: newXp,
-yton: newYton,
-level: newLevel
-}).eq("id",userId);
+    alert("Görev Başarılı!");
+  } else {
+    alert("Görev Başarısız!");
+  }
 
-if(error){
-console.log(error);
-alert("Update Hatası!");
+  const { error } = await supabaseClient
+    .from("users")
+    .update({
+      energy: newEnergy,
+      xp: newXp,
+      yton: newYton,
+      level: newLevel
+    })
+    .eq("id", userId);
+
+  if(error){
+    console.log(error);
+    alert("Update hatası!");
+  }
+
+  render();
 }
 
 render();
-}
 
-render();
 </script>
+</body>
+</html>
