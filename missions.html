@@ -63,43 +63,53 @@ body{
 /* LAYOUT */
 .container{
   display:flex;
-  gap:20px;
-  padding:20px;
+  gap:30px;
+  padding:30px;
 }
 
 .missions{
-  flex:2;
+  flex:0 0 60%;
 }
 
 .userpanel{
-  flex:1;
+  flex:0 0 40%;
   background:#151515;
-  padding:15px;
-  border-radius:8px;
+  padding:20px;
+  border-radius:10px;
   height:fit-content;
 }
 
 /* CARDS */
 .card{
   background:#1b1b1b;
-  padding:15px;
-  margin-bottom:15px;
-  border-radius:8px;
+  padding:20px;
+  margin-bottom:20px;
+  border-radius:10px;
+  font-size:15px;
 }
 
 button{
   width:100%;
-  padding:10px;
+  padding:12px;
   background:gold;
   border:none;
   font-weight:bold;
   cursor:pointer;
+  border-radius:6px;
+  margin-top:10px;
+}
+
+button:hover{
+  opacity:0.9;
 }
 
 /* RESPONSIVE */
 @media(max-width:900px){
   .container{
     flex-direction:column;
+  }
+  .missions, .userpanel{
+    flex:100%;
   }
 }
 </style>
@@ -160,9 +170,9 @@ async function render(){
   `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
 
   document.getElementById("userinfo").innerHTML=`
-    <h3>Kullanıcı</h3>
-    <b>ID:</b> ${user.id}<br>
-    <b>Takma Ad:</b> ${user.nickname}<br>
+    <h3>Kullanıcı Bilgisi</h3>
+    <b>ID:</b> ${user.id}<br><br>
+    <b>Takma Ad:</b> ${user.nickname}<br><br>
     <b>Toplam Görev:</b> ${user.total_missions || 0}<br>
     <b>Kazanma:</b> ${user.wins || 0}<br>
     <b>Kaybetme:</b> ${user.losses || 0}
@@ -172,11 +182,11 @@ async function render(){
   missions.forEach(m=>{
     html+=`
     <div class="card">
-      <b>${m.name}</b><br>
+      <b>${m.name}</b><br><br>
       Enerji: ${m.energy_cost}<br>
       XP: ${m.xp_reward}<br>
       Kazanç: ${m.yton_reward} Yton<br>
-      Başarı: %${m.success_rate}<br><br>
+      Başarı: %${m.success_rate}
       <button onclick="startMission(${m.id})">Başlat</button>
     </div>
     `;
