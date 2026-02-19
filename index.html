@@ -5,47 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
 body{margin:0;background:#000;color:#fff;font-family:Arial}
 .topbar{height:60px;background:#111;display:flex;align-items:center;padding:0 15px}
-.menu-btn{font-size:22px;cursor:pointer;margin-right:15px}
 .logo{color:#f90;font-weight:bold;font-size:18px}
 .topstats{margin-left:auto;font-size:13px;text-align:right}
 .band{background:#151515;padding:8px 15px;font-size:13px;border-bottom:1px solid #222}
 .wrapper{padding:15px}
 .card{background:#111;padding:15px;border-radius:12px;margin-bottom:15px}
 button{width:100%;padding:10px;background:#f90;border:none;border-radius:8px;font-weight:bold;margin-top:8px;cursor:pointer}
-.sidebar{position:fixed;top:0;left:-260px;width:260px;height:100%;background:#111;padding:20px;transition:0.3s;z-index:1000}
-.sidebar.active{left:0}
-.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:900}
-.overlay.active{display:block}
-.lock{opacity:0.4}
 </style>
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-<div onclick="closeMenu()">✖ Kapat</div>
-<hr>
-<div>🏠 Ana Panel</div>
-<div>🎯 Görevler</div>
-<div>⚔ PvP Arena</div>
-<div>🍸 Gece Kulübü</div>
-<div>☕ Smoke&Smart</div>
-<div id="loungeBtn">💃 Lounge House</div>
-<div>🔫 Silah Kaçakçısı</div>
-<div>🏥 Hastane</div>
-<div id="businessBtn">💼 İş Hayatım</div>
-<div>🏆 Turnuva</div>
-</div>
-
-<div class="overlay" id="overlay" onclick="closeMenu()"></div>
-
 <div class="topbar">
-<div class="menu-btn" onclick="openMenu()">☰</div>
 <div class="logo">TonCrime</div>
 <div class="topstats" id="topStats"></div>
 </div>
@@ -61,25 +36,14 @@ const supabaseClient = supabase.createClient(
 "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
 );
 
-const tg = window.Telegram?.WebApp;
-if(tg){ tg.expand(); }
+let userId = localStorage.getItem("toncrime_user");
 
-const user = tg?.initDataUnsafe?.user;
-
-if(!user){
-document.getElementById("content").innerHTML = "Telegram bilgisi alınamadı.";
-}else{
-init(user.id);
+if(!userId){
+userId = Math.floor(Math.random()*1000000000);
+localStorage.setItem("toncrime_user", userId);
 }
 
-function openMenu(){
-document.getElementById("sidebar").classList.add("active");
-document.getElementById("overlay").classList.add("active");
-}
-function closeMenu(){
-document.getElementById("sidebar").classList.remove("active");
-document.getElementById("overlay").classList.remove("active");
-}
+init(userId);
 
 async function init(userId){
 
@@ -94,6 +58,7 @@ let { data } = await supabaseClient
 if(!data){
 await supabaseClient.from("users").insert({
 id:userId,
+nickname:"TestUser",
 last_energy_update:now,
 last_active:now
 });
@@ -140,25 +105,6 @@ return data;
 
 async function render(data){
 
-let weapon = await supabaseClient
-.from("weapons")
-.select("*")
-.eq("id", data.weapon_id)
-.maybeSingle();
-
-let pvpStats = await supabaseClient
-.from("pvp_stats")
-.select("*")
-.eq("user_id", data.id)
-.maybeSingle();
-
-let logs = await supabaseClient
-.from("activity_log")
-.select("*")
-.eq("user_id", data.id)
-.order("created_at",{ascending:false})
-.limit(10);
-
 document.getElementById("topStats").innerHTML =
 `Lv ${data.level}<br>XP ${data.xp}/${data.xp_required}<br>⚡ ${data.energy}/100<br>💰 ${data.yton}`;
 
@@ -170,44 +116,22 @@ hospitalBlock = `<p style="color:#ff4444">🏥 Hastanedeysin</p>`;
 document.getElementById("content").innerHTML = `
 <div class="card">
 <b>ID:</b> ${data.id}<br>
-<b>Takma Ad:</b> ${data.nickname || "Yok"}<br>
+<b>Takma Ad:</b> ${data.nickname}<br>
 <b>Level:</b> ${data.level}<br>
 <b>XP:</b> ${data.xp}/${data.xp_required}
-</div>
-
-<div class="card">
-<b>🔫 Silah:</b> ${weapon.data?.name || "Yok"}<br>
-Güç: ${weapon.data?.power || 0}<br>
-Süre Çarpanı: x${weapon.data?.time_multiplier || 1}
-</div>
-
-<div class="card">
-<b>PvP:</b><br>
-Win: ${pvpStats.data?.wins || 0}<br>
-Lose: ${pvpStats.data?.losses || 0}<br>
-Ortalama Süre: ${pvpStats.data?.avg_time || 0}
 </div>
 
 <div class="card">
 <b>Enerji:</b> ${data.energy}/100
 ${hospitalBlock}
 </div>
-
-<div class="card">
-<b>Son 10 Aktivite</b><br>
-${logs.data.map(l=>`<div>${l.type} - ${l.description}</div>`).join("")}
-</div>
 `;
-
-if(data.level < 50){
-document.getElementById("loungeBtn").classList.add("lock");
-document.getElementById("businessBtn").classList.add("lock");
-}
 }
 
 async function updateCityBand(){
 
 let now = Math.floor(Date.now()/1000);
+
 let { count } = await supabaseClient
 .from("users")
 .select("*",{count:"exact",head:true})
