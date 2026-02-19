@@ -14,36 +14,22 @@ justify-content:space-between;padding:0 15px;
 border-bottom:1px solid #222;z-index:1000}
 .logo{color:#ffb300;font-weight:bold;font-size:22px}
 .stats{font-size:14px}
-.menuBtn{cursor:pointer;font-size:22px;margin-right:10px}
-.content{padding:80px 15px 20px}
-.card{
-background:#1a1a1a;padding:15px;border-radius:8px;
-margin-bottom:15px}
-button{
-width:100%;padding:10px;border:none;
-background:#ffb300;color:black;
-border-radius:6px;font-weight:bold;cursor:pointer}
-.userBox{
-background:#1a1a1a;padding:15px;
-border-radius:8px;margin-bottom:15px}
+.content{padding:80px 15px}
+.card{background:#1a1a1a;padding:15px;border-radius:8px;margin-bottom:15px}
+button{width:100%;padding:10px;border:none;background:#ffb300;color:black;border-radius:6px;font-weight:bold}
+.userBox{background:#1a1a1a;padding:15px;border-radius:8px;margin-bottom:15px}
 </style>
 </head>
 <body>
 
 <div class="header">
-<div>
-<span class="menuBtn">☰</span>
-<span class="logo">TonCrime</span>
-</div>
-<div class="stats" id="topStats">Yükleniyor...</div>
+<div class="logo">TonCrime</div>
+<div class="stats" id="topStats"></div>
 </div>
 
 <div class="content">
-
 <div class="userBox" id="userBox"></div>
-
 <div id="missionsArea"></div>
-
 </div>
 
 <script>
@@ -58,12 +44,20 @@ function xpNeeded(level){
 return Math.floor(100 * Math.pow(1.05, level-1));
 }
 
-async function loadPlayer(){
-let {data:user} = await supabaseClient
+async function getUser(){
+let {data} = await supabaseClient
 .from("users").select("*").eq("id",userId).single();
+return data;
+}
 
-if(!user) return;
+async function updateUser(obj){
+await supabaseClient.from("users")
+.update(obj)
+.eq("id",userId);
+}
 
+async function renderUser(){
+let user = await getUser();
 let needed = xpNeeded(user.level);
 
 document.getElementById("topStats").innerHTML =
@@ -74,7 +68,6 @@ document.getElementById("userBox").innerHTML =
 Takma Ad: ${user.nickname}<br>
 Level: ${user.level}<br>
 XP: ${user.xp}/${needed}<br>
-Silah Hız Avantajı: x1.00<br>
 Toplam Görev: ${user.total_missions || 0}<br>
 Kazanma: ${user.wins || 0}<br>
 Kaybetme: ${user.losses || 0}`;
@@ -100,23 +93,21 @@ document.getElementById("missionsArea").innerHTML=html;
 
 async function startMission(id){
 
-let {data:user} = await supabaseClient
-.from("users").select("*").eq("id",userId).single();
-
+let user = await getUser();
 let {data:mission} = await supabaseClient
 .from("missions").select("*").eq("id",id).single();
 
 if(user.energy < mission.energy_cost){
-alert("Enerji yok");
+alert("Enerji yok!");
 return;
 }
 
 let success = Math.random()*100 <= mission.success_rate;
 
-let newEnergy = user.energy - mission.energy_cost;
-let newXp = user.xp;
-let newYton = user.yton;
-let newLevel = user.level;
+let energy = user.energy - mission.energy_cost;
+let xp = user.xp;
+let yton = user.yton;
+let level = user.level;
 let wins = user.wins || 0;
 let losses = user.losses || 0;
 let total = user.total_missions || 0;
@@ -124,52 +115,65 @@ let total = user.total_missions || 0;
 total++;
 
 if(success){
-newXp += mission.xp_reward;
-newYton += mission.yton_reward;
+xp += mission.xp_reward;
+yton += mission.yton_reward;
 wins++;
 }else{
 losses++;
 }
 
-let needed = xpNeeded(newLevel);
-while(newXp >= needed){
-newXp -= needed;
-newLevel++;
-needed = xpNeeded(newLevel);
+let needed = xpNeeded(level);
+while(xp >= needed){
+xp -= needed;
+level++;
+needed = xpNeeded(level);
 }
 
-await supabaseClient.from("users")
-.update({
-energy:newEnergy,
-xp:newXp,
-yton:newYton,
-level:newLevel,
+await updateUser({
+energy:energy,
+xp:xp,
+yton:yton,
+level:level,
 wins:wins,
 losses:losses,
 total_missions:total
-})
-.eq("id",userId);
+});
 
+await renderUser();
 alert(success ? "Başarılı!" : "Başarısız!");
-
-loadPlayer();
 }
 
+/* GERÇEK ZAMANLI ENERJİ REGEN */
 async function energyRegen(){
-let {data:user} = await supabaseClient
-.from("users").select("*").eq("id",userId).single();
 
-if(user.energy < 100){
-await supabaseClient.from("users")
-.update({energy:user.energy+1})
-.eq("id",userId);
-loadPlayer();
+let user = await getUser();
+
+if(user.energy >= 100) return;
+
+let now = Math.floor(Date.now()/1000);
+
+if(!user.last_energy_tick){
+await updateUser({last_energy_tick:now});
+return;
+}
+
+if(now - user.last_energy_tick >= 300){
+
+let newEnergy = user.energy + 1;
+if(newEnergy > 100) newEnergy = 100;
+
+await updateUser({
+energy:newEnergy,
+last_energy_tick:now
+});
+
+await renderUser();
 }
 }
 
-setInterval(energyRegen,300000);
+setInterval(energyRegen,10000);
 
-loadPlayer();
+renderUser();
 loadMissions();
 </script>
 
