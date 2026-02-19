@@ -16,43 +16,43 @@ body{
 /* ===== TOPBAR ===== */
 .topbar{
   background:#111;
-  padding:20px 50px;
+  padding:18px 40px;
   border-bottom:1px solid #222;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  position:relative;
 }
 
-.logo{
-  font-size:26px;
-  font-weight:bold;
-  color:gold;
+.left-top{
+  display:flex;
+  align-items:center;
+  gap:15px;
 }
 
 .menu-btn{
-  position:absolute;
-  left:20px;
   font-size:22px;
   cursor:pointer;
 }
 
-/* ===== BARS ===== */
+.logo{
+  font-size:24px;
+  font-weight:bold;
+  color:gold;
+}
+
 .right-stats{
   width:420px;
 }
 
 .stat-text{
   text-align:right;
-  margin-bottom:8px;
+  margin-bottom:6px;
 }
-
-.bar-container{ margin-bottom:8px; }
 
 .bar-label{
   font-size:12px;
   text-align:right;
-  margin-bottom:4px;
+  margin-bottom:3px;
 }
 
 .bar{
@@ -61,6 +61,7 @@ body{
   background:#333;
   border-radius:5px;
   overflow:hidden;
+  margin-bottom:6px;
 }
 
 .bar-fill{
@@ -73,8 +74,8 @@ body{
 
 .energy-timer{
   font-size:11px;
-  color:#aaa;
   text-align:right;
+  color:#aaa;
 }
 
 /* ===== SIDEBAR ===== */
@@ -85,7 +86,7 @@ body{
   width:250px;
   height:100%;
   background:#151515;
-  padding:30px;
+  padding:25px;
   transition:0.3s;
   z-index:2000;
 }
@@ -178,26 +179,24 @@ button:hover{ opacity:0.9; }
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="menu-btn" onclick="openMenu()">☰</div>
-  <div class="logo">TonCrime</div>
+  <div class="left-top">
+    <div class="menu-btn" onclick="openMenu()">☰</div>
+    <div class="logo">TonCrime</div>
+  </div>
 
   <div class="right-stats">
     <div class="stat-text" id="stats"></div>
 
-    <div class="bar-container">
-      <div class="bar-label">XP</div>
-      <div class="bar">
-        <div class="bar-fill xp-fill" id="xpBar"></div>
-      </div>
+    <div class="bar-label">XP</div>
+    <div class="bar">
+      <div class="bar-fill xp-fill" id="xpBar"></div>
     </div>
 
-    <div class="bar-container">
-      <div class="bar-label">Enerji</div>
-      <div class="bar">
-        <div class="bar-fill energy-fill" id="energyBar"></div>
-      </div>
-      <div class="energy-timer" id="energyTimer"></div>
+    <div class="bar-label">Enerji</div>
+    <div class="bar">
+      <div class="bar-fill energy-fill" id="energyBar"></div>
     </div>
+    <div class="energy-timer" id="energyTimer"></div>
   </div>
 </div>
 
@@ -215,8 +214,10 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const userId="591676206";
 
 const MAX_ENERGY=100;
+const MAX_XP=100;
 const ENERGY_INTERVAL=5*60*1000;
 
+/* MENU */
 function openMenu(){
   document.getElementById("sidebar").classList.add("open");
   document.getElementById("overlay").classList.add("show");
@@ -226,6 +227,7 @@ document.getElementById("overlay").onclick=()=>{
   document.getElementById("overlay").classList.remove("show");
 };
 
+/* POPUP */
 function showResult(text,type){
   const box=document.getElementById("resultBox");
   box.className="result-box "+type;
@@ -247,11 +249,11 @@ async function regenEnergy(user){
   }
 
   const diff=now-user.last_energy_tick;
-  const energyToAdd=Math.floor(diff/ENERGY_INTERVAL);
+  const add=Math.floor(diff/ENERGY_INTERVAL);
 
-  if(energyToAdd>0 && user.energy<MAX_ENERGY){
-    let newEnergy=Math.min(MAX_ENERGY,user.energy+energyToAdd);
-    let newTick=user.last_energy_tick+(energyToAdd*ENERGY_INTERVAL);
+  if(add>0 && user.energy<MAX_ENERGY){
+    let newEnergy=Math.min(MAX_ENERGY,user.energy+add);
+    let newTick=user.last_energy_tick+(add*ENERGY_INTERVAL);
 
     await db.from("users").update({
       energy:newEnergy,
@@ -266,10 +268,11 @@ async function regenEnergy(user){
 }
 
 function updateBars(user){
-  document.getElementById("xpBar").style.width=(user.xp)+"%";
-  document.getElementById("energyBar").style.width=(user.energy)+"%";
+  document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
+  document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
 
   const remaining=ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
+
   if(user.energy<MAX_ENERGY){
     const sec=Math.floor(remaining/1000)%60;
     const min=Math.floor(remaining/60000);
@@ -332,22 +335,15 @@ async function startMission(id){
   let wins=user.wins||0;
   let losses=user.losses||0;
 
-  let message="";
-
   if(Math.random()*100<mission.success_rate){
     xp+=mission.xp_reward;
     yton+=mission.yton_reward;
     wins++;
-    message=`<b>Başarılı!</b><br>
-    +${mission.xp_reward} XP<br>
-    +${mission.yton_reward} Yton`;
-    showResult(message,"success");
+    showResult(`<b>Başarılı!</b><br>+${mission.xp_reward} XP<br>+${mission.yton_reward} Yton`,"success");
     if(xp>=100){level++;xp-=100;}
   }else{
     losses++;
-    message=`<b>Başarısız!</b><br>
-    -${mission.energy_cost} Enerji`;
-    showResult(message,"fail");
+    showResult(`<b>Başarısız!</b><br>-${mission.energy_cost} Enerji`,"fail");
   }
 
   await db.from("users").update({
