@@ -1,129 +1,165 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Coffee Shop</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TonCrime - Coffee Shop</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  margin:0;
-  background:#0b0b0b;
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
-}
-.header{
-  position:fixed;
-  top:0;left:0;right:0;
-  height:60px;
-  background:#000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-bottom:1px solid #222;
-}
-.container{
-  padding:80px 15px 20px;
-}
-.card{
-  background:#151515;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
-}
-.card h3{
-  margin:0 0 6px 0;
-}
-.effect{
-  font-size:14px;
-  opacity:.85;
-}
-.price{
-  margin-top:6px;
-  font-weight:bold;
-}
-button{
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:#1f1f1f;
-  color:#fff;
-  font-size:16px;
-}
-button:hover{background:#333}
-.back{
-  background:#500;
-  margin:20px 15px;
-}
+body{margin:0;background:#0f0f0f;color:white;font-family:Arial;}
+.topbar{background:#111;padding:18px 40px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;}
+.left-top{display:flex;align-items:center;gap:15px;}
+.menu-btn{font-size:22px;cursor:pointer;}
+.logo{font-size:24px;font-weight:bold;color:#00d4ff;}
+.right-stats{width:420px;}
+.bar{width:100%;height:8px;background:#333;border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.bar-fill{height:100%;transition:0.3s;}
+.xp-fill{background:limegreen;}
+.energy-fill{background:gold;}
+.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#151515;padding:25px;transition:0.3s;z-index:2000;}
+.sidebar.open{left:0;}
+.overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:1500;}
+.overlay.show{display:block;}
+.main{display:flex;justify-content:center;gap:40px;padding:40px;}
+.center{width:60%;}
+.userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;height:fit-content;}
+.card{background:#1b1b1b;padding:15px;margin-bottom:18px;border-radius:10px;}
+button{width:100%;padding:10px;background:#00d4ff;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:8px;color:black;}
+button:hover{opacity:0.9}
+.result-box{position:fixed;bottom:30px;right:30px;background:#1b1b1b;padding:20px;border-radius:10px;border-left:5px solid #00d4ff;display:none;z-index:3000;min-width:250px;}
+.result-box.success{border-color:limegreen;}
+.result-box.fail{border-color:red;}
 </style>
 </head>
-
 <body>
 
-<div class="header">
-  <b>☕ Coffee Shop</b>
+<div class="sidebar" id="sidebar">
+  <h3 style="color:#00d4ff">Menü</h3>
+  <p onclick="location.href='index.html'">🏠 Ana Sayfa</p>
+  <p onclick="location.href='missions.html'">🎯 Görevler</p>
+  <p onclick="location.href='mekan.html'">🏢 Mekan</p>
+  <p onclick="location.href='nightclub.html'">🎵 Gece Kulübü</p>
+  <p onclick="location.href='coffeeshop.html'">☕ Coffee Shop</p>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="topbar">
+  <div class="left-top">
+    <div class="menu-btn" onclick="openMenu()">☰</div>
+    <div class="logo">Coffee Shop</div>
+  </div>
+  <div class="right-stats">
+    <div id="stats"></div>
+    <div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
+    <div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
+  </div>
 </div>
 
-<div class="container" id="shop"></div>
+<div class="main">
+  <div class="center" id="coffeeList"></div>
+  <div class="userpanel" id="userinfo"></div>
+</div>
 
-<button class="back" onclick="location.href='nightlife.html'">⬅ Geri</button>
+<div class="result-box" id="resultBox"></div>
 
 <script>
-/* ========= 30 UYUŞTURUCU ========= */
-const drugs = [
- {name:"Ot (Çizgi)", effect:"Enerji +2 / Risk +1", price:20},
- {name:"Ot (Taş)", effect:"Enerji +3 / Risk +2", price:26},
- {name:"Mor Sis", effect:"XP +5 / Risk +2", price:30},
- {name:"Kırmızı Çizik", effect:"XP +6 / Risk +3", price:34},
- {name:"Pembe Toz", effect:"Başarı +2% / Risk +3", price:38},
- {name:"Gece Mantarı", effect:"XP +8 / Risk +4", price:42},
- {name:"Beyaz Hayal", effect:"Enerji +4 / XP +4", price:45},
- {name:"Neon Ot", effect:"Enerji +5 / Risk +3", price:48},
- {name:"Zihin Parçası", effect:"Başarı +3%", price:52},
- {name:"Kara Çamur", effect:"XP +10 / Risk +5", price:55},
+const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
- {name:"Mavi Kristal", effect:"Enerji +6 / Risk +4", price:58},
- {name:"Sokak Şekeri", effect:"Enerji +4 / XP +3", price:32},
- {name:"Derin Kafa", effect:"Başarı +4% / Risk +5", price:60},
- {name:"Gölgeli Hap", effect:"XP +7 / Risk +3", price:40},
- {name:"Kafesiz", effect:"Enerji +7 / Risk +6", price:65},
- {name:"Ateş Tozu", effect:"Başarı +5% / Risk +6", price:70},
- {name:"Rüya Yaprağı", effect:"XP +12 / Risk +7", price:75},
- {name:"Zombi Karışım", effect:"Enerji +8 / Risk +8", price:80},
- {name:"Yüksek Bulut", effect:"Enerji +9 / XP +6", price:85},
- {name:"Çarpık Mantık", effect:"Başarı +6% / Risk +7", price:90},
+const userId=localStorage.getItem("tc_user");
+const MAX_ENERGY=100;
+const MAX_XP=100;
 
- {name:"Sıvı Gece", effect:"XP +15 / Risk +8", price:95},
- {name:"Alt Beyin", effect:"Enerji +10 / Risk +9", price:100},
- {name:"Parazit", effect:"Başarı +7% / Risk +10", price:110},
- {name:"Bulanık Hat", effect:"XP +18 / Risk +11", price:120},
- {name:"Frekans", effect:"Enerji +12 / XP +8", price:130},
- {name:"Sersem", effect:"Risk +12 / XP +20", price:140},
- {name:"Karanlık Çay", effect:"Başarı +8% / Risk +12", price:150},
- {name:"Psiko Damla", effect:"XP +25 / Risk +14", price:160},
- {name:"Paranoya", effect:"Enerji +15 / Risk +15", price:170},
- {name:"Son Nefes", effect:"XP +30 / Risk +18", price:200}
-];
+let usageData = JSON.parse(localStorage.getItem("coffee_usage") || "{}");
 
-let html = "";
-drugs.forEach(d=>{
- html += `
-  <div class="card">
-    <h3>${d.name}</h3>
-    <div class="effect">${d.effect}</div>
-    <div class="price">${d.price} YTon</div>
-    <button onclick="buyDrug('${d.name}')">Satın Al</button>
-  </div>
- `;
-});
-
-document.getElementById("shop").innerHTML = html;
-
-function buyDrug(name){
-  alert("☕ Kullanıldı: " + name);
+function openMenu(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
 }
+document.getElementById("overlay").onclick=()=>{
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+};
+
+function showResult(text,type){
+  const box=document.getElementById("resultBox");
+  box.className="result-box "+type;
+  box.innerHTML=text;
+  box.style.display="block";
+  setTimeout(()=>box.style.display="none",3000);
+}
+
+async function loadUser(){
+  const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
+  return data;
+}
+
+async function buyCoffee(id,price,baseEnergy){
+  let user=await loadUser();
+  if(!user) return;
+
+  if(user.yton < price){
+    showResult("Yetersiz Yton!","fail");
+    return;
+  }
+
+  let used = usageData[id] || 0;
+  let multiplier = 1 - (used * 0.02);
+  if(multiplier < 0.15) multiplier = 0.15;
+
+  let energyGain = Math.floor(baseEnergy * multiplier);
+  let newEnergy = Math.min(MAX_ENERGY, user.energy + energyGain);
+  let newYton = user.yton - price;
+
+  usageData[id] = used + 1;
+  localStorage.setItem("coffee_usage", JSON.stringify(usageData));
+
+  await db.from("users").update({
+    energy:newEnergy,
+    yton:newYton
+  }).eq("id",userId);
+
+  showResult("+"+energyGain+" Enerji (Verim %"+Math.floor(multiplier*100)+")","success");
+  render();
+}
+
+function generateCoffee(){
+  const list=document.getElementById("coffeeList");
+  for(let i=1;i<=30;i++){
+    let price=Math.floor(Math.random()*118)+3; // 3-120
+    let energy=Math.floor(Math.random()*60)+10; // 10-70
+
+    list.innerHTML+=`
+      <div class="card">
+        <b>Kahve ${i}</b><br>
+        Fiyat: ${price} Yton<br>
+        Enerji: +${energy}
+        <button onclick="buyCoffee(${i},${price},${energy})">İç</button>
+      </div>
+    `;
+  }
+}
+
+async function render(){
+  const user=await loadUser();
+  if(!user) return;
+
+  document.getElementById("stats").innerHTML=
+  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
+
+  document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
+  document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
+
+  document.getElementById("userinfo").innerHTML=
+  `ID: ${user.id}<br>
+   Takma Ad: ${user.nickname}<br>
+   Seviye: ${user.level}<br>
+   Yton: ${user.yton}`;
+}
+
+generateCoffee();
+render();
 </script>
 
 </body>
