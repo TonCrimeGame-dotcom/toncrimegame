@@ -6,35 +6,35 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{margin:0;background:#0f0f0f;color:white;font-family:Arial;}
-.topbar{background:#111;padding:18px 40px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;}
+body{margin:0;background:#0c140c;color:white;font-family:Arial;}
+.topbar{background:#0f1f0f;padding:18px 40px;border-bottom:1px solid #1f3a1f;display:flex;justify-content:space-between;align-items:center;}
 .left-top{display:flex;align-items:center;gap:15px;}
-.menu-btn{font-size:22px;cursor:pointer;}
-.logo{font-size:24px;font-weight:bold;color:#00d4ff;}
+.menu-btn{font-size:22px;cursor:pointer;color:#00ff88;}
+.logo{font-size:24px;font-weight:bold;color:#00ff88;}
 .right-stats{width:420px;}
-.bar{width:100%;height:8px;background:#333;border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.bar{width:100%;height:8px;background:#1f3a1f;border-radius:5px;overflow:hidden;margin-bottom:6px;}
 .bar-fill{height:100%;transition:0.3s;}
-.xp-fill{background:limegreen;}
-.energy-fill{background:gold;}
-.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#151515;padding:25px;transition:0.3s;z-index:2000;}
+.xp-fill{background:#00ff88;}
+.energy-fill{background:#66ff33;}
+.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#0f1f0f;padding:25px;transition:0.3s;z-index:2000;}
 .sidebar.open{left:0;}
 .overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:1500;}
 .overlay.show{display:block;}
 .main{display:flex;justify-content:center;gap:40px;padding:40px;}
 .center{width:60%;}
-.userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;height:fit-content;}
-.card{background:#1b1b1b;padding:15px;margin-bottom:18px;border-radius:10px;}
-button{width:100%;padding:10px;background:#00d4ff;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:8px;color:black;}
-button:hover{opacity:0.9}
-.result-box{position:fixed;bottom:30px;right:30px;background:#1b1b1b;padding:20px;border-radius:10px;border-left:5px solid #00d4ff;display:none;z-index:3000;min-width:250px;}
-.result-box.success{border-color:limegreen;}
+.userpanel{width:25%;background:#0f1f0f;padding:20px;border-radius:10px;height:fit-content;border:1px solid #1f3a1f;}
+.card{background:#132613;padding:15px;margin-bottom:18px;border-radius:10px;border:1px solid #1f3a1f;}
+button{width:100%;padding:10px;background:#00ff88;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:8px;color:black;}
+button:hover{background:#00cc66;}
+.result-box{position:fixed;bottom:30px;right:30px;background:#132613;padding:20px;border-radius:10px;border-left:5px solid #00ff88;display:none;z-index:3000;min-width:250px;}
+.result-box.success{border-color:#66ff33;}
 .result-box.fail{border-color:red;}
 </style>
 </head>
 <body>
 
 <div class="sidebar" id="sidebar">
-  <h3 style="color:#00d4ff">Menü</h3>
+  <h3 style="color:#00ff88">Menü</h3>
   <p onclick="location.href='index.html'">🏠 Ana Sayfa</p>
   <p onclick="location.href='missions.html'">🎯 Görevler</p>
   <p onclick="location.href='mekan.html'">🏢 Mekan</p>
@@ -127,8 +127,8 @@ async function buyCoffee(id,price,baseEnergy){
 function generateCoffee(){
   const list=document.getElementById("coffeeList");
   for(let i=1;i<=30;i++){
-    let price=Math.floor(Math.random()*118)+3; // 3-120
-    let energy=Math.floor(Math.random()*60)+10; // 10-70
+    let price=Math.floor(Math.random()*118)+3;
+    let energy=Math.floor(Math.random()*60)+10;
 
     list.innerHTML+=`
       <div class="card">
