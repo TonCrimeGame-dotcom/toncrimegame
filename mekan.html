@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TonCrime - Mekan</title>
+<title>TonCrime - Oyun Kasası</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
@@ -21,10 +21,10 @@ body{margin:0;background:#0e0e0e;color:white;font-family:Arial;}
 .overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:1500;}
 .overlay.show{display:block;}
 .main{display:flex;justify-content:center;gap:40px;padding:40px;}
-.center{width:55%;}
+.center{width:60%;}
 .userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;height:fit-content;}
-.card{background:#1b1b1b;padding:18px;margin-bottom:25px;border-radius:10px;}
-button{width:100%;padding:12px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:10px;}
+.card{background:#1b1b1b;padding:15px;margin-bottom:18px;border-radius:10px;}
+button{width:100%;padding:10px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:8px;}
 button:hover{opacity:0.9}
 .result-box{position:fixed;bottom:30px;right:30px;background:#1b1b1b;padding:20px;border-radius:10px;border-left:5px solid gold;display:none;z-index:3000;min-width:250px;}
 .result-box.success{border-color:limegreen;}
@@ -37,8 +37,7 @@ button:hover{opacity:0.9}
   <h3 style="color:gold">Menü</h3>
   <p onclick="location.href='index.html'">🏠 Ana Sayfa</p>
   <p onclick="location.href='missions.html'">🎯 Görevler</p>
-  <p>⚔ PvP</p>
-  <p>🏢 Mekan</p>
+  <p onclick="location.href='mekan.html'">🏢 Mekan</p>
 </div>
 <div class="overlay" id="overlay"></div>
 
@@ -55,32 +54,7 @@ button:hover{opacity:0.9}
 </div>
 
 <div class="main">
-  <div class="center">
-
-    <!-- ÜRÜNLER -->
-    <div class="card">
-      <b>Enerji İçeceği</b><br>
-      Fiyat: 2 Yton<br>
-      Enerji: +10
-      <button onclick="buyItem(2,10)">Satın Al</button>
-    </div>
-
-    <div class="card">
-      <b>VIP Paket</b><br>
-      Fiyat: 5 Yton<br>
-      Enerji: +30
-      <button onclick="buyItem(5,30)">Satın Al</button>
-    </div>
-
-    <div class="card">
-      <b>Premium Paket</b><br>
-      Fiyat: 8 Yton<br>
-      Enerji: +50
-      <button onclick="buyItem(8,50)">Satın Al</button>
-    </div>
-
-  </div>
-
+  <div class="center" id="productList"></div>
   <div class="userpanel" id="userinfo"></div>
 </div>
 
@@ -117,7 +91,7 @@ async function loadUser(){
   return data;
 }
 
-async function buyItem(price,energyGain){
+async function buyItem(price,energyPercent){
   let user=await loadUser();
   if(!user) return;
 
@@ -126,8 +100,9 @@ async function buyItem(price,energyGain){
     return;
   }
 
-  let newEnergy=Math.min(MAX_ENERGY,user.energy+energyGain);
-  let newYton=user.yton-price;
+  let energyGain = Math.floor(MAX_ENERGY * (energyPercent/100));
+  let newEnergy = Math.min(MAX_ENERGY, user.energy + energyGain);
+  let newYton = user.yton - price;
 
   await db.from("users").update({
     energy:newEnergy,
@@ -136,6 +111,23 @@ async function buyItem(price,energyGain){
 
   showResult("Satın alındı! +" + energyGain + " Enerji","success");
   render();
+}
+
+function generateProducts(){
+  const list=document.getElementById("productList");
+  for(let i=1;i<=50;i++){
+    let price=Math.floor(Math.random()*101)+100; // 100-200
+    let energyPercent=Math.floor(Math.random()*51)+50; // 50-100
+
+    list.innerHTML+=`
+      <div class="card">
+        <b>Ürün ${i}</b><br>
+        Fiyat: ${price} Yton<br>
+        Enerji: %${energyPercent}
+        <button onclick="buyItem(${price},${energyPercent})">Satın Al</button>
+      </div>
+    `;
+  }
 }
 
 async function render(){
@@ -155,6 +147,7 @@ async function render(){
    Yton: ${user.yton}`;
 }
 
+generateProducts();
 render();
 </script>
 
