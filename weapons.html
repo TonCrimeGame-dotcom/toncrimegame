@@ -1,125 +1,161 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Silah Tüccarı</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TonCrime - Silah Kaçakçısı</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  margin:0;
-  background:#0b0b0b;
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
-}
-.header{
-  position:fixed;
-  top:0;left:0;right:0;
-  height:60px;
-  background:#000;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-bottom:1px solid #222;
-  z-index:10;
-}
-.container{
-  padding:80px 15px 20px;
-}
-.card{
-  background:#151515;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
-}
-.card h3{
-  margin:0 0 6px;
-}
-.info{
-  font-size:14px;
-  color:#aaa;
-}
-.price{
-  margin-top:6px;
-  font-weight:bold;
-}
-button{
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:#1f1f1f;
-  color:#fff;
-  font-size:16px;
-}
-button:hover{background:#333}
-.back{
-  background:#500;
-  margin-top:20px;
-}
-.center{text-align:center}
+body{margin:0;background:#140000;color:white;font-family:Arial;}
+.topbar{background:#1a0000;padding:18px 40px;border-bottom:1px solid #330000;display:flex;justify-content:space-between;align-items:center;}
+.left-top{display:flex;align-items:center;gap:15px;}
+.menu-btn{font-size:22px;cursor:pointer;color:#ff1a1a;}
+.logo{font-size:24px;font-weight:bold;color:#ff1a1a;}
+.right-stats{width:420px;}
+.bar{width:100%;height:8px;background:#330000;border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.bar-fill{height:100%;transition:0.3s;}
+.xp-fill{background:#ff3333;}
+.energy-fill{background:#ffcc00;}
+.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#1a0000;padding:25px;transition:0.3s;z-index:2000;}
+.sidebar.open{left:0;}
+.overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:1500;}
+.overlay.show{display:block;}
+.main{display:flex;justify-content:center;gap:40px;padding:40px;}
+.center{width:60%;}
+.userpanel{width:25%;background:#1a0000;padding:20px;border-radius:10px;height:fit-content;border:1px solid #330000;}
+.card{background:#220000;padding:15px;margin-bottom:18px;border-radius:10px;border:1px solid #330000;}
+button{width:100%;padding:10px;background:#ff1a1a;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:8px;color:white;}
+button:hover{background:#cc0000;}
+.result-box{position:fixed;bottom:30px;right:30px;background:#220000;padding:20px;border-radius:10px;border-left:5px solid #ff1a1a;display:none;z-index:3000;min-width:250px;}
+.result-box.success{border-color:#66ff33;}
+.result-box.fail{border-color:red;}
 </style>
 </head>
-
 <body>
 
-<div class="header">
-  <b>🔫 Silah Tüccarı</b>
+<div class="sidebar" id="sidebar">
+  <h3 style="color:#ff1a1a">Menü</h3>
+  <p onclick="location.href='index.html'">🏠 Ana Sayfa</p>
+  <p onclick="location.href='missions.html'">🎯 Görevler</p>
+  <p onclick="location.href='nightclub.html'">🎵 Gece Kulübü</p>
+  <p onclick="location.href='coffeeshop.html'">☕ Coffee Shop</p>
+  <p onclick="location.href='weapons.html'">🔫 Silah Kaçakçısı</p>
+</div>
+<div class="overlay" id="overlay"></div>
+
+<div class="topbar">
+  <div class="left-top">
+    <div class="menu-btn" onclick="openMenu()">☰</div>
+    <div class="logo">Silah Kaçakçısı</div>
+  </div>
+  <div class="right-stats">
+    <div id="stats"></div>
+    <div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
+    <div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
+  </div>
 </div>
 
-<div class="container" id="weapons">
-  Yükleniyor...
+<div class="main">
+  <div class="center" id="weaponList"></div>
+  <div class="userpanel" id="userinfo"></div>
 </div>
 
-<button class="back" onclick="location.href='index.html'">⬅ Ana Menü</button>
+<div class="result-box" id="resultBox"></div>
 
 <script>
-// =================================================
-// ŞİMDİLİK SABİT LİSTE (DB BAĞLANTISI YOK)
-// =================================================
+const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const weapons = [
-  { name:"Taktik Bıçak", type:"Yakın Dövüş", effect:"Enerji -1", price:30 },
-  { name:"Susturuculu Tabanca", type:"Hafif Silah", effect:"Risk -2%", price:90 },
-  { name:"Glock 19", type:"Tabanca", effect:"Başarı +3%", price:120 },
-  { name:"Desert Eagle", type:"Ağır Tabanca", effect:"Hasar +", price:180 },
-  { name:"Pompalı Tüfek", type:"Yakın Menzil", effect:"Boss avantajı", price:260 },
-  { name:"Uzi SMG", type:"Otomatik", effect:"Çoklu görev bonus", price:350 },
-  { name:"AK-47", type:"Taarruz", effect:"Zor görev avantajı", price:500 },
-  { name:"M4A1", type:"Elite Taarruz", effect:"Elite görev bonusu", price:750 },
-  { name:"Keskin Nişancı", type:"Uzun Menzil", effect:"PvP avantajı", price:1200 },
-  { name:"El Bombası", type:"Tek Kullanım", effect:"Anlık güç", price:300 }
-];
+const userId=localStorage.getItem("tc_user");
+const MAX_ENERGY=100;
+const MAX_XP=100;
 
-function loadWeapons(){
-  let html = "";
-  weapons.forEach((w,i)=>{
-    html += `
+function openMenu(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
+}
+document.getElementById("overlay").onclick=()=>{
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+};
+
+function showResult(text,type){
+  const box=document.getElementById("resultBox");
+  box.className="result-box "+type;
+  box.innerHTML=text;
+  box.style.display="block";
+  setTimeout(()=>box.style.display="none",3000);
+}
+
+async function loadUser(){
+  const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
+  return data;
+}
+
+async function buyWeapon(name,price,bonus){
+  let user=await loadUser();
+  if(!user) return;
+
+  if(user.yton < price){
+    showResult("Yetersiz Yton!","fail");
+    return;
+  }
+
+  await db.from("users").update({
+    yton:user.yton-price,
+    weapon:name,
+    weapon_bonus:bonus
+  }).eq("id",userId);
+
+  showResult("Satın alındı! PvP hız bonusu: +" + bonus,"success");
+  render();
+}
+
+function generateWeapons(){
+  const names=[
+    "Sopa","Bıçak","Sustalı","Tabanca","Revolver",
+    "Uzi","MP5","Shotgun","AK-47","M4A1",
+    "Desert Eagle","Glock","Famas","P90","SCAR",
+    "Sniper","Dragunov","M249","RPG","AWP"
+  ];
+
+  const list=document.getElementById("weaponList");
+
+  for(let i=0;i<20;i++){
+    let price=10 + (i*10);
+    let bonus=i+1;
+
+    list.innerHTML+=`
       <div class="card">
-        <h3>${w.name}</h3>
-        <div class="info">Tür: ${w.type}</div>
-        <div class="info">Etki: ${w.effect}</div>
-        <div class="price">💰 ${w.price} YTon</div>
-        <button onclick="buyWeapon(${i})">Satın Al</button>
+        <b>${names[i]}</b><br>
+        Fiyat: ${price} Yton<br>
+        PvP Hız Bonus: +${bonus}
+        <button onclick="buyWeapon('${names[i]}',${price},${bonus})">Satın Al</button>
       </div>
     `;
-  });
-
-  document.getElementById("weapons").innerHTML = html;
+  }
 }
 
-function buyWeapon(i){
-  const w = weapons[i];
-  alert(
-    "🔫 Satın alındı!\n\n" +
-    w.name + "\n" +
-    "Etki: " + w.effect
-  );
+async function render(){
+  const user=await loadUser();
+  if(!user) return;
+
+  document.getElementById("stats").innerHTML=
+  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
+
+  document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
+  document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
+
+  document.getElementById("userinfo").innerHTML=
+  `ID: ${user.id}<br>
+   Takma Ad: ${user.nickname}<br>
+   Aktif Silah: ${user.weapon || "Yok"}<br>
+   Hız Bonus: +${user.weapon_bonus || 0}`;
 }
 
-// BAŞLAT
-loadWeapons();
+generateWeapons();
+render();
 </script>
 
 </body>
