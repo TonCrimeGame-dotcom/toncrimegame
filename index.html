@@ -7,110 +7,60 @@
 
 <style>
 body{margin:0;background:#0e0e0e;color:white;font-family:Arial;}
-.login-screen{position:fixed;width:100%;height:100%;background:#0e0e0e;display:flex;justify-content:center;align-items:center;flex-direction:column;z-index:5000;}
-.login-box{background:#1b1b1b;padding:40px;border-radius:12px;width:320px;text-align:center;}
-input{width:100%;padding:10px;margin:10px 0;border:none;border-radius:6px;}
-button{width:100%;padding:12px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;}
-button:hover{opacity:0.9}
 .topbar{background:#111;padding:18px 40px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;}
 .left-top{display:flex;align-items:center;gap:15px;}
-.menu-btn{font-size:22px;cursor:pointer;}
+.menu-btn{font-size:22px;cursor:pointer;color:gold;}
 .logo{font-size:24px;font-weight:bold;color:gold;}
 .right-stats{width:420px;}
-.stat-text{text-align:right;margin-bottom:6px;}
-.bar-label{font-size:12px;text-align:right;margin-bottom:3px;}
 .bar{width:100%;height:8px;background:#333;border-radius:5px;overflow:hidden;margin-bottom:6px;}
 .bar-fill{height:100%;transition:0.3s;}
 .xp-fill{background:limegreen;}
 .energy-fill{background:gold;}
-.energy-timer{font-size:11px;text-align:right;color:#aaa;}
 .sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#151515;padding:25px;transition:0.3s;z-index:2000;}
 .sidebar.open{left:0;}
 .overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:1500;}
 .overlay.show{display:block;}
 .main{display:flex;justify-content:center;gap:40px;padding:40px;}
-.center-area{width:55%;}
+.center{width:50%;}
 .userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;height:fit-content;}
-.card{background:#1b1b1b;padding:18px;margin-bottom:25px;border-radius:10px;}
-@media(max-width:1100px){.main{flex-direction:column;align-items:center;}.center-area,.userpanel{width:90%;}}
+.card{background:#1b1b1b;padding:20px;margin-bottom:20px;border-radius:10px;}
+button{width:100%;padding:12px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:10px;}
+button:hover{opacity:0.9}
+input{width:100%;padding:10px;border-radius:6px;border:none;margin-top:10px;}
 </style>
 </head>
 <body>
 
-<div class="login-screen" id="loginScreen">
-  <div class="login-box">
-    <h2 style="color:gold;">TonCrime</h2>
-    <p>18 yaşından büyük müsün?</p>
-    <button onclick="confirmAge()">Evet, 18+</button>
-    <div id="nickArea" style="display:none;">
-      <input id="nicknameInput" placeholder="Takma ad gir">
-      <button onclick="startGame()">Oyuna Başla</button>
-    </div>
-  </div>
-</div>
-
 <div class="sidebar" id="sidebar">
   <h3 style="color:gold">Menü</h3>
-
-  <p onclick="window.location.href='index.html'">🏠 Ana Sayfa</p>
-
-  <p onclick="window.location.href='missions.html'">🎯 Görevler</p>
-
-  <p onclick="window.location.href='nightclub.html'">🎵 Gece Kulübü</p>
-
-  <p onclick="window.location.href='coffeeshop.html'">☕ Coffee Shop</p>
-
-  <p onclick="window.location.href='mekan.html'">🏢 Mekan</p>
-
-  <p onclick="window.location.href='weapons.html'">🔫 Silah Kaçakçısı</p>
-
-  <p onclick="window.location.href='hospital.html'">🏥 Hastane</p>
+  <p onclick="go('index.html')">🏠 Ana Sayfa</p>
+  <p onclick="go('missions.html')">🎯 Görevler</p>
+  <p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
+  <p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
+  <p onclick="go('mekan.html')">🏢 Mekan</p>
+  <p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
+  <p onclick="go('hospital.html')">🏥 Hastane</p>
+  <p onclick="logout()">🚪 Çıkış</p>
 </div>
+<div class="overlay" id="overlay"></div>
 
 <div class="topbar">
   <div class="left-top">
     <div class="menu-btn" onclick="openMenu()">☰</div>
     <div class="logo">TonCrime</div>
   </div>
-
-  <div class="right-stats">
-    <div class="stat-text" id="stats"></div>
-    <div class="bar-label">XP</div>
-    <div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
-    <div class="bar-label">Enerji</div>
-    <div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
-    <div class="energy-timer" id="energyTimer"></div>
-  </div>
+  <div class="right-stats" id="statsArea"></div>
 </div>
 
-<div class="main">
-  <div class="center-area">
-    <div class="card">
-      <h3>🏆 Haftalık Turnuva</h3>
-      Ödül Havuzu: 500 Yton<br>
-      Süre: 3 Gün<br>
-      Katılım: 6 Yton
-    </div>
-    <div class="card">
-      <h3>👑 En İyiler</h3>
-      1. ShadowBoss - 1200 XP<br>
-      2. DarkWolf - 980 XP<br>
-      3. KingTR - 870 XP
-    </div>
-  </div>
-  <div class="userpanel" id="userinfo"></div>
-</div>
+<div class="main" id="mainArea"></div>
 
 <script>
 const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
 const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let userId=localStorage.getItem("tc_user");
-
 const MAX_ENERGY=100;
 const MAX_XP=100;
-const ENERGY_INTERVAL=5*60*1000;
 
 function openMenu(){
   document.getElementById("sidebar").classList.add("open");
@@ -121,107 +71,92 @@ document.getElementById("overlay").onclick=()=>{
   document.getElementById("overlay").classList.remove("show");
 };
 
-function confirmAge(){
-  document.getElementById("nickArea").style.display="block";
+function go(page){
+  window.location.href="./"+page;
 }
 
-async function startGame(){
-  const nick=document.getElementById("nicknameInput").value.trim();
-  if(!nick) return alert("Nickname gir");
+function logout(){
+  localStorage.clear();
+  location.reload();
+}
 
-  const newId=Date.now().toString();
-  userId=newId;
+async function createUser(){
+  const nickname=document.getElementById("nickname").value.trim();
+  if(!nickname) return alert("Takma ad gir");
 
-  await db.from("users").insert([{
-    id:newId,
-    nickname:nick,
+  const id=Date.now().toString();
+
+  await db.from("users").insert({
+    id:id,
+    nickname:nickname,
     level:1,
     xp:0,
     energy:100,
-    yton:10,
-    last_energy_tick:Date.now()
-  }]);
+    yton:50
+  });
 
-  localStorage.setItem("tc_user",newId);
-  document.getElementById("loginScreen").style.display="none";
-  render();
+  localStorage.setItem("tc_user",id);
+  localStorage.setItem("tc_nickname",nickname);
+
+  loadHome();
 }
 
 async function loadUser(){
+  const userId=localStorage.getItem("tc_user");
   if(!userId) return null;
+
   const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
   return data;
 }
 
-async function regenEnergy(user){
-  const now=Date.now();
-  const diff=now-user.last_energy_tick;
-  const add=Math.floor(diff/ENERGY_INTERVAL);
-
-  if(add>0 && user.energy<MAX_ENERGY){
-    let newEnergy=Math.min(MAX_ENERGY,user.energy+add);
-    let newTick=user.last_energy_tick+(add*ENERGY_INTERVAL);
-
-    await db.from("users").update({
-      energy:newEnergy,
-      last_energy_tick:newTick
-    }).eq("id",userId);
-
-    user.energy=newEnergy;
-    user.last_energy_tick=newTick;
-  }
-  return user;
-}
-
-function updateBars(user){
-  document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
-  document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
-
-  const remaining=ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
-
-  if(user.energy<MAX_ENERGY){
-    const sec=Math.floor(remaining/1000)%60;
-    const min=Math.floor(remaining/60000);
-    document.getElementById("energyTimer").innerText=
-      "Sonraki enerji: "+min+"m "+sec+"s";
-  }else{
-    document.getElementById("energyTimer").innerText="Enerji Full";
-  }
-}
-
-async function render(){
-  if(!userId){
-    document.getElementById("loginScreen").style.display="flex";
-    return;
-  }
-
+async function loadHome(){
   const user=await loadUser();
 
   if(!user){
-    localStorage.removeItem("tc_user");
-    userId=null;
-    document.getElementById("loginScreen").style.display="flex";
+    showLogin();
     return;
   }
 
-  document.getElementById("loginScreen").style.display="none";
+  document.getElementById("statsArea").innerHTML=
+  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}
+   <div class="bar"><div class="bar-fill xp-fill" style="width:${user.xp}%"></div></div>
+   <div class="bar"><div class="bar-fill energy-fill" style="width:${user.energy}%"></div></div>`;
 
-  const updated=await regenEnergy(user);
-
-  document.getElementById("stats").innerHTML=
-  `Lv ${updated.level} | XP ${updated.xp}/100 | ⚡ ${updated.energy} | 💰 ${Number(updated.yton).toFixed(2)}`;
-
-  updateBars(updated);
-
-  document.getElementById("userinfo").innerHTML=
-  `ID: ${updated.id}<br>
-   Takma Ad: ${updated.nickname}<br>
-   Seviye: ${updated.level}<br>
-   Yton: ${updated.yton}`;
+  document.getElementById("mainArea").innerHTML=
+  `<div class="center">
+      <div class="card">
+        <h2>🏆 Turnuva</h2>
+        Aktif Turnuva: Sokak Hakimiyeti<br>
+        Ödül: 500 Yton
+      </div>
+      <div class="card">
+        <h2>🔥 En İyiler</h2>
+        1. MafyaKing<br>
+        2. Shadow<br>
+        3. BossTR
+      </div>
+   </div>
+   <div class="userpanel">
+      <h3>Kullanıcı</h3>
+      ID: ${user.id}<br>
+      Takma Ad: ${user.nickname}<br>
+      Seviye: ${user.level}
+   </div>`;
 }
 
-render();
-setInterval(render,1000);
+function showLogin(){
+  document.getElementById("statsArea").innerHTML="Kullanıcı yok";
+  document.getElementById("mainArea").innerHTML=
+  `<div class="center">
+     <div class="card">
+       <h2>Oyuna Başla</h2>
+       <input id="nickname" placeholder="Takma ad">
+       <button onclick="createUser()">Başla</button>
+     </div>
+   </div>`;
+}
+
+loadHome();
 </script>
 
 </body>
