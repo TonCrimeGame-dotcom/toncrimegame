@@ -1,192 +1,175 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>TonCrimeGame – Hastane</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TonCrime - Hastane</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#000;color:#fff;font-family:Arial}
-
-/* ===== TOPBAR ===== */
-.topbar{
-position:fixed;top:0;left:0;right:0;height:60px;
-background:#050505;display:flex;align-items:center;
-padding:0 12px;border-bottom:1px solid #222;z-index:1000;
-}
-.menu-btn{cursor:pointer;margin-right:10px}
-.logo{color:#f90;font-weight:bold;min-width:130px}
-.xp-box{flex:1;padding:0 10px}
-.xp-bar{height:8px;background:#222;border-radius:10px;overflow:hidden}
-.xp-fill{height:100%;width:0%;background:linear-gradient(90deg,#f90,#ff0);transition:.4s}
-.energy-bar{height:6px;background:#111;border-radius:10px;margin-top:3px;overflow:hidden}
-.energy-fill{height:100%;width:0%;background:linear-gradient(90deg,#0ff,#0f0);transition:.4s}
-.stats{text-align:right;font-size:13px}
-
-/* ===== MENU ===== */
-.side-menu{
-position:fixed;top:60px;left:-240px;width:240px;height:100%;
-background:#0a0a0a;transition:.3s;z-index:999;
-}
-.side-menu.open{left:0}
-.side-menu a{display:block;padding:14px;color:#fff;text-decoration:none;border-bottom:1px solid #222}
-.side-menu a:hover{background:#111}
-#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:998}
-
-/* ===== CONTENT ===== */
-.content{padding:90px 20px}
-.card{
-background:#111;
-padding:20px;
-border-radius:14px;
-border:1px solid #222;
-text-align:center;
-}
-button{
-width:100%;
-margin-top:15px;
-padding:12px;
-border:none;
-border-radius:10px;
-font-weight:bold;
-cursor:pointer;
-}
-.pay{background:#f90}
-.wait{background:#333;color:#aaa}
+body{margin:0;background:#0e1117;color:white;font-family:Arial;}
+.topbar{background:#111827;padding:18px 40px;border-bottom:1px solid #1f2937;display:flex;justify-content:space-between;align-items:center;}
+.left-top{display:flex;align-items:center;gap:15px;}
+.menu-btn{font-size:22px;cursor:pointer;color:#38bdf8;}
+.logo{font-size:24px;font-weight:bold;color:#38bdf8;}
+.right-stats{width:420px;}
+.bar{width:100%;height:8px;background:#1f2937;border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.bar-fill{height:100%;transition:0.3s;}
+.xp-fill{background:limegreen;}
+.energy-fill{background:#facc15;}
+.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#111827;padding:25px;transition:0.3s;z-index:2000;}
+.sidebar.open{left:0;}
+.overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:1500;}
+.overlay.show{display:block;}
+.main{display:flex;justify-content:center;gap:40px;padding:40px;}
+.center{width:50%;text-align:center;}
+.userpanel{width:25%;background:#111827;padding:20px;border-radius:10px;height:fit-content;border:1px solid #1f2937;}
+.card{background:#1f2937;padding:20px;border-radius:10px;}
+button{width:100%;padding:12px;background:#38bdf8;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:15px;color:black;}
+button:hover{background:#0ea5e9;}
+.result-box{position:fixed;bottom:30px;right:30px;background:#1f2937;padding:20px;border-radius:10px;border-left:5px solid #38bdf8;display:none;z-index:3000;min-width:250px;}
+.result-box.success{border-color:limegreen;}
+.result-box.fail{border-color:red;}
+.timer{font-size:22px;margin-top:15px;color:#facc15;}
 </style>
 </head>
-
 <body>
 
+<div class="sidebar" id="sidebar">
+  <h3 style="color:#38bdf8">Menü</h3>
+  <p onclick="location.href='index.html'">🏠 Ana Sayfa</p>
+  <p onclick="location.href='missions.html'">🎯 Görevler</p>
+  <p onclick="location.href='nightclub.html'">🎵 Gece Kulübü</p>
+  <p onclick="location.href='coffeeshop.html'">☕ Coffee Shop</p>
+  <p onclick="location.href='weapons.html'">🔫 Silah Kaçakçısı</p>
+  <p onclick="location.href='hospital.html'">🏥 Hastane</p>
+</div>
+<div class="overlay" id="overlay"></div>
+
 <div class="topbar">
-<div class="menu-btn" onclick="toggleMenu()">☰</div>
-<div class="logo">🔥 Yeraltı Şehri</div>
-
-<div class="xp-box">
-<div style="font-size:11px">Level <span id="lvl"></span></div>
-<div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+  <div class="left-top">
+    <div class="menu-btn" onclick="openMenu()">☰</div>
+    <div class="logo">Hastane</div>
+  </div>
+  <div class="right-stats">
+    <div id="stats"></div>
+    <div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
+    <div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
+  </div>
 </div>
 
-<div class="stats">
-⚡ <span id="energy"></span>
-<div class="energy-bar"><div class="energy-fill" id="energyFill"></div></div>
-💰 <span id="yton"></span>
-</div>
-</div>
-
-<div id="overlay" onclick="closeMenu()"></div>
-<div class="side-menu" id="menu">
-<a href="index.html">🏠 Ana Menü</a>
-<a href="missions.html">🧾 Görevler</a>
-<a href="pvp.html">⚔️ PvP</a>
-<a href="nightlife.html">🌃 Gece Hayatı</a>
-<a href="weapons.html">🔫 Silah Tüccarı</a>
-<a href="hospital.html">🏥 Hastane</a>
+<div class="main">
+  <div class="center">
+    <div class="card">
+      <h2>🏥 Tedavi Alanı</h2>
+      <div id="hospitalStatus"></div>
+      <div class="timer" id="timer"></div>
+      <div id="actionArea"></div>
+    </div>
+  </div>
+  <div class="userpanel" id="userinfo"></div>
 </div>
 
-<div class="content">
-<div class="card" id="hospitalBox"></div>
-</div>
+<div class="result-box" id="resultBox"></div>
 
 <script>
+const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-/* ===== CORE PLAYER ===== */
+const userId=localStorage.getItem("tc_user");
 const MAX_ENERGY=100;
-const ENERGY_REGEN=60;
+const HEAL_COST=20; // Yton
 
-function getPlayer(){return JSON.parse(localStorage.getItem("player"))}
-function setPlayer(p){localStorage.setItem("player",JSON.stringify(p))}
+function openMenu(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("overlay").classList.add("show");
+}
+document.getElementById("overlay").onclick=()=>{
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+};
 
-let player=getPlayer();
-if(!player){
-player={
-level:1,xp:0,xpNext:100,
-energy:80,yton:120,premium:false,
-hospitalUntil:0,lastEnergyTick:Date.now(),
-missionStats:{success:0,fail:0},
-missionHistory:[],
-missionRepeat:{}
-}
-setPlayer(player)
-}
-
-/* ===== ENERGY REGEN ===== */
-function regen(){
-let p=getPlayer()
-if(p.energy>=MAX_ENERGY)return
-let now=Date.now()
-let sec=Math.floor((now-p.lastEnergyTick)/1000)
-if(sec>=ENERGY_REGEN){
-let gain=Math.floor(sec/ENERGY_REGEN)
-p.energy=Math.min(MAX_ENERGY,p.energy+gain)
-p.lastEnergyTick+=gain*ENERGY_REGEN*1000
-setPlayer(p)
-}
+function showResult(text,type){
+  const box=document.getElementById("resultBox");
+  box.className="result-box "+type;
+  box.innerHTML=text;
+  box.style.display="block";
+  setTimeout(()=>box.style.display="none",3000);
 }
 
-/* ===== UI ===== */
-function updateUI(){
-let p=getPlayer()
-document.getElementById("lvl").innerText=p.level
-document.getElementById("energy").innerText=p.energy
-document.getElementById("yton").innerText=p.yton
-document.getElementById("xpFill").style.width=(p.xp/p.xpNext*100)+"%"
-document.getElementById("energyFill").style.width=(p.energy/100*100)+"%"
+async function loadUser(){
+  const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
+  return data;
 }
 
-setInterval(()=>{regen();updateUI();renderHospital()},1000)
-updateUI()
-
-/* ===== MENU ===== */
-function toggleMenu(){
-document.getElementById("menu").classList.toggle("open")
-document.getElementById("overlay").style.display="block"
-}
-function closeMenu(){
-document.getElementById("menu").classList.remove("open")
-document.getElementById("overlay").style.display="none"
+async function healFree(){
+  await db.from("users").update({
+    energy:100,
+    hospital_until:null
+  }).eq("id",userId);
+  showResult("Ücretsiz iyileştin!","success");
+  render();
 }
 
-/* ===== HOSPITAL ===== */
-function renderHospital(){
-let p=getPlayer()
-let box=document.getElementById("hospitalBox")
+async function healPaid(){
+  let user=await loadUser();
+  if(user.yton < HEAL_COST){
+    showResult("Yetersiz Yton!","fail");
+    return;
+  }
 
-if(Date.now()<p.hospitalUntil){
+  await db.from("users").update({
+    energy:100,
+    hospital_until:null,
+    yton:user.yton - HEAL_COST
+  }).eq("id",userId);
 
-let remaining=Math.floor((p.hospitalUntil-Date.now())/1000)
-
-box.innerHTML=`
-<h2>🏥 Hastanedesin</h2>
-<p>Kalan süre: <b>${remaining} saniye</b></p>
-<button class="pay" onclick="payExit()">10 YTon Öde ve Çık</button>
-<button class="wait" disabled>Beklemek zorundasın</button>
-`
-
-}else{
-box.innerHTML=`
-<h2>💚 Sağlıklısın</h2>
-<p>Şu an hastanede değilsin.</p>
-`
-}
+  showResult("Anında iyileştin!","success");
+  render();
 }
 
-function payExit(){
-let p=getPlayer()
-if(p.yton<10){
-alert("Yeterli YTon yok")
-return
-}
-p.yton-=10
-p.hospitalUntil=0
-setPlayer(p)
-renderHospital()
-updateUI()
+async function render(){
+  const user=await loadUser();
+  if(!user) return;
+
+  document.getElementById("stats").innerHTML=
+  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
+
+  document.getElementById("xpBar").style.width=(user.xp/100*100)+"%";
+  document.getElementById("energyBar").style.width=(user.energy/100*100)+"%";
+
+  document.getElementById("userinfo").innerHTML=
+  `ID: ${user.id}<br>
+   Takma Ad: ${user.nickname}<br>
+   Seviye: ${user.level}<br>
+   Yton: ${user.yton}`;
+
+  const now=Date.now();
+  const until=user.hospital_until;
+
+  if(!until || now >= until){
+    document.getElementById("hospitalStatus").innerHTML="Durum: Sağlıklısın";
+    document.getElementById("timer").innerHTML="";
+    document.getElementById("actionArea").innerHTML=
+      `<button onclick="healFree()">Enerjiyi Full Yap</button>`;
+  }else{
+    document.getElementById("hospitalStatus").innerHTML="Durum: Hastanedesin";
+
+    const diff=until-now;
+    const h=Math.floor(diff/3600000);
+    const m=Math.floor((diff%3600000)/60000);
+    const s=Math.floor((diff%60000)/1000);
+
+    document.getElementById("timer").innerHTML=
+      h+"s "+m+"d "+s+"sn";
+
+    document.getElementById("actionArea").innerHTML=
+      `<button onclick="healPaid()">Anında İyileş (${HEAL_COST} Yton)</button>`;
+  }
 }
 
-renderHospital()
-
+render();
+setInterval(render,1000);
 </script>
 
 </body>
