@@ -2,217 +2,65 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TonCrime</title>
+<title>TonCrime - Görevler</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  margin:0;
-  background:#0e0e0e;
-  color:white;
-  font-family:Arial;
-}
-
-/* ===== TOPBAR ===== */
-.topbar{
-  background:#111;
-  padding:18px 40px;
-  border-bottom:1px solid #222;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.left-top{
-  display:flex;
-  align-items:center;
-  gap:15px;
-}
-
-.menu-btn{
-  font-size:22px;
-  cursor:pointer;
-}
-
-.logo{
-  font-size:24px;
-  font-weight:bold;
-  color:gold;
-}
-
-.right-stats{
-  width:420px;
-}
-
-.stat-text{
-  text-align:right;
-  margin-bottom:6px;
-}
-
-.bar-label{
-  font-size:12px;
-  text-align:right;
-  margin-bottom:3px;
-}
-
-.bar{
-  width:100%;
-  height:8px;
-  background:#333;
-  border-radius:5px;
-  overflow:hidden;
-  margin-bottom:6px;
-}
-
-.bar-fill{
-  height:100%;
-  transition:0.3s;
-}
-
-.xp-fill{ background:limegreen; }
-.energy-fill{ background:gold; }
-
-.energy-timer{
-  font-size:11px;
-  text-align:right;
-  color:#aaa;
-}
-
-/* ===== SIDEBAR ===== */
-.sidebar{
-  position:fixed;
-  top:0;
-  left:-260px;
-  width:250px;
-  height:100%;
-  background:#151515;
-  padding:25px;
-  transition:0.3s;
-  z-index:2000;
-}
-
-.sidebar.open{ left:0; }
-
-.overlay{
-  position:fixed;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.6);
-  display:none;
-  z-index:1500;
-}
-
-.overlay.show{ display:block; }
-
-/* ===== LAYOUT ===== */
-.main{
-  display:flex;
-  justify-content:center;
-  gap:40px;
-  padding:40px;
-}
-
-.missions{ width:55%; }
-
-.userpanel{
-  width:25%;
-  background:#151515;
-  padding:20px;
-  border-radius:10px;
-  height:fit-content;
-}
-
-.card{
-  background:#1b1b1b;
-  padding:18px;
-  margin-bottom:25px;
-  border-radius:10px;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  background:gold;
-  border:none;
-  font-weight:bold;
-  cursor:pointer;
-  border-radius:6px;
-  margin-top:10px;
-}
-
-button:hover{ opacity:0.9; }
-
-/* ===== RESULT POPUP ===== */
-.result-box{
-  position:fixed;
-  bottom:30px;
-  right:30px;
-  background:#1b1b1b;
-  padding:20px;
-  border-radius:10px;
-  border-left:5px solid gold;
-  display:none;
-  z-index:3000;
-  min-width:250px;
-}
-
-.result-box.success{ border-color:limegreen; }
-.result-box.fail{ border-color:red; }
-
-@media(max-width:1100px){
-  .main{ flex-direction:column; align-items:center; }
-  .missions,.userpanel{ width:90%; }
-}
+body{margin:0;background:#0e0e0e;color:white;font-family:Arial;}
+.topbar{background:#111;padding:18px 40px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;}
+.left-top{display:flex;align-items:center;gap:15px;}
+.menu-btn{font-size:22px;cursor:pointer;}
+.logo{font-size:24px;font-weight:bold;color:gold;}
+.right-stats{width:420px;}
+.bar{width:100%;height:8px;background:#333;border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.bar-fill{height:100%;transition:0.3s;}
+.xp-fill{background:limegreen;}
+.energy-fill{background:gold;}
+.energy-timer{font-size:11px;color:#aaa;text-align:right;}
+.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#151515;padding:25px;transition:0.3s;z-index:2000;}
+.sidebar.open{left:0;}
+.overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:1500;}
+.overlay.show{display:block;}
+.main{display:flex;justify-content:center;gap:40px;padding:40px;}
+.missions{width:55%;}
+.userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;height:fit-content;}
+.card{background:#1b1b1b;padding:18px;margin-bottom:25px;border-radius:10px;}
+button{width:100%;padding:12px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:10px;}
+.result-box{position:fixed;bottom:30px;right:30px;background:#1b1b1b;padding:20px;border-radius:10px;border-left:5px solid gold;display:none;z-index:3000;min-width:250px;}
+.result-box.success{border-color:limegreen;}
+.result-box.fail{border-color:red;}
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
-  <h3 style="color:gold">Menü</h3>
-
-  <p onclick="window.location.href='index.html'">🏠 Ana Sayfa</p>
-
-  <p onclick="window.location.href='missions.html'">🎯 Görevler</p>
-
-  <p onclick="window.location.href='nightclub.html'">🎵 Gece Kulübü</p>
-
-  <p onclick="window.location.href='coffeeshop.html'">☕ Coffee Shop</p>
-
-  <p onclick="window.location.href='mekan.html'">🏢 Mekan</p>
-
-  <p onclick="window.location.href='weapons.html'">🔫 Silah Kaçakçısı</p>
-
-  <p onclick="window.location.href='hospital.html'">🏥 Hastane</p>
+<h3 style="color:gold">Menü</h3>
+<p onclick="go('index.html')">🏠 Ana Sayfa</p>
+<p onclick="go('missions.html')">🎯 Görevler</p>
+<p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
+<p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
+<p onclick="go('mekan.html')">🏢 Mekan</p>
+<p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
+<p onclick="go('hospital.html')">🏥 Hastane</p>
 </div>
 <div class="overlay" id="overlay"></div>
 
-<!-- TOPBAR -->
 <div class="topbar">
-  <div class="left-top">
-    <div class="menu-btn" onclick="openMenu()">☰</div>
-    <div class="logo">TonCrime</div>
-  </div>
-
-  <div class="right-stats">
-    <div class="stat-text" id="stats"></div>
-
-    <div class="bar-label">XP</div>
-    <div class="bar">
-      <div class="bar-fill xp-fill" id="xpBar"></div>
-    </div>
-
-    <div class="bar-label">Enerji</div>
-    <div class="bar">
-      <div class="bar-fill energy-fill" id="energyBar"></div>
-    </div>
-    <div class="energy-timer" id="energyTimer"></div>
-  </div>
+<div class="left-top">
+<div class="menu-btn" onclick="openMenu()">☰</div>
+<div class="logo">TonCrime</div>
+</div>
+<div class="right-stats">
+<div id="stats"></div>
+<div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
+<div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
+<div class="energy-timer" id="energyTimer"></div>
+</div>
 </div>
 
 <div class="main">
-  <div class="missions" id="missions"></div>
-  <div class="userpanel" id="userinfo"></div>
+<div class="missions" id="missions"></div>
+<div class="userpanel" id="userinfo"></div>
 </div>
 
 <div class="result-box" id="resultBox"></div>
@@ -221,147 +69,159 @@ button:hover{ opacity:0.9; }
 const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
 const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const userId="591676206";
 
 const MAX_ENERGY=100;
 const MAX_XP=100;
 const ENERGY_INTERVAL=5*60*1000;
 
+/* ===== USER LOAD ===== */
+async function loadUser(){
+const id=localStorage.getItem("tc_user");
+if(!id){window.location.href="index.html";return null;}
+
+const {data}=await db.from("users")
+.select("*")
+.eq("id",id)
+.maybeSingle();
+
+if(!data){window.location.href="index.html";return null;}
+return data;
+}
+
+/* ===== ENERGY REGEN ===== */
+async function regenEnergy(user){
+const now=Date.now();
+if(!user.last_energy_tick){
+await db.from("users").update({last_energy_tick:now}).eq("id",user.id);
+user.last_energy_tick=now;
+}
+const diff=now-user.last_energy_tick;
+const add=Math.floor(diff/ENERGY_INTERVAL);
+
+if(add>0 && user.energy<MAX_ENERGY){
+let newEnergy=Math.min(MAX_ENERGY,user.energy+add);
+let newTick=user.last_energy_tick+(add*ENERGY_INTERVAL);
+
+await db.from("users").update({
+energy:newEnergy,
+last_energy_tick:newTick
+}).eq("id",user.id);
+
+user.energy=newEnergy;
+user.last_energy_tick=newTick;
+}
+return user;
+}
+
+/* ===== UI UPDATE ===== */
+function updateBars(user){
+document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
+document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
+
+const remaining=ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
+if(user.energy<MAX_ENERGY){
+const sec=Math.floor(remaining/1000)%60;
+const min=Math.floor(remaining/60000);
+document.getElementById("energyTimer").innerText="Sonraki enerji: "+min+"m "+sec+"s";
+}else{
+document.getElementById("energyTimer").innerText="Enerji Full";
+}
+}
+
+/* ===== POPUP ===== */
+function showResult(text,type){
+const box=document.getElementById("resultBox");
+box.className="result-box "+type;
+box.innerHTML=text;
+box.style.display="block";
+setTimeout(()=>box.style.display="none",3000);
+}
+
+/* ===== RENDER ===== */
+async function render(){
+let user=await loadUser();
+if(!user) return;
+
+user=await regenEnergy(user);
+
+document.getElementById("stats").innerHTML=
+`Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
+
+updateBars(user);
+
+document.getElementById("userinfo").innerHTML=
+`ID: ${user.id}<br>
+Takma Ad: ${user.nickname}<br>
+Toplam Görev: ${user.total_missions||0}<br>
+Kazanma: ${user.wins||0}<br>
+Kaybetme: ${user.losses||0}`;
+
+const {data:missions}=await db.from("missions").select("*");
+let html="";
+missions.forEach(m=>{
+html+=`
+<div class="card">
+<b>${m.name}</b><br><br>
+Enerji: ${m.energy_cost}<br>
+XP: ${m.xp_reward}<br>
+Kazanç: ${m.yton_reward} Yton<br>
+Başarı: %${m.success_rate}
+<button onclick="startMission(${m.id})">Başlat</button>
+</div>`;
+});
+document.getElementById("missions").innerHTML=html;
+}
+
+/* ===== START ===== */
+async function startMission(id){
+let user=await loadUser();
+if(!user) return;
+
+user=await regenEnergy(user);
+
+const {data:mission}=await db.from("missions").select("*").eq("id",id).single();
+
+if(user.energy<mission.energy_cost){
+showResult("Yetersiz enerji!","fail");
+return;
+}
+
+let energy=user.energy-mission.energy_cost;
+let xp=user.xp;
+let yton=Number(user.yton);
+let level=user.level;
+let total=(user.total_missions||0)+1;
+let wins=user.wins||0;
+let losses=user.losses||0;
+
+if(Math.random()*100<mission.success_rate){
+xp+=mission.xp_reward;
+yton+=mission.yton_reward;
+wins++;
+if(xp>=100){level++;xp-=100;}
+showResult(`<b>Başarılı!</b><br>+${mission.xp_reward} XP<br>+${mission.yton_reward} Yton`,"success");
+}else{
+losses++;
+showResult(`<b>Başarısız!</b><br>-${mission.energy_cost} Enerji`,"fail");
+}
+
+await db.from("users").update({
+energy,xp,yton,level,total_missions:total,wins,losses
+}).eq("id",user.id);
+
+render();
+}
+
 /* MENU */
 function openMenu(){
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("overlay").classList.add("show");
+document.getElementById("sidebar").classList.add("open");
+document.getElementById("overlay").classList.add("show");
 }
 document.getElementById("overlay").onclick=()=>{
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
-};
-
-/* POPUP */
-function showResult(text,type){
-  const box=document.getElementById("resultBox");
-  box.className="result-box "+type;
-  box.innerHTML=text;
-  box.style.display="block";
-  setTimeout(()=>box.style.display="none",3000);
+document.getElementById("sidebar").classList.remove("open");
+document.getElementById("overlay").classList.remove("show");
 }
-
-async function loadUser(){
-  const {data}=await db.from("users").select("*").eq("id",userId).single();
-  return data;
-}
-
-async function regenEnergy(user){
-  const now=Date.now();
-  if(!user.last_energy_tick){
-    await db.from("users").update({last_energy_tick:now}).eq("id",userId);
-    user.last_energy_tick=now;
-  }
-
-  const diff=now-user.last_energy_tick;
-  const add=Math.floor(diff/ENERGY_INTERVAL);
-
-  if(add>0 && user.energy<MAX_ENERGY){
-    let newEnergy=Math.min(MAX_ENERGY,user.energy+add);
-    let newTick=user.last_energy_tick+(add*ENERGY_INTERVAL);
-
-    await db.from("users").update({
-      energy:newEnergy,
-      last_energy_tick:newTick
-    }).eq("id",userId);
-
-    user.energy=newEnergy;
-    user.last_energy_tick=newTick;
-  }
-
-  return user;
-}
-
-function updateBars(user){
-  document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
-  document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
-
-  const remaining=ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
-
-  if(user.energy<MAX_ENERGY){
-    const sec=Math.floor(remaining/1000)%60;
-    const min=Math.floor(remaining/60000);
-    document.getElementById("energyTimer").innerText=
-      "Sonraki enerji: "+min+"m "+sec+"s";
-  }else{
-    document.getElementById("energyTimer").innerText="Enerji Full";
-  }
-}
-
-async function render(){
-  let user=await loadUser();
-  user=await regenEnergy(user);
-
-  document.getElementById("stats").innerHTML=
-  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${Number(user.yton).toFixed(2)}`;
-
-  updateBars(user);
-
-  document.getElementById("userinfo").innerHTML=
-  `ID: ${user.id}<br>
-   Takma Ad: ${user.nickname}<br>
-   Toplam Görev: ${user.total_missions||0}<br>
-   Kazanma: ${user.wins||0}<br>
-   Kaybetme: ${user.losses||0}`;
-
-  const {data:missions}=await db.from("missions").select("*");
-  let html="";
-  missions.forEach(m=>{
-    html+=`
-    <div class="card">
-      <b>${m.name}</b><br><br>
-      Enerji: ${m.energy_cost}<br>
-      XP: ${m.xp_reward}<br>
-      Kazanç: ${m.yton_reward} Yton<br>
-      Başarı: %${m.success_rate}
-      <button onclick="startMission(${m.id})">Başlat</button>
-    </div>
-    `;
-  });
-  document.getElementById("missions").innerHTML=html;
-}
-
-async function startMission(id){
-  let user=await loadUser();
-  user=await regenEnergy(user);
-
-  const {data:mission}=await db.from("missions").select("*").eq("id",id).single();
-
-  if(user.energy<mission.energy_cost){
-    showResult("Yetersiz enerji!","fail");
-    return;
-  }
-
-  let energy=user.energy-mission.energy_cost;
-  let xp=user.xp;
-  let yton=Number(user.yton);
-  let level=user.level;
-  let total=(user.total_missions||0)+1;
-  let wins=user.wins||0;
-  let losses=user.losses||0;
-
-  if(Math.random()*100<mission.success_rate){
-    xp+=mission.xp_reward;
-    yton+=mission.yton_reward;
-    wins++;
-    showResult(`<b>Başarılı!</b><br>+${mission.xp_reward} XP<br>+${mission.yton_reward} Yton`,"success");
-    if(xp>=100){level++;xp-=100;}
-  }else{
-    losses++;
-    showResult(`<b>Başarısız!</b><br>-${mission.energy_cost} Enerji`,"fail");
-  }
-
-  await db.from("users").update({
-    energy,xp,yton,level,total_missions:total,wins,losses
-  }).eq("id",userId);
-
-  render();
-}
+function go(p){window.location.href=p;}
 
 render();
 setInterval(render,1000);
