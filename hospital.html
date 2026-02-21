@@ -3,181 +3,186 @@
 <head>
 <meta charset="UTF-8">
 <title>TonCrime - Hastane</title>
+
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="game-core.js"></script>
 
 <style>
-body{margin:0;background:#0e1117;color:white;font-family:Arial;}
-.topbar{background:#111827;padding:18px 40px;border-bottom:1px solid #1f2937;display:flex;justify-content:space-between;align-items:center;}
-.left-top{display:flex;align-items:center;gap:15px;}
-.menu-btn{font-size:22px;cursor:pointer;color:#38bdf8;}
-.logo{font-size:24px;font-weight:bold;color:#38bdf8;}
-.right-stats{width:420px;}
-.bar{width:100%;height:8px;background:#1f2937;border-radius:5px;overflow:hidden;margin-bottom:6px;}
-.bar-fill{height:100%;transition:0.3s;}
-.xp-fill{background:limegreen;}
-.energy-fill{background:#facc15;}
-.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#111827;padding:25px;transition:0.3s;z-index:2000;}
-.sidebar.open{left:0;}
-.overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:1500;}
-.overlay.show{display:block;}
-.main{display:flex;justify-content:center;gap:40px;padding:40px;}
-.center{width:50%;text-align:center;}
-.userpanel{width:25%;background:#111827;padding:20px;border-radius:10px;height:fit-content;border:1px solid #1f2937;}
-.card{background:#1f2937;padding:20px;border-radius:10px;}
-button{width:100%;padding:12px;background:#38bdf8;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:15px;color:black;}
-button:hover{background:#0ea5e9;}
-.result-box{position:fixed;bottom:30px;right:30px;background:#1f2937;padding:20px;border-radius:10px;border-left:5px solid #38bdf8;display:none;z-index:3000;min-width:250px;}
-.result-box.success{border-color:limegreen;}
-.result-box.fail{border-color:red;}
-.timer{font-size:22px;margin-top:15px;color:#facc15;}
+body{
+  margin:0;
+  background:#0e1a1f;
+  color:white;
+  font-family:Arial;
+}
+
+/* TOPBAR */
+.topbar{
+  background:#12303a;
+  padding:18px 40px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.right-stats{ width:420px; }
+
+.bar{
+  width:100%;
+  height:8px;
+  background:#333;
+  border-radius:5px;
+  overflow:hidden;
+  margin-bottom:6px;
+}
+
+.fill{ height:100%; }
+.xp{ background:#00bfff; }
+.energy{ background:#00ffcc; }
+
+/* MAIN */
+.main{
+  padding:60px;
+  display:flex;
+  justify-content:center;
+}
+
+.card{
+  width:420px;
+  background:#12303a;
+  padding:30px;
+  border-radius:12px;
+  text-align:center;
+  border:1px solid #1e5566;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  margin-top:15px;
+  background:#00bfff;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{ opacity:0.85; }
+
+.timer{
+  margin-top:15px;
+  font-size:14px;
+  color:#ccc;
+}
 </style>
 </head>
 <body>
 
-<
-<div class="overlay" id="overlay"></div>
-
 <div class="topbar">
-  <div class="left-top">
-    <div class="menu-btn" onclick="openMenu()">☰</div>
-    <div class="logo">Hastane</div>
-  </div>
+  <div><b>🏥 Hastane</b></div>
+
   <div class="right-stats">
     <div id="stats"></div>
-    <div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
-    <div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
-  </div>
-</div>
-<div class="sidebar" id="sidebar">
-  <h3 style="color:gold">Menü</h3>
 
-  <p onclick="window.location.href='index.html'">🏠 Ana Sayfa</p>
+    <div class="bar">
+      <div id="xpBar" class="fill xp"></div>
+    </div>
 
-  <p onclick="window.location.href='missions.html'">🎯 Görevler</p>
-
-  <p onclick="window.location.href='nightclub.html'">🎵 Gece Kulübü</p>
-
-  <p onclick="window.location.href='coffeeshop.html'">☕ Coffee Shop</p>
-
-  <p onclick="window.location.href='mekan.html'">🏢 Mekan</p>
-
-  <p onclick="window.location.href='weapons.html'">🔫 Silah Kaçakçısı</p>
-
-  <p onclick="window.location.href='hospital.html'">🏥 Hastane</p>
-</div>
-<div class="main">
-  <div class="center">
-    <div class="card">
-      <h2>🏥 Tedavi Alanı</h2>
-      <div id="hospitalStatus"></div>
-      <div class="timer" id="timer"></div>
-      <div id="actionArea"></div>
+    <div class="bar">
+      <div id="energyBar" class="fill energy"></div>
     </div>
   </div>
-  <div class="userpanel" id="userinfo"></div>
 </div>
 
-<div class="result-box" id="resultBox"></div>
+<div class="main">
+  <div class="card">
+    <h2>Enerji Tedavisi</h2>
+    1 Enerji = 2 Yton<br>
+
+    <button onclick="buyEnergy(5)">5 Enerji (10 Yton)</button>
+    <button onclick="buyEnergy(10)">10 Enerji (20 Yton)</button>
+    <button onclick="buyEnergy(20)">20 Enerji (40 Yton)</button>
+
+    <div class="timer" id="hospitalTimer"></div>
+  </div>
+</div>
 
 <script>
-const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const userId=localStorage.getItem("tc_user");
-const MAX_ENERGY=100;
-const HEAL_COST=20; // Yton
+const HOSPITAL_WAIT = 2 * 60 * 60 * 1000; // 2 saat
 
-function openMenu(){
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("overlay").classList.add("show");
-}
-document.getElementById("overlay").onclick=()=>{
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
-};
+/* ===== ENERJI SATIN AL ===== */
+async function buyEnergy(amount){
 
-function showResult(text,type){
-  const box=document.getElementById("resultBox");
-  box.className="result-box "+type;
-  box.innerHTML=text;
-  box.style.display="block";
-  setTimeout(()=>box.style.display="none",3000);
-}
+  let user = await loadUser();
+  if(!user) return;
 
-async function loadUser(){
-  const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
-  return data;
-}
+  user = await regenEnergy(user);
 
-async function healFree(){
-  await db.from("users").update({
-    energy:100,
-    hospital_until:null
-  }).eq("id",userId);
-  showResult("Ücretsiz iyileştin!","success");
-  render();
-}
+  const cost = amount * 2;
 
-async function healPaid(){
-  let user=await loadUser();
-  if(user.yton < HEAL_COST){
-    showResult("Yetersiz Yton!","fail");
+  if(user.yton < cost){
+    alert("Yetersiz Yton!");
     return;
   }
 
-  await db.from("users").update({
-    energy:100,
-    hospital_until:null,
-    yton:user.yton - HEAL_COST
-  }).eq("id",userId);
+  await updateUser({
+    yton: -cost,
+    energy: amount
+  });
 
-  showResult("Anında iyileştin!","success");
+  alert(amount + " enerji satın alındı!");
+
   render();
 }
 
-async function render(){
-  const user=await loadUser();
+/* ===== HASTANE BEKLEME SİSTEMİ ===== */
+async function checkHospital(){
+
+  let user = await loadUser();
   if(!user) return;
 
-  document.getElementById("stats").innerHTML=
-  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
-
-  document.getElementById("xpBar").style.width=(user.xp/100*100)+"%";
-  document.getElementById("energyBar").style.width=(user.energy/100*100)+"%";
-
-  document.getElementById("userinfo").innerHTML=
-  `ID: ${user.id}<br>
-   Takma Ad: ${user.nickname}<br>
-   Seviye: ${user.level}<br>
-   Yton: ${user.yton}`;
-
-  const now=Date.now();
-  const until=user.hospital_until;
-
-  if(!until || now >= until){
-    document.getElementById("hospitalStatus").innerHTML="Durum: Sağlıklısın";
-    document.getElementById("timer").innerHTML="";
-    document.getElementById("actionArea").innerHTML=
-      `<button onclick="healFree()">Enerjiyi Full Yap</button>`;
-  }else{
-    document.getElementById("hospitalStatus").innerHTML="Durum: Hastanedesin";
-
-    const diff=until-now;
-    const h=Math.floor(diff/3600000);
-    const m=Math.floor((diff%3600000)/60000);
-    const s=Math.floor((diff%60000)/1000);
-
-    document.getElementById("timer").innerHTML=
-      h+"s "+m+"d "+s+"sn";
-
-    document.getElementById("actionArea").innerHTML=
-      `<button onclick="healPaid()">Anında İyileş (${HEAL_COST} Yton)</button>`;
+  if(!user.hospital_until){
+    document.getElementById("hospitalTimer").innerText = "";
+    return;
   }
+
+  let now = Date.now();
+
+  if(now >= user.hospital_until){
+
+    await db.from("users").update({
+      hospital_until: null
+    }).eq("id", user.id);
+
+    document.getElementById("hospitalTimer").innerText =
+      "İyileştin! Tekrar oyundasın.";
+    return;
+  }
+
+  let remaining = user.hospital_until - now;
+  let hours = Math.floor(remaining / 3600000);
+  let minutes = Math.floor((remaining % 3600000) / 60000);
+
+  document.getElementById("hospitalTimer").innerText =
+    "İyileşme süresi: " + hours + "s " + minutes + "dk";
+}
+
+/* ===== RENDER ===== */
+async function render(){
+
+  let user = await loadUser();
+  if(!user) return;
+
+  user = await regenEnergy(user);
+
+  renderStats(user);
+
+  checkHospital();
 }
 
 render();
-setInterval(render,1000);
+setInterval(render,3000);
+
 </script>
 
 </body>
