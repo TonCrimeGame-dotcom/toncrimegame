@@ -7,134 +7,26 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-margin:0;
-background:#0e0e0e;
-color:white;
-font-family:Arial;
-}
-
-/* TOPBAR */
-.topbar{
-background:#111;
-padding:15px 25px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:1px solid #222;
-}
-
-.logo{
-color:gold;
-font-size:22px;
-font-weight:bold;
-}
-
-.stats{
-font-size:14px;
-}
-
-/* MENU */
-.sidebar{
-position:fixed;
-left:-240px;
-top:0;
-width:240px;
-height:100%;
-background:#151515;
-padding:20px;
-transition:.3s;
-z-index:1000;
-}
-
-.sidebar.open{left:0;}
-
-.overlay{
-position:fixed;
-width:100%;
-height:100%;
-background:rgba(0,0,0,.6);
-display:none;
-}
-
-.overlay.show{display:block;}
-
-.menuItem{
-padding:10px;
-cursor:pointer;
-border-bottom:1px solid #222;
-}
-
-.menuItem:hover{background:#222;}
-
-/* LAYOUT */
-.main{
-display:flex;
-gap:30px;
-padding:30px;
-}
-
-.center{width:55%;}
-.right{width:25%;background:#151515;padding:20px;border-radius:10px;}
-
-.card{
-background:#1b1b1b;
-padding:20px;
-margin-bottom:20px;
-border-radius:10px;
-}
-
-/* CHAT */
-.chatBox{
-height:250px;
-overflow-y:auto;
-background:#111;
-padding:10px;
-margin-bottom:10px;
-}
-
-input{
-width:100%;
-padding:10px;
-background:#222;
-border:none;
-color:white;
-}
+body{margin:0;background:#0e0e0e;color:white;font-family:Arial}
+.topbar{background:#111;padding:15px 25px;display:flex;justify-content:space-between;border-bottom:1px solid #222}
+.logo{color:gold;font-weight:bold;font-size:22px}
+.main{display:flex;gap:25px;padding:25px}
+.card{background:#1b1b1b;padding:20px;border-radius:10px;margin-bottom:20px}
+.chatBox{height:260px;background:#111;overflow:auto;padding:10px}
+input{width:100%;padding:10px;background:#222;border:none;color:white}
 </style>
 </head>
 
 <body>
 
-<!-- MENU -->
-<div class="sidebar" id="menu">
-<div class="menuItem" onclick="go('index.html')">🏠 Şehir</div>
-<div class="menuItem" onclick="go('missions.html')">🎯 Görevler</div>
-<div class="menuItem" onclick="go('pvp.html')">⚔ PvP</div>
-<div class="menuItem" onclick="go('coffeeshop.html')">☕ Coffee</div>
-<div class="menuItem" onclick="go('nightclub.html')">🍾 Gece Kulübü</div>
-<div class="menuItem" onclick="go('brothel.html')">❤️ Genel Ev</div>
-<div class="menuItem" onclick="go('weapons.html')">🔫 Silahçı</div>
-<div class="menuItem" onclick="go('hospital.html')">🏥 Hastane</div>
-</div>
-
-<div class="overlay" id="overlay"></div>
-
-<!-- TOPBAR -->
 <div class="topbar">
-<div>
-<span onclick="toggleMenu()" style="cursor:pointer">☰</span>
-<span class="logo">TonCrime</span>
+<div class="logo">TonCrime</div>
+<div id="stats">yükleniyor...</div>
 </div>
 
-<div class="stats" id="stats">
-yükleniyor...
-</div>
-</div>
-
-<!-- CONTENT -->
 <div class="main">
 
-<div class="center">
+<div style="width:60%">
 
 <div class="card">
 <h3>🏆 Aktif Turnuva</h3>
@@ -143,17 +35,14 @@ yükleniyor...
 
 <div class="card">
 <h3>💬 Clan Chat</h3>
-
 <div id="chatBox" class="chatBox"></div>
-
-<input id="chatInput"
-placeholder="Mesaj..."
+<input id="chatInput" placeholder="Mesaj..."
 onkeydown="if(event.key==='Enter')sendChat()">
 </div>
 
 </div>
 
-<div class="right">
+<div style="width:25%">
 
 <div class="card">
 <h3>👤 Oyuncu</h3>
@@ -170,10 +59,9 @@ onkeydown="if(event.key==='Enter')sendChat()">
 </div>
 
 <script>
+/* ================= GLOBAL CORE ================= */
 
-/* ================= CONFIG ================= */
-
-const CONFIG={
+window.CONFIG={
 SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
 SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
 USER_ID:"591676206",
@@ -182,11 +70,24 @@ MAX_ENERGY:100,
 ENERGY_INTERVAL:300000
 };
 
+/* GLOBAL GAME MEMORY */
+window.GAME={
+user:null,
+pvpSubscribed:false,
+loading:false
+};
+
+/* SUPABASE GLOBAL */
+window.db=window.supabase.createClient(
+CONFIG.SUPABASE_URL,
+CONFIG.SUPABASE_KEY
+);
 </script>
 
-<!-- ===== ENGINE LOAD ORDER ===== -->
-
+<!-- ✅ ENGINE FIRST -->
 <script src="engine.js"></script>
+
+<!-- ✅ MODULES AFTER ENGINE -->
 <script src="presence.engine.js"></script>
 <script src="chat.engine.js"></script>
 <script src="clan.engine.js"></script>
@@ -194,22 +95,11 @@ ENERGY_INTERVAL:300000
 <script src="event.engine.js"></script>
 
 <script>
-
-/* MENU */
-function toggleMenu(){
-menu.classList.toggle("open");
-overlay.classList.toggle("show");
-}
-
-overlay.onclick=toggleMenu;
-
-function go(p){location.href=p;}
-
-/* INIT SAFE ZONE CHAT */
+/* SAFE INIT */
 document.addEventListener("DOMContentLoaded",()=>{
+if(window.enterClanChat)
 enterClanChat();
 });
-
 </script>
 
 </body>
