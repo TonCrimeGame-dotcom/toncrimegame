@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TonCrime - PvP Leaderboard</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="game-core.js"></script>
+<script src="pvp-rank.js"></script>
+
+<style>
+body{
+  margin:0;
+  background:#0d0d0d;
+  color:white;
+  font-family:Arial;
+}
+
+.topbar{
+  background:#1a1a1a;
+  padding:18px 40px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.right-stats{ width:420px; }
+
+.bar{
+  width:100%;
+  height:8px;
+  background:#333;
+  border-radius:5px;
+  overflow:hidden;
+  margin-bottom:6px;
+}
+
+.fill{ height:100%; }
+.xp{ background:#ff4444; }
+.energy{ background:#ffaa00; }
+
+.main{
+  padding:40px;
+}
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+}
+
+.table th, .table td{
+  padding:10px;
+  border-bottom:1px solid #333;
+  text-align:left;
+}
+
+.table th{
+  background:#1a1a1a;
+}
+
+.rank1{ color:gold; font-weight:bold; }
+.rank2{ color:silver; font-weight:bold; }
+.rank3{ color:#cd7f32; font-weight:bold; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div><b>🌍 PvP Leaderboard</b></div>
+
+  <div class="right-stats">
+    <div id="stats"></div>
+    <div class="bar">
+      <div id="xpBar" class="fill xp"></div>
+    </div>
+    <div class="bar">
+      <div id="energyBar" class="fill energy"></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <h2>En İyi 50 Oyuncu</h2>
+  <table class="table" id="leaderboardTable">
+    <tr>
+      <th>#</th>
+      <th>Oyuncu</th>
+      <th>Lig</th>
+      <th>Rank</th>
+      <th>K/D</th>
+    </tr>
+  </table>
+</div>
+
+<script>
+
+async function loadLeaderboard(){
+
+  const {data:players} = await db
+    .from("users")
+    .select("nickname,pvp_rank,pvp_wins,pvp_losses")
+    .order("pvp_rank",{ascending:false})
+    .limit(50);
+
+  const table = document.getElementById("leaderboardTable");
+
+  players.forEach((p,index)=>{
+
+    let kd = 0;
+    if((p.pvp_wins + p.pvp_losses) > 0){
+      kd = (p.pvp_wins / (p.pvp_wins + p.pvp_losses)).toFixed(2);
+    }
+
+    let rowClass = "";
+    if(index === 0) rowClass="rank1";
+    if(index === 1) rowClass="rank2";
+    if(index === 2) rowClass="rank3";
+
+    table.innerHTML += `
+      <tr class="${rowClass}">
+        <td>${index+1}</td>
+        <td>${p.nickname}</td>
+        <td>${getRankTitle(p.pvp_rank)}</td>
+        <td>${p.pvp_rank}</td>
+        <td>${kd}</td>
+      </tr>
+    `;
+  });
+}
+
+async function render(){
+  let user=await loadUser();
+  if(!user) return;
+  user=await regenEnergy(user);
+  renderStats(user);
+}
+
+render();
+loadLeaderboard();
+
+</script>
+
+</body>
+</html>
