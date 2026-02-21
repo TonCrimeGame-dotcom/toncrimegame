@@ -7,48 +7,11 @@
 
 <style>
 body{margin:0;background:#0e0e0e;color:white;font-family:Arial;}
-
-/* ===== SIDEBAR ===== */
-.sidebar{
-  position:fixed;
-  top:0;
-  left:-260px;
-  width:260px;
-  height:100vh;
-  background:#151515;
-  padding:30px 20px;
-  transition:0.3s;
-  z-index:3000;
-  overflow-y:auto;
-}
+.sidebar{position:fixed;top:0;left:-260px;width:260px;height:100vh;background:#151515;padding:30px 20px;transition:0.3s;z-index:3000;}
 .sidebar.open{left:0;}
-
-.overlay{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.7);
-  display:none;
-  z-index:2500;
-}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:2500;}
 .overlay.show{display:block;}
-
-/* ===== TOPBAR ===== */
-.topbar{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  background:#111;
-  padding:18px 40px;
-  border-bottom:1px solid #222;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  z-index:2000;
-}
+.topbar{position:fixed;top:0;left:0;width:100%;background:#111;padding:18px 40px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;z-index:2000;}
 .left-top{display:flex;align-items:center;gap:15px;}
 .menu-btn{font-size:22px;cursor:pointer;color:gold;}
 .logo{font-size:24px;font-weight:bold;color:gold;}
@@ -57,46 +20,35 @@ body{margin:0;background:#0e0e0e;color:white;font-family:Arial;}
 .bar-fill{height:100%;transition:0.3s;}
 .xp-fill{background:limegreen;}
 .energy-fill{background:gold;}
-
-/* ===== MAIN ===== */
-.main{
-  margin-top:90px;
-  display:flex;
-  justify-content:center;
-  gap:40px;
-  padding:40px;
-}
+.main{margin-top:90px;display:flex;justify-content:center;gap:40px;padding:40px;}
 .center{width:50%;}
 .userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;}
 .card{background:#1b1b1b;padding:20px;margin-bottom:20px;border-radius:10px;}
 button{width:100%;padding:12px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:10px;}
-button:hover{opacity:0.9}
 input{width:100%;padding:10px;border-radius:6px;border:none;margin-top:10px;}
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
-  <h3 style="color:gold">Menü</h3>
-  <p onclick="go('index.html')">🏠 Ana Sayfa</p>
-  <p onclick="go('missions.html')">🎯 Görevler</p>
-  <p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
-  <p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
-  <p onclick="go('mekan.html')">🏢 Mekan</p>
-  <p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
-  <p onclick="go('hospital.html')">🏥 Hastane</p>
-  <p onclick="logout()">🚪 Çıkış</p>
+<h3 style="color:gold">Menü</h3>
+<p onclick="go('index.html')">🏠 Ana Sayfa</p>
+<p onclick="go('missions.html')">🎯 Görevler</p>
+<p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
+<p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
+<p onclick="go('mekan.html')">🏢 Mekan</p>
+<p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
+<p onclick="go('hospital.html')">🏥 Hastane</p>
+<p onclick="logout()">🚪 Çıkış</p>
 </div>
 <div class="overlay" id="overlay"></div>
 
-<!-- TOPBAR -->
 <div class="topbar">
-  <div class="left-top">
-    <div class="menu-btn" onclick="openMenu()">☰</div>
-    <div class="logo">TonCrime</div>
-  </div>
-  <div class="right-stats" id="statsArea"></div>
+<div class="left-top">
+<div class="menu-btn" onclick="openMenu()">☰</div>
+<div class="logo">TonCrime</div>
+</div>
+<div class="right-stats" id="statsArea"></div>
 </div>
 
 <div class="main" id="mainArea"></div>
@@ -109,175 +61,111 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const MAX_ENERGY=100;
 const XP_LIMIT=100;
 
-/* ================= USER LOAD ================= */
-
+/* ===== USER LOAD ===== */
 async function loadUser(){
-  const userId=localStorage.getItem("tc_user");
-  if(!userId) return null;
+const userId=localStorage.getItem("tc_user");
+if(!userId) return null;
 
-  const {data}=await db.from("users")
-    .select("*")
-    .eq("id",userId)
-    .maybeSingle();
+const {data}=await db.from("users")
+.select("*")
+.eq("id",userId)
+.maybeSingle();
 
-  return data;
+return data;
 }
 
-/* ================= RENDER ================= */
-
+/* ===== RENDER ===== */
 function renderStats(user){
-  document.getElementById("statsArea").innerHTML=
-  `Lv ${user.level} | XP ${user.xp}/${XP_LIMIT} | ⚡ ${user.energy} | 💰 ${user.yton}
-   <div class="bar">
-     <div class="bar-fill xp-fill" style="width:${(user.xp/XP_LIMIT)*100}%"></div>
-   </div>
-   <div class="bar">
-     <div class="bar-fill energy-fill" style="width:${user.energy}%"></div>
-   </div>`;
+document.getElementById("statsArea").innerHTML=
+`Lv ${user.level} | XP ${user.xp}/${XP_LIMIT} | ⚡ ${user.energy} | 💰 ${user.yton}
+<div class="bar"><div class="bar-fill xp-fill" style="width:${(user.xp/XP_LIMIT)*100}%"></div></div>
+<div class="bar"><div class="bar-fill energy-fill" style="width:${user.energy}%"></div></div>`;
 }
 
-/* ================= UPDATE CORE ================= */
-
+/* ===== UPDATE CORE ===== */
 async function updateUser(change){
+const user=await loadUser();
+if(!user) return;
 
-  const user=await loadUser();
-  const userId=localStorage.getItem("tc_user");
+let newEnergy=user.energy+(change.energy||0);
+let newXp=user.xp+(change.xp||0);
+let newYton=user.yton+(change.yton||0);
+let newLevel=user.level;
 
-  if(!user) return;
+if(newEnergy>MAX_ENERGY) newEnergy=MAX_ENERGY;
+if(newEnergy<0) newEnergy=0;
 
-  let newEnergy=user.energy+(change.energy||0);
-  let newXp=user.xp+(change.xp||0);
-  let newYton=user.yton+(change.yton||0);
-  let newLevel=user.level;
-
-  if(newEnergy>MAX_ENERGY) newEnergy=MAX_ENERGY;
-  if(newEnergy<0) newEnergy=0;
-
-  /* LEVEL SYSTEM */
-  if(newXp>=XP_LIMIT){
-    newXp=newXp-XP_LIMIT;
-    newLevel=newLevel+1;
-  }
-
-  await db.from("users").update({
-    energy:newEnergy,
-    xp:newXp,
-    yton:newYton,
-    level:newLevel
-  }).eq("id",userId);
-
-  const updated={
-    ...user,
-    energy:newEnergy,
-    xp:newXp,
-    yton:newYton,
-    level:newLevel
-  };
-
-  renderStats(updated);
-  return updated;
+if(newXp>=XP_LIMIT){
+newXp=newXp-XP_LIMIT;
+newLevel=newLevel+1;
 }
 
-/* ================= AUTO LOAD ================= */
+await db.from("users").update({
+energy:newEnergy,
+xp:newXp,
+yton:newYton,
+level:newLevel
+}).eq("id",user.id);
 
-async function initPage(){
-  const user=await loadUser();
-  if(user){
-    renderStats(user);
-  }
+renderStats({...user,energy:newEnergy,xp:newXp,yton:newYton,level:newLevel});
 }
 
-initPage();
+/* ===== MENU ===== */
 function openMenu(){
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("overlay").classList.add("show");
+document.getElementById("sidebar").classList.add("open");
+document.getElementById("overlay").classList.add("show");
 }
 document.getElementById("overlay").onclick=()=>{
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
+document.getElementById("sidebar").classList.remove("open");
+document.getElementById("overlay").classList.remove("show");
 };
+function go(p){window.location.href=p;}
+function logout(){localStorage.clear();location.reload();}
 
-function go(page){
-  window.location.href="./"+page;
-}
-
-function logout(){
-  localStorage.clear();
-  location.reload();
-}
-
+/* ===== LOGIN / HOME ===== */
 async function createUser(){
-  const nickname=document.getElementById("nickname").value.trim();
-  if(!nickname) return alert("Takma ad gir");
+const nickname=document.getElementById("nickname").value.trim();
+if(!nickname) return alert("Takma ad gir");
 
-  const id=Date.now().toString();
+const id=Date.now().toString();
 
-  await db.from("users").insert({
-    id:id,
-    nickname:nickname,
-    level:1,
-    xp:0,
-    energy:100,
-    yton:50
-  });
+await db.from("users").insert({
+id:id,nickname:nickname,level:1,xp:0,energy:100,yton:50
+});
 
-  localStorage.setItem("tc_user",id);
-  loadHome();
-}
-
-async function loadUser(){
-  const userId=localStorage.getItem("tc_user");
-  if(!userId) return null;
-
-  const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
-  return data;
+localStorage.setItem("tc_user",id);
+loadHome();
 }
 
 async function loadHome(){
-  const user=await loadUser();
+const user=await loadUser();
+if(!user){showLogin();return;}
 
-  if(!user){
-    showLogin();
-    return;
-  }
+renderStats(user);
 
-  document.getElementById("statsArea").innerHTML=
-  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}
-   <div class="bar"><div class="bar-fill xp-fill" style="width:${user.xp}%"></div></div>
-   <div class="bar"><div class="bar-fill energy-fill" style="width:${user.energy}%"></div></div>`;
-
-  document.getElementById("mainArea").innerHTML=
-  `<div class="center">
-      <div class="card">
-        <h2>🏆 Turnuva</h2>
-        Aktif Turnuva: Sokak Hakimiyeti<br>
-        Ödül: 500 Yton
-      </div>
-      <div class="card">
-        <h2>🔥 En İyiler</h2>
-        1. MafyaKing<br>
-        2. Shadow<br>
-        3. BossTR
-      </div>
-   </div>
-   <div class="userpanel">
-      <h3>Kullanıcı</h3>
-      ID: ${user.id}<br>
-      Takma Ad: ${user.nickname}<br>
-      Seviye: ${user.level}
-   </div>`;
+document.getElementById("mainArea").innerHTML=
+`<div class="center">
+<div class="card"><h2>🏆 Turnuva</h2>Aktif Turnuva: Sokak Hakimiyeti<br>Ödül: 500 Yton</div>
+<div class="card"><h2>🔥 En İyiler</h2>1. MafyaKing<br>2. Shadow<br>3. BossTR</div>
+</div>
+<div class="userpanel">
+<h3>Kullanıcı</h3>
+ID: ${user.id}<br>
+Takma Ad: ${user.nickname}<br>
+Seviye: ${user.level}
+</div>`;
 }
 
 function showLogin(){
-  document.getElementById("statsArea").innerHTML="Kullanıcı yok";
-  document.getElementById("mainArea").innerHTML=
-  `<div class="center">
-     <div class="card">
-       <h2>Oyuna Başla</h2>
-       <input id="nickname" placeholder="Takma ad">
-       <button onclick="createUser()">Başla</button>
-     </div>
-   </div>`;
+document.getElementById("statsArea").innerHTML="Kullanıcı yok";
+document.getElementById("mainArea").innerHTML=
+`<div class="center">
+<div class="card">
+<h2>Oyuna Başla</h2>
+<input id="nickname" placeholder="Takma ad">
+<button onclick="createUser()">Başla</button>
+</div>
+</div>`;
 }
 
 loadHome();
