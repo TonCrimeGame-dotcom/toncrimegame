@@ -14,12 +14,11 @@ async function checkSeasonReset(){
   let lastSeason = seasonData?.[0]?.season_month;
 
   if(lastSeason === currentMonth){
-    return; // bu ay zaten reset yapılmış
+    return;
   }
 
   console.log("Yeni sezon başlıyor...");
 
-  // Top 10 oyuncuları al
   const {data:topPlayers} = await db
     .from("users")
     .select("id,nickname,pvp_rank")
@@ -30,14 +29,12 @@ async function checkSeasonReset(){
 
     const winner = topPlayers[0];
 
-    // Kazananı kaydet
     await db.from("season_history").insert({
       season_month: currentMonth,
       winner: winner.nickname,
       winner_rank: winner.pvp_rank
     });
 
-    // Ödüller
     for(let i=0;i<topPlayers.length;i++){
 
       let reward = 0;
@@ -47,12 +44,11 @@ async function checkSeasonReset(){
       else reward=200;
 
       await db.from("users").update({
-        yton: db.raw("yton + " + reward)
+        yton: topPlayers[i].pvp_rank + reward
       }).eq("id", topPlayers[i].id);
     }
   }
 
-  // Rank reset
   await db.from("users").update({
     pvp_rank:1000,
     pvp_wins:0,
