@@ -6,169 +6,30 @@
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-<!-- ENGINE CORE -->
-<script src="engine/event.engine.js"></script>
-<script src="engine/state.engine.js"></script>
-<script src="engine/loop.engine.js"></script>
-<script src="engine/ui.engine.js"></script>
-<script src="engine/ui.master.engine.js"></script>
-<script src="engine/presence.engine.js"></script>
-<script src="engine/chat.engine.js"></script>
-
-<script src="engine/question.engine.js"></script>
-<script src="engine/answer.engine.js"></script>
-<script src="engine/resolve.engine.js"></script>
-<script src="engine/elo.engine.js"></script>
-<script src="engine/reward.engine.js"></script>
-
-<script src="engine/daily.engine.js"></script>
-<script src="engine/achievement.engine.js"></script>
-<script src="engine/clan.engine.js"></script>
-<script src="engine/tournament.engine.js"></script>
-<script src="engine/notify.engine.js"></script>
-<script src="engine/world.engine.js"></script>
+<script src="engine/loader.engine.js"></script>
+<script src="engine/bootstrap.engine.js"></script>
 
 <style>
 body{
- margin:0;
- background:#0e0e0e;
- color:white;
- font-family:Arial;
+  margin:0;
+  background:#111;
+  color:white;
+  font-family:Arial;
 }
 
-.view-card{
- background:#1a1a1a;
- padding:20px;
- border-radius:10px;
- margin-bottom:20px;
+.card{
+  background:#1b1b1b;
+  padding:15px;
+  margin:15px;
+  border-radius:10px;
 }
 </style>
+
 </head>
 
 <body>
 
-<div id="tc-content"></div>
-
-<script>
-
-/* ===================================================
-   CONFIG
-=================================================== */
-
-window.CONFIG={
- SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
- SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
- USER_ID:"591676206",
- MAX_ENERGY:100,
- XP_LIMIT:100,
- ENERGY_INTERVAL:300000
-};
-
-/* ===================================================
-   SUPABASE
-=================================================== */
-
-window.db = window.supabase.createClient(
- CONFIG.SUPABASE_URL,
- CONFIG.SUPABASE_KEY
-);
-
-/* ===================================================
-   ROUTER
-=================================================== */
-
-function getView(){
- const url=new URL(location.href);
- return url.searchParams.get("view") || "home";
-}
-
-/* ===================================================
-   VIEWS
-=================================================== */
-
-const VIEWS={
-
-home(){
- return `
- <div class="view-card">
- <h2>🏠 TonCrime</h2>
- Aktif Dünya Çalışıyor 🌍
- </div>
-
- <div class="view-card">
- <h3>🏆 Turnuva</h3>
- <div id="tournamentBoard">yükleniyor...</div>
- </div>`;
-},
-
-missions(){
- return `<div class="view-card">
- <h2>🎯 Görevler</h2>
- Görev sistemi engine bağlı.
- </div>`;
-},
-
-pvp(){
- return `<div class="view-card">
- <h2>⚔ PvP Arena</h2>
- <div id="pvpTargets"></div>
- </div>`;
-},
-
-nightclub(){
- WORLD.enter("nightclub");
- return `<div class="view-card">
- 🍾 Gece Kulübü<br>
- Oyuncular eğleniyor...
- </div>`;
-},
-
-coffeeshop(){
- WORLD.enter("coffeeshop");
- return `<div class="view-card">
- ☕ Coffee & Smart Shop
- </div>`;
-},
-
-hospital(){
- return `<div class="view-card">
- 🏥 Hastane
- Enerji satın alabilirsin.
- </div>`;
-}
-
-};
-
-/* ===================================================
-   RENDER VIEW
-=================================================== */
-
-function renderView(){
-
- const view=getView();
-
- const html =
-   VIEWS[view]
-   ? VIEWS[view]()
-   : VIEWS.home();
-
- document.getElementById("tc-content")
-   .innerHTML=html;
-}
-
-/* ===================================================
-   ENGINE READY
-=================================================== */
-
-EVENT.on("engine:ready",()=>{
-
- renderView();
-
- Notify.show("TonCrime Online","#2ecc71");
-
-});
-
-</script>
+<div id="app"></div>
 
 </body>
 </html>
