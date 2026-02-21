@@ -212,3 +212,37 @@ async function showResult(match){
      Kazanan: ${winner}<br>
      ${myWin ? "🎉 Kazandın!" : "💀 Kaybettin!"}`;
 }
+/* ===== MATCH LEAVE PENALTY ===== */
+
+let battleStarted = false;
+
+function markBattleStarted(){
+  battleStarted = true;
+}
+
+window.addEventListener("beforeunload", async function (e) {
+
+  if(!battleStarted || !currentMatch) return;
+
+  await applyLeavePenalty();
+});
+
+async function applyLeavePenalty(){
+
+  const user = await loadUser();
+  if(!user) return;
+
+  const banUntil = new Date(Date.now() + 5*60*1000);
+
+  await db.from("users").update({
+    pvp_rank: Math.max(0, user.pvp_rank - 30),
+    yton: Math.max(0, user.yton - 20),
+    pvp_ban_until: banUntil
+  }).eq("id", user.id);
+
+  await db.from("pvp_matches")
+    .delete()
+    .eq("id", currentMatch.id);
+
+  console.log("Maç terk edildi, ceza uygulandı");
+}
