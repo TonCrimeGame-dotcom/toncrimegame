@@ -7,20 +7,117 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-body{margin:0;background:#0e0e0e;color:white;font-family:Arial}
-.topbar{background:#111;padding:15px 25px;display:flex;justify-content:space-between;border-bottom:1px solid #222}
-.logo{color:gold;font-weight:bold;font-size:22px}
-.main{display:flex;gap:25px;padding:25px}
-.card{background:#1b1b1b;padding:20px;border-radius:10px;margin-bottom:20px}
-.chatBox{height:260px;background:#111;overflow:auto;padding:10px}
-input{width:100%;padding:10px;background:#222;border:none;color:white}
+body{
+margin:0;
+background:#0e0e0e;
+color:white;
+font-family:Arial;
+}
+
+/* ===== TOPBAR ===== */
+.topbar{
+background:#111;
+padding:15px 25px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #222;
+}
+
+.logo{color:gold;font-size:22px;font-weight:bold}
+
+.menuBtn{
+cursor:pointer;
+font-size:22px;
+margin-right:15px;
+}
+
+/* ===== MENU ===== */
+.sidebar{
+position:fixed;
+top:0;
+left:-260px;
+width:250px;
+height:100%;
+background:#151515;
+padding:25px;
+transition:.3s;
+z-index:2000;
+}
+
+.sidebar.open{left:0}
+
+.overlay{
+position:fixed;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.6);
+display:none;
+z-index:1500;
+}
+
+.overlay.show{display:block}
+
+.sidebar p{
+cursor:pointer;
+margin:12px 0;
+color:#ddd;
+}
+
+/* ===== LAYOUT ===== */
+.main{
+display:flex;
+gap:25px;
+padding:25px;
+}
+
+.card{
+background:#1b1b1b;
+padding:20px;
+border-radius:10px;
+margin-bottom:20px;
+}
+
+.chatBox{
+height:260px;
+background:#111;
+overflow:auto;
+padding:10px;
+}
+
+input{
+width:100%;
+padding:10px;
+background:#222;
+border:none;
+color:white;
+}
 </style>
 </head>
 
 <body>
 
+<!-- MENU -->
+<div class="sidebar" id="sidebar">
+<h3 style="color:gold">Menü</h3>
+
+<p onclick="go('index.html')">🏠 Ana Sayfa</p>
+<p onclick="go('missions.html')">🎯 Görevler</p>
+<p onclick="go('coffeeshop.html')">☕ Coffee</p>
+<p onclick="go('nightclub.html')">🍾 Gece Kulübü</p>
+<p onclick="go('pvp.html')">⚔ PvP Arena</p>
+
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- TOPBAR -->
 <div class="topbar">
-<div class="logo">TonCrime</div>
+<div>
+<span class="menuBtn" onclick="openMenu()">☰</span>
+<span class="logo">TonCrime</span>
+</div>
+
 <div id="stats">yükleniyor...</div>
 </div>
 
@@ -46,7 +143,7 @@ onkeydown="if(event.key==='Enter')sendChat()">
 
 <div class="card">
 <h3>👤 Oyuncu</h3>
-<div id="userInfo"></div>
+<div id="userInfo">yükleniyor...</div>
 </div>
 
 <div class="card">
@@ -59,7 +156,7 @@ onkeydown="if(event.key==='Enter')sendChat()">
 </div>
 
 <script>
-/* ================= GLOBAL CORE ================= */
+/* ================= CONFIG ================= */
 
 window.CONFIG={
 SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
@@ -70,35 +167,105 @@ MAX_ENERGY:100,
 ENERGY_INTERVAL:300000
 };
 
-/* GLOBAL GAME MEMORY */
 window.GAME={
 user:null,
-pvpSubscribed:false,
-loading:false
+loading:false,
+pvpSubscribed:false
 };
 
-/* SUPABASE GLOBAL */
 window.db=window.supabase.createClient(
 CONFIG.SUPABASE_URL,
 CONFIG.SUPABASE_KEY
 );
-</script>
 
-<!-- ✅ ENGINE FIRST -->
-<script src="engine.js"></script>
+/* ================= MENU ================= */
 
-<!-- ✅ MODULES AFTER ENGINE -->
-<script src="presence.engine.js"></script>
-<script src="chat.engine.js"></script>
-<script src="clan.engine.js"></script>
-<script src="tournament.engine.js"></script>
-<script src="event.engine.js"></script>
+function openMenu(){
+sidebar.classList.add("open");
+overlay.classList.add("show");
+}
 
-<script>
-/* SAFE INIT */
-document.addEventListener("DOMContentLoaded",()=>{
-if(window.enterClanChat)
-enterClanChat();
+overlay.onclick=()=>{
+sidebar.classList.remove("open");
+overlay.classList.remove("show");
+}
+
+function go(p){location.href=p}
+
+/* ================= USER LOAD ================= */
+
+async function loadUser(){
+
+const {data}=await db
+.from("users")
+.select("*")
+.eq("id",CONFIG.USER_ID)
+.single();
+
+GAME.user=data;
+renderUser();
+renderStats();
+}
+
+function renderStats(){
+
+const u=GAME.user;
+if(!u) return;
+
+stats.innerHTML=
+`Lv ${u.level} | XP ${u.xp}/100 | ⚡ ${u.energy} | 💰 ${Number(u.yton).toFixed(2)}`;
+}
+
+function renderUser(){
+
+const u=GAME.user;
+if(!u) return;
+
+userInfo.innerHTML=
+`
+ID: ${u.id}<br>
+Nick: ${u.nickname}<br>
+Level: ${u.level}<br>
+XP: ${u.xp}<br>
+Enerji: ${u.energy}
+`;
+}
+
+/* ================= ONLINE PRESENCE ================= */
+
+function subscribeOnline(){
+
+db.channel("online-room")
+.on("presence",{event:"sync"},()=>{
+const state=db.channel("online-room").presenceState();
+onlineCount.innerText=Object.keys(state).length;
+})
+.subscribe(async(status)=>{
+if(status==="SUBSCRIBED"){
+await db.channel("online-room").track({
+user:CONFIG.USER_ID
+});
+}
+});
+}
+
+/* ================= CHAT ================= */
+
+function sendChat(){
+
+const msg=chatInput.value.trim();
+if(!msg) return;
+
+chatBox.innerHTML+=`<div>🧑 ${msg}</div>`;
+chatInput.value="";
+chatBox.scrollTop=chatBox.scrollHeight;
+}
+
+/* ================= INIT ================= */
+
+document.addEventListener("DOMContentLoaded",async()=>{
+await loadUser();
+subscribeOnline();
 });
 </script>
 
