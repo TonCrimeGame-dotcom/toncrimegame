@@ -1,169 +1,90 @@
 /* ===================================================
-   TONCRIME UI ENGINE
-   Global UI Controller
-   =================================================== */
+   TONCRIME MASTER UI ENGINE
+   Global UI Renderer
+   SAFE VERSION
+=================================================== */
+
+(function(){
+
+/* ===================================================
+   UI OBJECT
+=================================================== */
 
 window.UI = {
 
-  cache:{},
-
-  /* ===============================================
-     INIT
-  =============================================== */
-
-  init(){
-
-    this.cache.stats = document.getElementById("tc-stats");
-    this.cache.content = document.getElementById("tc-content");
-
-    console.log("✅ UI Engine Ready");
-  },
-
-  /* ===============================================
-     USER STATS UPDATE
-  =============================================== */
-
+  /* -----------------------------------------
+     UPDATE TOP STATS BAR
+  ----------------------------------------- */
   updateStats(user){
 
-    if(!user || !this.cache.stats) return;
+    if(!user) return;
 
-    this.cache.stats.innerHTML =
-      `Lv ${user.level}
-       | XP ${user.xp}/${CONFIG.XP_LIMIT}
-       | ⚡ ${user.energy}
-       | 💰 ${Number(user.yton).toFixed(2)}`;
+    const stats=document.getElementById("top-stats");
+    if(!stats) return;
+
+    stats.innerHTML =
+      `Lv ${user.level} | XP ${user.xp}/${CONFIG.XP_LIMIT}
+       ⚡ ${user.energy}
+       💰 ${Number(user.yton).toFixed(2)}`;
   },
 
-  /* ===============================================
+  /* -----------------------------------------
      PLAYER CARD
-  =============================================== */
-
+  ----------------------------------------- */
   renderPlayerCard(user){
 
-    let box = document.getElementById("ui-player");
+    const card=document.getElementById("player-card");
+    if(!card || !user) return;
 
-    if(!box){
-      box = document.createElement("div");
-      box.id = "ui-player";
-      box.className = "ui-card";
-      this.cache.content.prepend(box);
-    }
-
-    box.innerHTML = `
-      <h3>👤 Oyuncu</h3>
+    card.innerHTML = `
+      <b>Oyuncu</b><br>
       ID: ${user.id}<br>
-      Takma Ad: ${user.username}<br>
+      Takma Ad: ${user.nickname || "Player"}<br>
       Seviye: ${user.level}<br>
       XP: ${user.xp}<br>
       Enerji: ${user.energy}
     `;
   },
 
-  /* ===============================================
-     ONLINE COUNTER
-  =============================================== */
-
+  /* -----------------------------------------
+     ONLINE COUNT
+  ----------------------------------------- */
   setOnline(count){
 
-    let box = document.getElementById("ui-online");
+    const el=document.getElementById("online-count");
+    if(!el) return;
 
-    if(!box){
-      box = document.createElement("div");
-      box.id = "ui-online";
-      box.className = "ui-card";
-      this.cache.content.appendChild(box);
-    }
-
-    box.innerHTML = `
-      <h3>🟢 Online</h3>
-      ${count}
-    `;
+    el.innerText=count+" online";
   },
 
-  /* ===============================================
-     TOURNAMENT PANEL
-  =============================================== */
+  /* -----------------------------------------
+     CHAT RENDER
+  ----------------------------------------- */
+  pushChatMessage(msg){
 
-  renderTournament(text){
+    const box=document.getElementById("chat-box");
+    if(!box) return;
 
-    let box = document.getElementById("ui-tournament");
+    const div=document.createElement("div");
 
-    if(!box){
-      box = document.createElement("div");
-      box.id = "ui-tournament";
-      box.className = "ui-wide";
-      this.cache.content.prepend(box);
-    }
+    div.innerHTML=
+      `<b>${msg.user}</b>: ${msg.text}`;
 
-    box.innerHTML =
-      `<h3>🏆 Aktif Turnuva</h3>${text}`;
+    box.appendChild(div);
+
+    box.scrollTop=box.scrollHeight;
   },
 
-  /* ===============================================
-     GLOBAL MESSAGE
-  =============================================== */
+  /* -----------------------------------------
+     SAFE INIT (🔥 FIX)
+  ----------------------------------------- */
+  init(){
 
-  toast(msg){
-
-    const t = document.createElement("div");
-    t.className = "ui-toast";
-    t.innerText = msg;
-
-    document.body.appendChild(t);
-
-    setTimeout(()=>t.remove(),3000);
+    console.log("🎮 UI Init OK");
   }
 
 };
 
-
-/* ===================================================
-   UI STYLES
-   =================================================== */
-
-(function(){
-
-const css=document.createElement("style");
-
-css.innerHTML=`
-
-.ui-card{
-  background:#1a1f29;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-}
-
-.ui-wide{
-  background:#1a1f29;
-  padding:20px;
-  border-radius:10px;
-  margin-bottom:20px;
-}
-
-.ui-toast{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  background:gold;
-  color:black;
-  padding:12px 18px;
-  border-radius:8px;
-  font-weight:bold;
-  z-index:9999;
-}
-
-`;
-
-document.head.appendChild(css);
+console.log("🧩 Master UI Ready");
 
 })();
-
-
-/* ===================================================
-   AUTO START
-   =================================================== */
-
-document.addEventListener("DOMContentLoaded",()=>{
-  setTimeout(()=>UI.init(),50);
-});
