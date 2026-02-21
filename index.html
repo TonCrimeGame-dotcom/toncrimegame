@@ -5,8 +5,12 @@
 <title>TonCrime</title>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="engine.js"></script>
+<script src="layout.engine.js"></script>
 
 <style>
+
 body{
 margin:0;
 background:#0e0e0e;
@@ -15,6 +19,7 @@ font-family:Arial;
 }
 
 /* ===== TOPBAR ===== */
+
 .topbar{
 background:#111;
 padding:15px 25px;
@@ -24,15 +29,40 @@ align-items:center;
 border-bottom:1px solid #222;
 }
 
-.logo{color:gold;font-size:22px;font-weight:bold}
+.logo{
+color:gold;
+font-size:22px;
+font-weight:bold;
+}
 
 .menuBtn{
 cursor:pointer;
-font-size:22px;
 margin-right:15px;
+font-size:20px;
 }
 
-/* ===== MENU ===== */
+/* ===== PAGE ===== */
+
+.page{
+display:flex;
+gap:25px;
+padding:25px;
+}
+
+.leftArea{width:65%;}
+.rightArea{width:25%;}
+
+/* ===== CARDS ===== */
+
+.card{
+background:#1b1b1b;
+padding:20px;
+border-radius:10px;
+margin-bottom:20px;
+}
+
+/* ===== SIDEBAR ===== */
+
 .sidebar{
 position:fixed;
 top:0;
@@ -45,7 +75,7 @@ transition:.3s;
 z-index:2000;
 }
 
-.sidebar.open{left:0}
+.sidebar.open{left:0;}
 
 .overlay{
 position:fixed;
@@ -56,217 +86,119 @@ display:none;
 z-index:1500;
 }
 
-.overlay.show{display:block}
-
-.sidebar p{
-cursor:pointer;
-margin:12px 0;
-color:#ddd;
-}
-
-/* ===== LAYOUT ===== */
-.main{
-display:flex;
-gap:25px;
-padding:25px;
-}
-
-.card{
-background:#1b1b1b;
-padding:20px;
-border-radius:10px;
-margin-bottom:20px;
-}
-
-.chatBox{
-height:260px;
-background:#111;
-overflow:auto;
-padding:10px;
-}
+.overlay.show{display:block;}
 
 input{
 width:100%;
 padding:10px;
-background:#222;
+background:#111;
 border:none;
 color:white;
+margin-top:10px;
+border-radius:6px;
 }
+
+button{
+background:gold;
+border:none;
+padding:10px;
+margin-top:10px;
+cursor:pointer;
+font-weight:bold;
+border-radius:6px;
+}
+
 </style>
 </head>
 
 <body>
 
-<!-- MENU -->
-<div class="sidebar" id="sidebar">
-<h3 style="color:gold">Menü</h3>
+<script>
 
-<p onclick="go('index.html')">🏠 Ana Sayfa</p>
-<p onclick="go('missions.html')">🎯 Görevler</p>
-<p onclick="go('coffeeshop.html')">☕ Coffee</p>
-<p onclick="go('nightclub.html')">🍾 Gece Kulübü</p>
-<p onclick="go('pvp.html')">⚔ PvP Arena</p>
+/* =====================================
+   SAYFA İÇERİĞİ
+===================================== */
 
-</div>
-
-<div class="overlay" id="overlay"></div>
-
-<!-- TOPBAR -->
-<div class="topbar">
-<div>
-<span class="menuBtn" onclick="openMenu()">☰</span>
-<span class="logo">TonCrime</span>
-</div>
-
-<div id="stats">yükleniyor...</div>
-</div>
-
-<div class="main">
-
-<div style="width:60%">
+buildLayout(`
 
 <div class="card">
 <h3>🏆 Aktif Turnuva</h3>
-<div id="tournamentBoard">yükleniyor...</div>
+<div id="tournamentBox">yükleniyor...</div>
 </div>
 
 <div class="card">
 <h3>💬 Clan Chat</h3>
-<div id="chatBox" class="chatBox"></div>
-<input id="chatInput" placeholder="Mesaj..."
-onkeydown="if(event.key==='Enter')sendChat()">
+
+<div id="chatBox"
+style="
+height:250px;
+background:#111;
+overflow:auto;
+padding:10px;
+border-radius:6px;
+margin-bottom:10px;">
 </div>
 
-</div>
-
-<div style="width:25%">
-
-<div class="card">
-<h3>👤 Oyuncu</h3>
-<div id="userInfo">yükleniyor...</div>
-</div>
-
-<div class="card">
-<h3>🌐 Online</h3>
-<div id="onlineCount">0</div>
-</div>
+<input id="chatInput" placeholder="Mesaj yaz...">
+<button onclick="sendClanMessage()">Gönder</button>
 
 </div>
 
-</div>
+`);
 
-<script>
-/* ================= CONFIG ================= */
+/* =====================================
+   USER PANEL RENDER
+===================================== */
 
-window.CONFIG={
-SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
-SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
-USER_ID:"591676206",
-XP_LIMIT:100,
-MAX_ENERGY:100,
-ENERGY_INTERVAL:300000
-};
+function renderUserPanel(){
 
-window.GAME={
-user:null,
-loading:false,
-pvpSubscribed:false
-};
+if(!GAME.user) return;
 
-window.db=window.supabase.createClient(
-CONFIG.SUPABASE_URL,
-CONFIG.SUPABASE_KEY
-);
+const el=document.getElementById("userInfo");
 
-/* ================= MENU ================= */
+if(!el) return;
 
-function openMenu(){
-sidebar.classList.add("open");
-overlay.classList.add("show");
-}
-
-overlay.onclick=()=>{
-sidebar.classList.remove("open");
-overlay.classList.remove("show");
-}
-
-function go(p){location.href=p}
-
-/* ================= USER LOAD ================= */
-
-async function loadUser(){
-
-const {data}=await db
-.from("users")
-.select("*")
-.eq("id",CONFIG.USER_ID)
-.single();
-
-GAME.user=data;
-renderUser();
-renderStats();
-}
-
-function renderStats(){
-
-const u=GAME.user;
-if(!u) return;
-
-stats.innerHTML=
-`Lv ${u.level} | XP ${u.xp}/100 | ⚡ ${u.energy} | 💰 ${Number(u.yton).toFixed(2)}`;
-}
-
-function renderUser(){
-
-const u=GAME.user;
-if(!u) return;
-
-userInfo.innerHTML=
-`
-ID: ${u.id}<br>
-Nick: ${u.nickname}<br>
-Level: ${u.level}<br>
-XP: ${u.xp}<br>
-Enerji: ${u.energy}
+el.innerHTML=`
+ID: ${GAME.user.id}<br>
+Takma Ad: ${GAME.user.nickname}<br>
+Seviye: ${GAME.user.level}<br>
+XP: ${GAME.user.xp}<br>
+Enerji: ${GAME.user.energy}
 `;
 }
 
-/* ================= ONLINE PRESENCE ================= */
+/* =====================================
+   CLAN CHAT (LOCAL DEMO)
+===================================== */
 
-function subscribeOnline(){
+function sendClanMessage(){
 
-db.channel("online-room")
-.on("presence",{event:"sync"},()=>{
-const state=db.channel("online-room").presenceState();
-onlineCount.innerText=Object.keys(state).length;
-})
-.subscribe(async(status)=>{
-if(status==="SUBSCRIBED"){
-await db.channel("online-room").track({
-user:CONFIG.USER_ID
-});
-}
-});
-}
+const input=document.getElementById("chatInput");
+const box=document.getElementById("chatBox");
 
-/* ================= CHAT ================= */
+if(!input.value.trim()) return;
 
-function sendChat(){
+const msg=document.createElement("div");
+msg.innerText="Sen: "+input.value;
 
-const msg=chatInput.value.trim();
-if(!msg) return;
+box.appendChild(msg);
+box.scrollTop=box.scrollHeight;
 
-chatBox.innerHTML+=`<div>🧑 ${msg}</div>`;
-chatInput.value="";
-chatBox.scrollTop=chatBox.scrollHeight;
+input.value="";
 }
 
-/* ================= INIT ================= */
+/* =====================================
+   ENGINE HOOK
+===================================== */
 
-document.addEventListener("DOMContentLoaded",async()=>{
-await loadUser();
-subscribeOnline();
+document.addEventListener("DOMContentLoaded",()=>{
+
+setTimeout(()=>{
+renderUserPanel();
+},800);
+
 });
+
 </script>
 
 </body>
