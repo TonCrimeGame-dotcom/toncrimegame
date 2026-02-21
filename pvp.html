@@ -2,16 +2,16 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TonCrime - PvP Arena</title>
+<title>PvP Arena</title>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="game-core.js"></script>
 <script src="pvp-rank.js"></script>
-<script src="pvp-match.js"></script>
+<script src="pvp-battle.js"></script>
 
 <style>
 body{
-  background:#0a0a0a;
+  background:#111;
   color:white;
   text-align:center;
   font-family:Arial;
@@ -19,11 +19,11 @@ body{
 }
 
 button{
-  padding:15px 30px;
+  padding:12px 25px;
   background:red;
   border:none;
-  font-weight:bold;
-  border-radius:8px;
+  margin:5px;
+  border-radius:6px;
   cursor:pointer;
 }
 </style>
@@ -32,7 +32,23 @@ button{
 
 <h1>⚔ PvP Arena</h1>
 
-<button onclick="findMatch()">Rakip Ara</button>
+<div id="pvpArea">
+  <button onclick="createTestMatch()">Test Maçı Başlat</button>
+</div>
+
+<script>
+async function createTestMatch(){
+
+  const user = await loadUser();
+
+  const {data} = await db.from("pvp_matches").insert({
+    player1:user.id,
+    player2:"AI"
+  }).select().single();
+
+  startMatch(data.id);
+}
+</script>
 
 </body>
 </html>
