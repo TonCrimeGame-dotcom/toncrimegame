@@ -1,5 +1,5 @@
 /* ===================================================
-   TONCRIME GLOBAL ENGINE
+   TONCRIME GLOBAL ENGINE + AUTH LAYER
    =================================================== */
 
 /* ---------- SUPABASE ---------- */
@@ -15,6 +15,87 @@ const GAME = {
   user: null,
   pvpSubscribed: false,
   loading: false
+};
+
+/* ===================================================
+   AUTH SYSTEM
+   =================================================== */
+
+const AUTH = {
+  token:null,
+  deviceHash:null
+};
+
+/* DEVICE HASH */
+AUTH.createFingerprint = async function(){
+
+  const raw =
+    navigator.userAgent +
+    screen.width +
+    screen.height +
+    navigator.language +
+    Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const buffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(raw)
+  );
+
+  AUTH.deviceHash =
+    Array.from(new Uint8Array(buffer))
+    .map(b=>b.toString(16).padStart(2,"0"))
+    .join("");
+
+  return AUTH.deviceHash;
+};
+
+/* TOKEN */
+AUTH.generateToken = function(){
+  return crypto.randomUUID()+"-"+Date.now();
+};
+
+/* REGISTER SESSION */
+AUTH.registerSession = async function(){
+
+  const hash = await AUTH.createFingerprint();
+  const token = AUTH.generateToken();
+
+  AUTH.token = token;
+
+  await db.from("user_sessions").insert({
+    user_id: CONFIG.USER_ID,
+    device_hash: hash,
+    session_token: token
+  });
+
+  localStorage.setItem("tc_token",token);
+};
+
+/* VALIDATE SESSION */
+AUTH.validate = async function(){
+
+  let token = localStorage.getItem("tc_token");
+
+  if(!token){
+    await AUTH.registerSession();
+    return;
+  }
+
+  const {data} = await db
+    .from("user_sessions")
+    .select("*")
+    .eq("session_token",token)
+    .maybeSingle();
+
+  if(!data){
+    await AUTH.registerSession();
+  }else{
+    AUTH.token = token;
+
+    await db.from("user_sessions")
+      .update({last_seen:new Date()})
+      .eq("id",data.id);
+  }
 };
 
 /* ===================================================
@@ -54,7 +135,6 @@ async function regenEnergy() {
 
   const now = Date.now();
 
-  /* first login fix */
   if (!user.last_energy_tick) {
 
     await db.from("users")
@@ -123,7 +203,7 @@ function renderStats() {
 }
 
 /* ===================================================
-   DAILY RESET SYSTEM
+   DAILY RESET
    =================================================== */
 
 function dailyReset() {
@@ -139,7 +219,7 @@ function dailyReset() {
 }
 
 /* ===================================================
-   PVP REALTIME SUBSCRIBE
+   PVP REALTIME
    =================================================== */
 
 function subscribePvP() {
@@ -164,20 +244,22 @@ function subscribePvP() {
 }
 
 /* ===================================================
-   GAME LOOP (SAFE LOOP)
+   GAME LOOP
    =================================================== */
 
 async function gameLoop() {
-
   await regenEnergy();
   renderStats();
 }
 
 /* ===================================================
-   INIT GAME
+   INIT GAME (AUTH FIRST)
    =================================================== */
 
 async function initGame() {
+
+  /* ⭐ AUTH FIRST */
+  await AUTH.validate();
 
   const user = await loadUser();
   if (!user) return;
@@ -186,7 +268,6 @@ async function initGame() {
   dailyReset();
   subscribePvP();
 
-  /* MAIN LOOP — 60s */
   setInterval(gameLoop, 60000);
 }
 
