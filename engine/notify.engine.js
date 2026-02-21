@@ -1,24 +1,17 @@
 /* ===================================================
-   TONCRIME NOTIFY ENGINE (SAFE VERSION)
+   TONCRIME NOTIFICATION ENGINE (SAFE)
 =================================================== */
 
 (function(){
 
 let container=null;
 
-/* --------------------------------------- */
-/* CREATE CONTAINER SAFE */
-/* --------------------------------------- */
-
+/* SAFE CREATE */
 function createContainer(){
 
-  if(container) return;
+  container=document.getElementById("notify-container");
 
-  // body hazır değilse bekle
-  if(!document.body){
-    setTimeout(createContainer,50);
-    return;
-  }
+  if(container) return;
 
   container=document.createElement("div");
   container.id="notify-container";
@@ -31,34 +24,29 @@ function createContainer(){
   document.body.appendChild(container);
 }
 
-/* --------------------------------------- */
-/* SHOW NOTIFY */
-/* --------------------------------------- */
+/* SHOW NOTIFICATION */
+window.NOTIFY={
 
-function show(text,color="#f1c40f"){
+  show(text){
 
-  createContainer();
+    if(!container) createContainer();
 
-  const box=document.createElement("div");
+    const box=document.createElement("div");
 
-  box.innerText=text;
-  box.style.background=color;
-  box.style.color="#000";
-  box.style.padding="10px 14px";
-  box.style.marginBottom="10px";
-  box.style.borderRadius="8px";
-  box.style.fontWeight="bold";
+    box.style.background="#222";
+    box.style.color="#fff";
+    box.style.padding="10px";
+    box.style.marginTop="10px";
+    box.style.borderRadius="8px";
 
-  container.appendChild(box);
+    box.innerText=text;
 
-  setTimeout(()=>{
-    box.remove();
-  },3000);
-}
+    container.appendChild(box);
 
-/* --------------------------------------- */
+    setTimeout(()=>box.remove(),4000);
+  }
 
-window.Notify={ show };
+};
 
 console.log("🔔 Notification Engine Ready");
 
