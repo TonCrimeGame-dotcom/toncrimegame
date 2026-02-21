@@ -195,7 +195,19 @@ async function init(){
 }
 
 init();
-setInterval(init,10000);
+  /* DAILY RESET CHECK */
+setInterval(dailyReset,60000);
+
+/* ENERGY REGEN LOOP */
+setInterval(async ()=>{
+  const user = await loadUser();
+  if(!user) return;
+
+  if(user.energy < MAX_ENERGY){
+    await regenEnergy(user);
+    renderStats(user);
+  }
+},60000);
 setInterval(dailyReset,60000);
 
 </script>
