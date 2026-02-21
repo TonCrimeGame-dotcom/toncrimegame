@@ -1,4 +1,4 @@
-/* ===== TONCRIME ADVANCED REALTIME PVP SYSTEM ===== */
+/* ===== TONCRIME FULL REALTIME PVP SYSTEM ===== */
 
 let currentMatch = null;
 let myRole = null;
@@ -8,6 +8,15 @@ let questionStart = 0;
 let matchTimeout = null;
 let matchActive = false;
 
+/* ===== SİLAH BONUS HARİTASI ===== */
+const weaponBonusMap = {
+  "Sopa": 0,
+  "Tabanca": 0.05,
+  "AK47": 0.10,
+  "AWP": 0.20
+};
+
+/* ===== SORULAR ===== */
 const questions = [
   {q:"5x5?",a:"25",options:["20","25","30","15"]},
   {q:"HTML ne?",a:"Web",options:["Web","Oyun","Virüs","Telefon"]},
@@ -113,14 +122,22 @@ async function startSoloMode(){
   startBattle();
 }
 
-/* ================= SORU SISTEMI ================= */
+/* ================= BATTLE START ================= */
 
-function startBattle(){
+async function startBattle(){
+
   questionIndex = 0;
   totalTime = 0;
   matchActive = true;
+
+  const user = await loadUser();
+  currentMatch.weaponBonus =
+    weaponBonusMap[user.equipped_weapon] || 0;
+
   showQuestion();
 }
+
+/* ================= SORU GÖSTER ================= */
 
 function showQuestion(){
 
@@ -141,11 +158,17 @@ function showQuestion(){
   questionStart = performance.now();
 }
 
+/* ================= CEVAP ================= */
+
 function answer(option){
 
   const q = questions[questionIndex];
   const timeSpent = performance.now() - questionStart;
-  totalTime += timeSpent;
+
+  const adjustedTime =
+    timeSpent * (1 - (currentMatch.weaponBonus || 0));
+
+  totalTime += adjustedTime;
 
   if(option === q.a){
     currentMatch[myRole+"_score"] =
