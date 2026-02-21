@@ -2,348 +2,167 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Coffee Shop</title>
+<title>TonCrime - Coffee Shop</title>
+
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="game-core.js"></script>
 
 <style>
-body{margin:0;background:#071a0f;color:white;font-family:Arial;}
-
-.sidebar{
-position:fixed;top:0;left:-260px;width:260px;height:100vh;
-background:#062d18;padding:30px 20px;transition:0.3s;z-index:3000;
+body{
+  margin:0;
+  background:#071a0f;
+  color:white;
+  font-family:Arial;
 }
-.sidebar.open{left:0;}
 
-.overlay{
-position:fixed;top:0;left:0;width:100%;height:100%;
-background:rgba(0,0,0,0.6);display:none;z-index:2500;
-}
-.overlay.show{display:block;}
-
+/* TOPBAR */
 .topbar{
-position:fixed;top:0;left:0;width:100%;
-background:#0c2e19;padding:18px 40px;
-display:flex;justify-content:space-between;align-items:center;
-z-index:2000;border-bottom:1px solid #145c34;
+  background:#0c2e19;
+  padding:18px 40px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-.menu-btn{font-size:22px;cursor:pointer;color:#00ff88;}
-.logo{font-size:22px;font-weight:bold;color:#00ff88;}
+.right-stats{
+  width:420px;
+}
 
-.right-stats{width:420px;font-size:14px;}
-.bar{height:8px;background:#222;border-radius:5px;margin-top:4px;overflow:hidden;}
-.fill{height:100%;transition:0.3s;}
-.xp{background:#00ff88;}
-.energy{background:#00ffaa;}
+.bar{
+  width:100%;
+  height:8px;
+  background:#222;
+  border-radius:5px;
+  overflow:hidden;
+  margin-bottom:6px;
+}
 
+.fill{
+  height:100%;
+}
+
+.xp{ background:#00ff88; }
+.energy{ background:#00ffaa; }
+
+/* SHOP GRID */
 .main{
-margin-top:110px;padding:40px;
-display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-gap:20px;
+  padding:40px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:20px;
 }
 
 .card{
-background:#0f2b1c;padding:15px;border-radius:10px;
-border:1px solid #145c34;
+  background:#0f2b1c;
+  padding:15px;
+  border-radius:10px;
+  border:1px solid #145c34;
 }
 
 button{
-width:100%;padding:10px;margin-top:8px;
-background:#00ff88;border:none;border-radius:6px;
-font-weight:bold;cursor:pointer;
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  background:#00ff88;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
 }
-button:hover{opacity:0.8;}
+
+button:hover{opacity:0.85;}
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR -->
-<div class="sidebar" id="sidebar">
-<h3 style="color:#00ff88">Menü</h3>
-<p onclick="go('index.html')">🏠 Ana Sayfa</p>
-<p onclick="go('missions.html')">🎯 Görevler</p>
-<p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
-<p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
-<p onclick="go('mekan.html')">🏢 Mekan</p>
-<p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
-<p onclick="go('hospital.html')">🏥 Hastane</p>
-</div>
-
-<div class="overlay" id="overlay"></div>
-
-<!-- TOPBAR -->
 <div class="topbar">
-<div>
-<span class="menu-btn" onclick="openMenu()">☰</span>
-<span class="logo">Coffee Shop</span>
-</div>
-<div class="right-stats" id="stats"></div>
+  <div><b>Coffee Shop</b></div>
+
+  <div class="right-stats">
+    <div id="stats"></div>
+
+    <div class="bar">
+      <div id="xpBar" class="fill xp"></div>
+    </div>
+
+    <div class="bar">
+      <div id="energyBar" class="fill energy"></div>
+    </div>
+  </div>
 </div>
 
 <div class="main" id="shop"></div>
 
 <script>
-const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const MAX_ENERGY=100;
-const XP_LIMIT=100;
-
-/* ===== USER LOAD ===== */
-async function loadUser(){
-const id=localStorage.getItem("tc_user");
-if(!id){window.location.href="index.html";return null;}
-
-const {data}=await db.from("users")
-.select("*")
-.eq("id",id)
-.maybeSingle();
-
-if(!data){window.location.href="index.html";return null;}
-return data;
-}
-
-/* ===== RENDER STATS ===== */
-function renderStats(user){
-document.getElementById("stats").innerHTML=
-`Lv ${user.level} | XP ${user.xp}/${XP_LIMIT} | ⚡ ${user.energy} | 💰 ${user.yton}
-<div class="bar"><div class="fill xp" style="width:${(user.xp/XP_LIMIT)*100}%"></div></div>
-<div class="bar"><div class="fill energy" style="width:${user.energy}%"></div></div>`;
-}
-
-/* ===== PRODUCT GENERATOR ===== */
+/* ===== SHOP PRODUCTS ===== */
 function generateProducts(){
-let arr=[];
-for(let i=1;i<=50;i++){
-let price=Math.floor(Math.random()*101)+100; //100-200
-let energy=Math.floor((price-100)/100*50)+50; //50-100
-arr.push({name:"Ürün "+i,price:price,energy:energy});
-}
-return arr;
+  let arr=[];
+  for(let i=1;i<=20;i++){
+    let price=Math.floor(Math.random()*101)+100; //100-200
+    let energy=Math.floor((price-100)/100*50)+30; //30-80
+    arr.push({
+      name:"Ürün "+i,
+      price:price,
+      energy:energy
+    });
+  }
+  return arr;
 }
 
 /* ===== BUY ===== */
 async function buy(product){
-const user=await loadUser();
-if(!user) return;
 
-if(user.yton<product.price){
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>TonCrime</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  let user=await loadUser();
+  if(!user) return;
 
-<style>
-body{margin:0;background:#0e0e0e;color:white;font-family:Arial;}
-.sidebar{position:fixed;top:0;left:-260px;width:260px;height:100vh;background:#151515;padding:30px 20px;transition:0.3s;z-index:3000;}
-.sidebar.open{left:0;}
-.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:2500;}
-.overlay.show{display:block;}
-.topbar{position:fixed;top:0;left:0;width:100%;background:#111;padding:18px 40px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;z-index:2000;}
-.left-top{display:flex;align-items:center;gap:15px;}
-.menu-btn{font-size:22px;cursor:pointer;color:gold;}
-.logo{font-size:24px;font-weight:bold;color:gold;}
-.right-stats{width:420px;}
-.bar{width:100%;height:8px;background:#333;border-radius:5px;overflow:hidden;margin-bottom:6px;}
-.bar-fill{height:100%;transition:0.3s;}
-.xp-fill{background:limegreen;}
-.energy-fill{background:gold;}
-.main{margin-top:90px;display:flex;justify-content:center;gap:40px;padding:40px;}
-.center{width:50%;}
-.userpanel{width:25%;background:#151515;padding:20px;border-radius:10px;}
-.card{background:#1b1b1b;padding:20px;margin-bottom:20px;border-radius:10px;}
-button{width:100%;padding:12px;background:gold;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:10px;}
-input{width:100%;padding:10px;border-radius:6px;border:none;margin-top:10px;}
-</style>
-</head>
-<body>
+  if(user.yton<product.price){
+    alert("Yetersiz Yton");
+    return;
+  }
 
-<div class="sidebar" id="sidebar">
-<h3 style="color:gold">Menü</h3>
-<p onclick="go('index.html')">🏠 Ana Sayfa</p>
-<p onclick="go('missions.html')">🎯 Görevler</p>
-<p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
-<p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
-<p onclick="go('mekan.html')">🏢 Mekan</p>
-<p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
-<p onclick="go('hospital.html')">🏥 Hastane</p>
-<p onclick="logout()">🚪 Çıkış</p>
-</div>
-<div class="overlay" id="overlay"></div>
+  await updateUser({
+    yton:-product.price,
+    energy:product.energy
+  });
 
-<div class="topbar">
-<div class="left-top">
-<div class="menu-btn" onclick="openMenu()">☰</div>
-<div class="logo">TonCrime</div>
-</div>
-<div class="right-stats" id="statsArea"></div>
-</div>
+  alert("Satın alındı! +" + product.energy + " enerji");
 
-<div class="main" id="mainArea"></div>
-
-<script>
-const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-const MAX_ENERGY=100;
-const XP_LIMIT=100;
-
-/* ===== USER LOAD ===== */
-async function loadUser(){
-const userId=localStorage.getItem("tc_user");
-if(!userId) return null;
-
-const {data}=await db.from("users")
-.select("*")
-.eq("id",userId)
-.maybeSingle();
-
-return data;
+  render();
 }
 
-/* ===== RENDER ===== */
-function renderStats(user){
-document.getElementById("statsArea").innerHTML=
-`Lv ${user.level} | XP ${user.xp}/${XP_LIMIT} | ⚡ ${user.energy} | 💰 ${user.yton}
-<div class="bar"><div class="bar-fill xp-fill" style="width:${(user.xp/XP_LIMIT)*100}%"></div></div>
-<div class="bar"><div class="bar-fill energy-fill" style="width:${user.energy}%"></div></div>`;
+/* ===== RENDER PAGE ===== */
+async function render(){
+
+  let user=await loadUser();
+  if(!user) return;
+
+  user=await regenEnergy(user);
+
+  renderStats(user);
+
+  let products=generateProducts();
+  let html="";
+
+  products.forEach(p=>{
+    html+=`
+    <div class="card">
+      <b>${p.name}</b><br>
+      Fiyat: ${p.price} Yton<br>
+      Enerji: +${p.energy}
+      <button onclick='buy(${JSON.stringify(p)})'>
+        Satın Al
+      </button>
+    </div>
+    `;
+  });
+
+  document.getElementById("shop").innerHTML=html;
 }
 
-/* ===== UPDATE CORE ===== */
-async function updateUser(change){
-const user=await loadUser();
-if(!user) return;
+render();
+setInterval(render,3000);
 
-let newEnergy=user.energy+(change.energy||0);
-let newXp=user.xp+(change.xp||0);
-let newYton=user.yton+(change.yton||0);
-let newLevel=user.level;
-
-if(newEnergy>MAX_ENERGY) newEnergy=MAX_ENERGY;
-if(newEnergy<0) newEnergy=0;
-
-if(newXp>=XP_LIMIT){
-newXp=newXp-XP_LIMIT;
-newLevel=newLevel+1;
-}
-
-await db.from("users").update({
-energy:newEnergy,
-xp:newXp,
-yton:newYton,
-level:newLevel
-}).eq("id",user.id);
-
-renderStats({...user,energy:newEnergy,xp:newXp,yton:newYton,level:newLevel});
-}
-
-/* ===== MENU ===== */
-function openMenu(){
-document.getElementById("sidebar").classList.add("open");
-document.getElementById("overlay").classList.add("show");
-}
-document.getElementById("overlay").onclick=()=>{
-document.getElementById("sidebar").classList.remove("open");
-document.getElementById("overlay").classList.remove("show");
-};
-function go(p){window.location.href=p;}
-function logout(){localStorage.clear();location.reload();}
-
-/* ===== LOGIN / HOME ===== */
-async function createUser(){
-const nickname=document.getElementById("nickname").value.trim();
-if(!nickname) return alert("Takma ad gir");
-
-const id=Date.now().toString();
-
-await db.from("users").insert({
-id:id,nickname:nickname,level:1,xp:0,energy:100,yton:50
-});
-
-localStorage.setItem("tc_user",id);
-loadHome();
-}
-
-async function loadHome(){
-const user=await loadUser();
-if(!user){showLogin();return;}
-
-renderStats(user);
-
-document.getElementById("mainArea").innerHTML=
-`<div class="center">
-<div class="card"><h2>🏆 Turnuva</h2>Aktif Turnuva: Sokak Hakimiyeti<br>Ödül: 500 Yton</div>
-<div class="card"><h2>🔥 En İyiler</h2>1. MafyaKing<br>2. Shadow<br>3. BossTR</div>
-</div>
-<div class="userpanel">
-<h3>Kullanıcı</h3>
-ID: ${user.id}<br>
-Takma Ad: ${user.nickname}<br>
-Seviye: ${user.level}
-</div>`;
-}
-
-function showLogin(){
-document.getElementById("statsArea").innerHTML="Kullanıcı yok";
-document.getElementById("mainArea").innerHTML=
-`<div class="center">
-<div class="card">
-<h2>Oyuna Başla</h2>
-<input id="nickname" placeholder="Takma ad">
-<button onclick="createUser()">Başla</button>
-</div>
-</div>`;
-}
-
-loadHome();
-</script>
-
-</body>
-</html>
-
-alert("Satın alındı! +" + product.energy + " enerji");
-initPage();
-}
-
-/* ===== LOAD SHOP ===== */
-async function initPage(){
-const user=await loadUser();
-if(!user) return;
-
-renderStats(user);
-
-let products=generateProducts();
-let html="";
-
-products.forEach(p=>{
-html+=`
-<div class="card">
-<b>${p.name}</b><br>
-Fiyat: ${p.price} Yton<br>
-Enerji: +${p.energy}
-<button onclick='buy(${JSON.stringify(p)})'>Satın Al</button>
-</div>`;
-});
-
-document.getElementById("shop").innerHTML=html;
-}
-
-/* ===== MENU ===== */
-function openMenu(){
-document.getElementById("sidebar").classList.add("open");
-document.getElementById("overlay").classList.add("show");
-}
-document.getElementById("overlay").onclick=()=>{
-document.getElementById("sidebar").classList.remove("open");
-document.getElementById("overlay").classList.remove("show");
-}
-function go(p){window.location.href=p;}
-
-initPage();
 </script>
 
 </body>
