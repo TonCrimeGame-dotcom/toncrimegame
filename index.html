@@ -8,62 +8,97 @@
 
 <style>
 body{
-  margin:0;
-  background:#0e0e0e;
-  color:white;
-  font-family:Arial;
+margin:0;
+background:#0e0e0e;
+color:white;
+font-family:Arial;
 }
 
 /* TOPBAR */
 .topbar{
-  background:#111;
-  padding:18px 40px;
-  border-bottom:1px solid #222;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+background:#111;
+padding:15px 25px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #222;
 }
 
-.logo{color:gold;font-size:22px;font-weight:bold}
-
-.right-stats{width:420px}
-
-.bar{
-  height:8px;
-  background:#333;
-  border-radius:5px;
-  overflow:hidden;
-  margin-bottom:6px;
+.logo{
+color:gold;
+font-size:22px;
+font-weight:bold;
 }
 
-.fill{height:100%}
-.xp{background:limegreen}
-.energy{background:gold}
+.stats{
+font-size:14px;
+}
 
 /* MENU */
 .sidebar{
- position:fixed;
- left:-260px;
- top:0;
- width:250px;
- height:100%;
- background:#151515;
- padding:25px;
- transition:.3s;
+position:fixed;
+left:-240px;
+top:0;
+width:240px;
+height:100%;
+background:#151515;
+padding:20px;
+transition:.3s;
+z-index:1000;
 }
-.sidebar.open{left:0}
+
+.sidebar.open{left:0;}
 
 .overlay{
- position:fixed;
- width:100%;
- height:100%;
- background:rgba(0,0,0,.6);
- display:none;
+position:fixed;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.6);
+display:none;
 }
-.overlay.show{display:block}
 
+.overlay.show{display:block;}
+
+.menuItem{
+padding:10px;
+cursor:pointer;
+border-bottom:1px solid #222;
+}
+
+.menuItem:hover{background:#222;}
+
+/* LAYOUT */
 .main{
- padding:40px;
+display:flex;
+gap:30px;
+padding:30px;
+}
+
+.center{width:55%;}
+.right{width:25%;background:#151515;padding:20px;border-radius:10px;}
+
+.card{
+background:#1b1b1b;
+padding:20px;
+margin-bottom:20px;
+border-radius:10px;
+}
+
+/* CHAT */
+.chatBox{
+height:250px;
+overflow-y:auto;
+background:#111;
+padding:10px;
+margin-bottom:10px;
+}
+
+input{
+width:100%;
+padding:10px;
+background:#222;
+border:none;
+color:white;
 }
 </style>
 </head>
@@ -71,206 +106,111 @@ body{
 <body>
 
 <!-- MENU -->
-<div class="sidebar" id="sidebar">
-<h3 style="color:gold">Menü</h3>
-<p onclick="go('missions.html')">🎯 Görevler</p>
-<p onclick="go('coffeeshop.html')">☕ Coffee</p>
-<p onclick="go('nightclub.html')">🎵 Club</p>
-<p onclick="go('pvp.html')">⚔ PvP</p>
+<div class="sidebar" id="menu">
+<div class="menuItem" onclick="go('index.html')">🏠 Şehir</div>
+<div class="menuItem" onclick="go('missions.html')">🎯 Görevler</div>
+<div class="menuItem" onclick="go('pvp.html')">⚔ PvP</div>
+<div class="menuItem" onclick="go('coffeeshop.html')">☕ Coffee</div>
+<div class="menuItem" onclick="go('nightclub.html')">🍾 Gece Kulübü</div>
+<div class="menuItem" onclick="go('brothel.html')">❤️ Genel Ev</div>
+<div class="menuItem" onclick="go('weapons.html')">🔫 Silahçı</div>
+<div class="menuItem" onclick="go('hospital.html')">🏥 Hastane</div>
 </div>
 
 <div class="overlay" id="overlay"></div>
 
-<!-- TOP -->
+<!-- TOPBAR -->
 <div class="topbar">
 <div>
-<span style="cursor:pointer" onclick="openMenu()">☰</span>
+<span onclick="toggleMenu()" style="cursor:pointer">☰</span>
 <span class="logo">TonCrime</span>
 </div>
 
-<div class="right-stats">
-<div id="stats"></div>
-
-<div class="bar">
-<div id="xpBar" class="fill xp"></div>
-</div>
-
-<div class="bar">
-<div id="energyBar" class="fill energy"></div>
-</div>
-
-<div id="energyTimer" style="font-size:11px;color:#aaa"></div>
+<div class="stats" id="stats">
+yükleniyor...
 </div>
 </div>
 
+<!-- CONTENT -->
 <div class="main">
-<h2>Ana Sayfa</h2>
-<p>Sistem stabil çalışıyor.</p>
+
+<div class="center">
+
+<div class="card">
+<h3>🏆 Aktif Turnuva</h3>
+<div id="tournamentBoard">yükleniyor...</div>
+</div>
+
+<div class="card">
+<h3>💬 Clan Chat</h3>
+
+<div id="chatBox" class="chatBox"></div>
+
+<input id="chatInput"
+placeholder="Mesaj..."
+onkeydown="if(event.key==='Enter')sendChat()">
+</div>
+
+</div>
+
+<div class="right">
+
+<div class="card">
+<h3>👤 Oyuncu</h3>
+<div id="userInfo"></div>
+</div>
+
+<div class="card">
+<h3>🌐 Online</h3>
+<div id="onlineCount">0</div>
+</div>
+
+</div>
+
 </div>
 
 <script>
+
 /* ================= CONFIG ================= */
 
-const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-const userId=localStorage.getItem("tc_user") || "591676206";
-
-const MAX_ENERGY=100;
-const MAX_XP=100;
-const ENERGY_INTERVAL=5*60*1000;
-
-/* ================= MENU ================= */
-
-function openMenu(){
- sidebar.classList.add("open");
- overlay.classList.add("show");
-}
-
-overlay.onclick=()=>{
- sidebar.classList.remove("open");
- overlay.classList.remove("show");
-}
-
-function go(p){location.href=p}
-
-/* ================= USER ================= */
-
-async function loadUser(){
- const {data}=await db
-   .from("users")
-   .select("*")
-   .eq("id",userId)
-   .single();
-
- return data;
-}
-
-/* ================= ENERGY ================= */
-
-async function regenEnergy(user){
-
- const now=Date.now();
-
- if(!user.last_energy_tick){
-   await db.from("users")
-     .update({last_energy_tick:now})
-     .eq("id",userId);
-
-   user.last_energy_tick=now;
- }
-
- const diff=now-user.last_energy_tick;
- const add=Math.floor(diff/ENERGY_INTERVAL);
-
- if(add>0 && user.energy<MAX_ENERGY){
-
-   const newEnergy=Math.min(MAX_ENERGY,user.energy+add);
-   const newTick=user.last_energy_tick+(add*ENERGY_INTERVAL);
-
-   await db.from("users")
-     .update({
-       energy:newEnergy,
-       last_energy_tick:newTick
-     })
-     .eq("id",userId);
-
-   user.energy=newEnergy;
-   user.last_energy_tick=newTick;
- }
-
- return user;
-}
-
-/* ================= UI ================= */
-
-function renderStats(user){
-
- stats.innerHTML=
- `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
-
- xpBar.style.width=(user.xp/MAX_XP*100)+"%";
- energyBar.style.width=(user.energy/MAX_ENERGY*100)+"%";
-
- if(user.energy>=MAX_ENERGY){
-   energyTimer.innerText="Enerji Full";
-   return;
- }
-
- const remain=
- ENERGY_INTERVAL-(Date.now()-user.last_energy_tick);
-
- const min=Math.floor(remain/60000);
- const sec=Math.floor(remain/1000)%60;
-
- energyTimer.innerText=
- `Sonraki enerji: ${min}m ${sec}s`;
-}
-
-/* ================= DAILY RESET ================= */
-
-async function dailyReset(){
- const today=new Date().toDateString();
-
- if(localStorage.getItem("daily_reset")==today) return;
-
- localStorage.setItem("daily_reset",today);
-
- console.log("Daily reset OK");
-}
-
-/* ================= PVP REALTIME ================= */
-
-let pvpSubscribed=false;
-
-function subscribePvP(){
-
- if(pvpSubscribed) return;
- pvpSubscribed=true;
-
- db.channel('pvp-live')
-  .on(
-   'postgres_changes',
-   {event:'UPDATE',schema:'public',table:'pvp_matches'},
-   payload=>{
-     console.log("PvP Update:",payload.new);
-   }
-  )
-  .subscribe();
-}
-
-/* ================= INIT ================= */
-
-async function init(){
-
- let user=await loadUser();
- user=await regenEnergy(user);
-
- renderStats(user);
-
- await dailyReset();
-
- subscribePvP();
-}
-
-init();
-
-/* ENERGY LOOP */
-setInterval(async()=>{
- const user=await loadUser();
- if(!user) return;
-
- if(user.energy<MAX_ENERGY){
-   const u=await regenEnergy(user);
-   renderStats(u);
- }
-},60000);
-
-/* DAILY CHECK */
-setInterval(dailyReset,60000);
+const CONFIG={
+SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
+SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
+USER_ID:"591676206",
+XP_LIMIT:100,
+MAX_ENERGY:100,
+ENERGY_INTERVAL:300000
+};
 
 </script>
+
+<!-- ===== ENGINE LOAD ORDER ===== -->
+
+<script src="engine.js"></script>
+<script src="presence.engine.js"></script>
+<script src="chat.engine.js"></script>
+<script src="clan.engine.js"></script>
+<script src="tournament.engine.js"></script>
+<script src="event.engine.js"></script>
+
+<script>
+
+/* MENU */
+function toggleMenu(){
+menu.classList.toggle("open");
+overlay.classList.toggle("show");
+}
+
+overlay.onclick=toggleMenu;
+
+function go(p){location.href=p;}
+
+/* INIT SAFE ZONE CHAT */
+document.addEventListener("DOMContentLoaded",()=>{
+enterClanChat();
+});
+
+</script>
+
 </body>
 </html>
