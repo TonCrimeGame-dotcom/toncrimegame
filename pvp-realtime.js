@@ -1,4 +1,4 @@
-/* ===== TONCRIME FULL REALTIME PVP SYSTEM ===== */
+/* ===== TONCRIME PRO PVP SYSTEM ===== */
 
 let currentMatch = null;
 let myRole = null;
@@ -7,13 +7,21 @@ let totalTime = 0;
 let questionStart = 0;
 let matchTimeout = null;
 let matchActive = false;
+let entryMode = null;
 
-/* ===== SİLAH BONUS HARİTASI ===== */
+/* ===== SİLAH BONUS ===== */
 const weaponBonusMap = {
   "Sopa": 0,
   "Tabanca": 0.05,
   "AK47": 0.10,
   "AWP": 0.20
+};
+
+/* ===== ENTRY MODES ===== */
+const entryModes = {
+  bronze: {cost:2.5, reward:4, house:1},
+  silver: {cost:6, reward:10, house:2},
+  free:   {cost:0, reward:1, house:0}
 };
 
 /* ===== SORULAR ===== */
@@ -25,18 +33,32 @@ const questions = [
   {q:"10/2?",a:"5",options:["2","5","8","6"]}
 ];
 
-/* ================= MATCH ARAMA ================= */
+/* ================= ENTRY START ================= */
 
-async function findRealtimeMatch(){
+async function findRealtimeMatch(mode){
 
   const user = await loadUser();
   if(!user) return;
 
-  // BAN kontrol
   const now = new Date();
   if(user.pvp_ban_until && new Date(user.pvp_ban_until) > now){
-    alert("⚠ PvP kilitli! 10 dakika ceza.");
+    alert("⚠ PvP kilitli! Ceza aktif.");
     return;
+  }
+
+  entryMode = entryModes[mode];
+  if(!entryMode) return;
+
+  if(user.yton < entryMode.cost){
+    alert("Yetersiz Yton.");
+    return;
+  }
+
+  // Giriş ücretini düş
+  if(entryMode.cost > 0){
+    await db.from("users").update({
+      yton: user.yton - entryMode.cost
+    }).eq("id", user.id);
   }
 
   const {data:waiting} = await db
@@ -74,14 +96,13 @@ async function findRealtimeMatch(){
 
     listenMatch();
 
-    // 10 saniye rakip bekleme
     matchTimeout = setTimeout(()=>{
       startSoloMode();
     },10000);
   }
 }
 
-/* ================= REALTIME DINLEME ================= */
+/* ================= REALTIME ================= */
 
 function listenMatch(){
 
@@ -111,18 +132,16 @@ function listenMatch(){
   }).subscribe();
 }
 
-/* ================= SOLO MOD ================= */
+/* ================= SOLO ================= */
 
 async function startSoloMode(){
-
   await db.from("pvp_matches")
     .update({status:"solo"})
     .eq("id",currentMatch.id);
-
   startBattle();
 }
 
-/* ================= BATTLE START ================= */
+/* ================= BATTLE ================= */
 
 async function startBattle(){
 
@@ -136,8 +155,6 @@ async function startBattle(){
 
   showQuestion();
 }
-
-/* ================= SORU GÖSTER ================= */
 
 function showQuestion(){
 
@@ -158,15 +175,22 @@ function showQuestion(){
   questionStart = performance.now();
 }
 
-/* ================= CEVAP ================= */
+/* ================= ANTI CHEAT ================= */
 
 function answer(option){
 
   const q = questions[questionIndex];
-  const timeSpent = performance.now() - questionStart;
+  const rawTime = performance.now() - questionStart;
+
+  // Anti cheat: 150ms altı imkansız
+  if(rawTime < 150){
+    alert("⚠ Hız hilesi tespit edildi.");
+    location.reload();
+    return;
+  }
 
   const adjustedTime =
-    timeSpent * (1 - (currentMatch.weaponBonus || 0));
+    rawTime * (1 - (currentMatch.weaponBonus || 0));
 
   totalTime += adjustedTime;
 
@@ -179,7 +203,7 @@ function answer(option){
   showQuestion();
 }
 
-/* ================= MAÇ BITIR ================= */
+/* ================= FINISH ================= */
 
 async function finishBattle(){
 
@@ -204,26 +228,14 @@ async function checkFinish(){
     .eq("id",currentMatch.id)
     .single();
 
-  if(data.status === "solo" && myRole === "player1"){
-
-    await db.from("pvp_matches")
-      .update({status:"solo_finished"})
-      .eq("id",currentMatch.id);
-
-    document.getElementById("pvpArea").innerHTML =
-      "<h2>Süre Kaydedildi. Rakip bekleniyor...</h2>";
-    return;
-  }
-
   if(data.player1_time && data.player2_time){
-
     await db.from("pvp_matches")
       .update({status:"finished"})
       .eq("id",currentMatch.id);
   }
 }
 
-/* ================= SONUÇ ================= */
+/* ================= RESULT ================= */
 
 async function showResult(match){
 
@@ -245,15 +257,20 @@ async function showResult(match){
     (winner==="player1" && myRole==="player1") ||
     (winner==="player2" && myRole==="player2");
 
+  if(myWin){
+    await db.from("users").update({
+      yton: user.yton + entryMode.reward
+    }).eq("id",user.id);
+  }
+
   await processPvpResult(1000,myWin);
 
   document.getElementById("pvpArea").innerHTML =
     `<h2>Maç Bitti</h2>
-     Kazanan: ${winner}<br>
      ${myWin ? "🎉 Kazandın!" : "💀 Kaybettin!"}`;
 }
 
-/* ================= MATCH ABANDON SYSTEM ================= */
+/* ================= ABANDON ================= */
 
 window.addEventListener("beforeunload", async function () {
 
