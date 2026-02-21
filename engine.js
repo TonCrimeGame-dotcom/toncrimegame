@@ -1,72 +1,200 @@
-/* ========= TONCRIME CORE ========= */
+/* ===================================================
+   TONCRIME GLOBAL ENGINE
+   =================================================== */
 
-const MAX_ENERGY = 100;
-const ENERGY_REGEN_SECONDS = 60;
+/* ---------- SUPABASE ---------- */
 
-function getPlayer() {
-  return JSON.parse(localStorage.getItem("player"));
+const db = window.supabase.createClient(
+  CONFIG.SUPABASE_URL,
+  CONFIG.SUPABASE_KEY
+);
+
+/* ---------- GLOBAL STATE ---------- */
+
+const GAME = {
+  user: null,
+  pvpSubscribed: false,
+  loading: false
+};
+
+/* ===================================================
+   USER LOAD
+   =================================================== */
+
+async function loadUser() {
+
+  if (GAME.loading) return GAME.user;
+  GAME.loading = true;
+
+  const { data, error } = await db
+    .from("users")
+    .select("*")
+    .eq("id", CONFIG.USER_ID)
+    .single();
+
+  if (error) {
+    console.error("User load error:", error);
+    GAME.loading = false;
+    return null;
+  }
+
+  GAME.user = data;
+  GAME.loading = false;
+  return data;
 }
 
-function setPlayer(p) {
-  localStorage.setItem("player", JSON.stringify(p));
-}
+/* ===================================================
+   ENERGY REGEN SYSTEM
+   =================================================== */
 
-let player = getPlayer();
+async function regenEnergy() {
 
-if (!player) {
-  player = {
-    level: 1,
-    xp: 0,
-    xpNext: 100,
-    energy: 80,
-    yton: 120,
-    premium: false,
-    hospitalUntil: 0,
-    lastEnergyTick: Date.now()
-  };
-  setPlayer(player);
-}
+  const user = GAME.user;
+  if (!user) return;
 
-/* ===== ENERGY REGEN ===== */
-function regenerateEnergy() {
-
-  let p = getPlayer();
   const now = Date.now();
 
-  if (!p.lastEnergyTick) {
-    p.lastEnergyTick = now;
-    setPlayer(p);
+  /* first login fix */
+  if (!user.last_energy_tick) {
+
+    await db.from("users")
+      .update({ last_energy_tick: now })
+      .eq("id", user.id);
+
+    user.last_energy_tick = now;
     return;
   }
 
-  if (p.energy >= MAX_ENERGY) return;
+  const diff = now - user.last_energy_tick;
+  const gain = Math.floor(diff / CONFIG.ENERGY_INTERVAL);
 
-  const secondsPassed = Math.floor((now - p.lastEnergyTick) / 1000);
+  if (gain <= 0) return;
+  if (user.energy >= CONFIG.MAX_ENERGY) return;
 
-  if (secondsPassed >= ENERGY_REGEN_SECONDS) {
+  const newEnergy = Math.min(
+    CONFIG.MAX_ENERGY,
+    user.energy + gain
+  );
 
-    const gained = Math.floor(secondsPassed / ENERGY_REGEN_SECONDS);
+  const newTick =
+    user.last_energy_tick +
+    gain * CONFIG.ENERGY_INTERVAL;
 
-    p.energy = Math.min(MAX_ENERGY, p.energy + gained);
+  const { error } = await db
+    .from("users")
+    .update({
+      energy: newEnergy,
+      last_energy_tick: newTick
+    })
+    .eq("id", user.id);
 
-    p.lastEnergyTick += gained * ENERGY_REGEN_SECONDS * 1000;
-
-    setPlayer(p);
+  if (!error) {
+    user.energy = newEnergy;
+    user.last_energy_tick = newTick;
   }
 }
 
-function useEnergy(amount) {
+/* ===================================================
+   UI RENDER
+   =================================================== */
 
-  let p = getPlayer();
+function renderStats() {
 
-  if (p.energy < amount) return false;
+  const u = GAME.user;
+  if (!u) return;
 
-  p.energy -= amount;
-  p.lastEnergyTick = Date.now();
+  const statsEl = document.getElementById("stats");
+  const xpBar = document.getElementById("xpBar");
+  const energyBar = document.getElementById("energyBar");
 
-  setPlayer(p);
-  return true;
+  if (statsEl) {
+    statsEl.innerHTML =
+      `Lv ${u.level} | XP ${u.xp}/${CONFIG.XP_LIMIT}
+       | ⚡ ${u.energy} | 💰 ${Number(u.yton).toFixed(2)}`;
+  }
+
+  if (xpBar)
+    xpBar.style.width =
+      (u.xp / CONFIG.XP_LIMIT * 100) + "%";
+
+  if (energyBar)
+    energyBar.style.width =
+      (u.energy / CONFIG.MAX_ENERGY * 100) + "%";
 }
 
-/* ===== GLOBAL LOOP ===== */
-setInterval(regenerateEnergy, 1000);
+/* ===================================================
+   DAILY RESET SYSTEM
+   =================================================== */
+
+function dailyReset() {
+
+  const today = new Date().toDateString();
+  const saved = localStorage.getItem("tc_daily_reset");
+
+  if (saved === today) return;
+
+  localStorage.setItem("tc_daily_reset", today);
+
+  console.log("✔ Daily reset executed");
+}
+
+/* ===================================================
+   PVP REALTIME SUBSCRIBE
+   =================================================== */
+
+function subscribePvP() {
+
+  if (GAME.pvpSubscribed) return;
+
+  GAME.pvpSubscribed = true;
+
+  db.channel("pvp-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "pvp_matches"
+      },
+      payload => {
+        console.log("PvP Update:", payload.new);
+      }
+    )
+    .subscribe();
+}
+
+/* ===================================================
+   GAME LOOP (SAFE LOOP)
+   =================================================== */
+
+async function gameLoop() {
+
+  await regenEnergy();
+  renderStats();
+}
+
+/* ===================================================
+   INIT GAME
+   =================================================== */
+
+async function initGame() {
+
+  const user = await loadUser();
+  if (!user) return;
+
+  renderStats();
+  dailyReset();
+  subscribePvP();
+
+  /* MAIN LOOP — 60s */
+  setInterval(gameLoop, 60000);
+}
+
+/* ===================================================
+   START ENGINE
+   =================================================== */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initGame
+);
