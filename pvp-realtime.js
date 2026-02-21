@@ -1,4 +1,4 @@
-/* ===== ADVANCED REALTIME PVP SYSTEM ===== */
+/* ===== TONCRIME ADVANCED REALTIME PVP SYSTEM ===== */
 
 let currentMatch = null;
 let myRole = null;
@@ -6,6 +6,7 @@ let questionIndex = 0;
 let totalTime = 0;
 let questionStart = 0;
 let matchTimeout = null;
+let matchActive = false;
 
 const questions = [
   {q:"5x5?",a:"25",options:["20","25","30","15"]},
@@ -15,10 +16,19 @@ const questions = [
   {q:"10/2?",a:"5",options:["2","5","8","6"]}
 ];
 
-/* ===== MATCH ARAMA ===== */
+/* ================= MATCH ARAMA ================= */
+
 async function findRealtimeMatch(){
 
   const user = await loadUser();
+  if(!user) return;
+
+  // BAN kontrol
+  const now = new Date();
+  if(user.pvp_ban_until && new Date(user.pvp_ban_until) > now){
+    alert("⚠ PvP kilitli! 10 dakika ceza.");
+    return;
+  }
 
   const {data:waiting} = await db
     .from("pvp_matches")
@@ -55,14 +65,15 @@ async function findRealtimeMatch(){
 
     listenMatch();
 
-    // 10 saniye bekleme
+    // 10 saniye rakip bekleme
     matchTimeout = setTimeout(()=>{
       startSoloMode();
     },10000);
   }
 }
 
-/* ===== REALTIME DINLEME ===== */
+/* ================= REALTIME DINLEME ================= */
+
 function listenMatch(){
 
   db.channel("match_"+currentMatch.id)
@@ -91,7 +102,8 @@ function listenMatch(){
   }).subscribe();
 }
 
-/* ===== SOLO MOD ===== */
+/* ================= SOLO MOD ================= */
+
 async function startSoloMode(){
 
   await db.from("pvp_matches")
@@ -101,10 +113,12 @@ async function startSoloMode(){
   startBattle();
 }
 
-/* ===== SORU SISTEMI ===== */
+/* ================= SORU SISTEMI ================= */
+
 function startBattle(){
   questionIndex = 0;
   totalTime = 0;
+  matchActive = true;
   showQuestion();
 }
 
@@ -142,8 +156,11 @@ function answer(option){
   showQuestion();
 }
 
-/* ===== MAÇ BİTİR ===== */
+/* ================= MAÇ BITIR ================= */
+
 async function finishBattle(){
+
+  matchActive = false;
 
   const updateData = {};
   updateData[myRole+"_time"] = totalTime;
@@ -164,7 +181,6 @@ async function checkFinish(){
     .eq("id",currentMatch.id)
     .single();
 
-  // Solo durum
   if(data.status === "solo" && myRole === "player1"){
 
     await db.from("pvp_matches")
@@ -184,7 +200,8 @@ async function checkFinish(){
   }
 }
 
-/* ===== SONUÇ ===== */
+/* ================= SONUÇ ================= */
+
 async function showResult(match){
 
   let winner;
@@ -205,44 +222,33 @@ async function showResult(match){
     (winner==="player1" && myRole==="player1") ||
     (winner==="player2" && myRole==="player2");
 
-  processPvpResult(1000,myWin);
+  await processPvpResult(1000,myWin);
 
   document.getElementById("pvpArea").innerHTML =
     `<h2>Maç Bitti</h2>
      Kazanan: ${winner}<br>
      ${myWin ? "🎉 Kazandın!" : "💀 Kaybettin!"}`;
 }
-/* ===== MATCH LEAVE PENALTY ===== */
 
-let battleStarted = false;
+/* ================= MATCH ABANDON SYSTEM ================= */
 
-function markBattleStarted(){
-  battleStarted = true;
-}
+window.addEventListener("beforeunload", async function () {
 
-window.addEventListener("beforeunload", async function (e) {
-
-  if(!battleStarted || !currentMatch) return;
-
-  await applyLeavePenalty();
-});
-
-async function applyLeavePenalty(){
+  if(!matchActive) return;
 
   const user = await loadUser();
   if(!user) return;
 
-  const banUntil = new Date(Date.now() + 5*60*1000);
+  await db.from("pvp_matches")
+    .update({status:"finished"})
+    .eq("id", currentMatch.id);
+
+  const banUntil = new Date(Date.now() + 10*60*1000);
 
   await db.from("users").update({
-    pvp_rank: Math.max(0, user.pvp_rank - 30),
-    yton: Math.max(0, user.yton - 20),
+    pvp_abandon: (user.pvp_abandon || 0) + 1,
     pvp_ban_until: banUntil
   }).eq("id", user.id);
 
-  await db.from("pvp_matches")
-    .delete()
-    .eq("id", currentMatch.id);
-
-  console.log("Maç terk edildi, ceza uygulandı");
-}
+  await processPvpResult(1000,false);
+});
