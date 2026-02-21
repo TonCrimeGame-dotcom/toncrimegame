@@ -107,7 +107,87 @@ const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const MAX_ENERGY=100;
+const XP_LIMIT=100;
 
+/* ================= USER LOAD ================= */
+
+async function loadUser(){
+  const userId=localStorage.getItem("tc_user");
+  if(!userId) return null;
+
+  const {data}=await db.from("users")
+    .select("*")
+    .eq("id",userId)
+    .maybeSingle();
+
+  return data;
+}
+
+/* ================= RENDER ================= */
+
+function renderStats(user){
+  document.getElementById("statsArea").innerHTML=
+  `Lv ${user.level} | XP ${user.xp}/${XP_LIMIT} | ⚡ ${user.energy} | 💰 ${user.yton}
+   <div class="bar">
+     <div class="bar-fill xp-fill" style="width:${(user.xp/XP_LIMIT)*100}%"></div>
+   </div>
+   <div class="bar">
+     <div class="bar-fill energy-fill" style="width:${user.energy}%"></div>
+   </div>`;
+}
+
+/* ================= UPDATE CORE ================= */
+
+async function updateUser(change){
+
+  const user=await loadUser();
+  const userId=localStorage.getItem("tc_user");
+
+  if(!user) return;
+
+  let newEnergy=user.energy+(change.energy||0);
+  let newXp=user.xp+(change.xp||0);
+  let newYton=user.yton+(change.yton||0);
+  let newLevel=user.level;
+
+  if(newEnergy>MAX_ENERGY) newEnergy=MAX_ENERGY;
+  if(newEnergy<0) newEnergy=0;
+
+  /* LEVEL SYSTEM */
+  if(newXp>=XP_LIMIT){
+    newXp=newXp-XP_LIMIT;
+    newLevel=newLevel+1;
+  }
+
+  await db.from("users").update({
+    energy:newEnergy,
+    xp:newXp,
+    yton:newYton,
+    level:newLevel
+  }).eq("id",userId);
+
+  const updated={
+    ...user,
+    energy:newEnergy,
+    xp:newXp,
+    yton:newYton,
+    level:newLevel
+  };
+
+  renderStats(updated);
+  return updated;
+}
+
+/* ================= AUTO LOAD ================= */
+
+async function initPage(){
+  const user=await loadUser();
+  if(user){
+    renderStats(user);
+  }
+}
+
+initPage();
 function openMenu(){
   document.getElementById("sidebar").classList.add("open");
   document.getElementById("overlay").classList.add("show");
