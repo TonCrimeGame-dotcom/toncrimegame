@@ -1,46 +1,26 @@
 /* ===================================================
-   TONCRIME GLOBAL ENGINE v2
-   FULL CORE SYSTEM
-=================================================== */
+   TONCRIME GLOBAL ENGINE
+   UI CONNECTED VERSION
+   =================================================== */
 
-/* ================= CONFIG ================= */
-
-const CONFIG = {
-  SUPABASE_URL:
-    "https://hwhscuyudwphnsipibpy.supabase.co",
-
-  SUPABASE_KEY:
-    "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
-
-  USER_ID: "591676206",
-
-  MAX_ENERGY: 100,
-  XP_LIMIT: 100,
-  ENERGY_INTERVAL: 5 * 60 * 1000,
-
-  MANIFEST:
-  "https://toncrimegame-dotcom.github.io/toncrimegame/tonconnect-manifest.json"
-};
-
-/* ================= SUPABASE ================= */
+/* ---------- SUPABASE ---------- */
 
 const db = window.supabase.createClient(
   CONFIG.SUPABASE_URL,
   CONFIG.SUPABASE_KEY
 );
 
-/* ================= GLOBAL STATE ================= */
+/* ---------- GLOBAL STATE ---------- */
 
-const GAME = {
+window.GAME = {
   user: null,
-  loading: false,
   pvpSubscribed: false,
-  wallet: null
+  loading: false
 };
 
 /* ===================================================
    USER LOAD
-=================================================== */
+   =================================================== */
 
 async function loadUser() {
 
@@ -53,50 +33,52 @@ async function loadUser() {
     .eq("id", CONFIG.USER_ID)
     .single();
 
-  GAME.loading = false;
-
   if (error) {
     console.error("User load error:", error);
+    GAME.loading = false;
     return null;
   }
 
   GAME.user = data;
+  GAME.loading = false;
+
   return data;
 }
 
 /* ===================================================
-   ENERGY REGEN
-=================================================== */
+   ENERGY REGEN SYSTEM
+   =================================================== */
 
 async function regenEnergy() {
 
-  const u = GAME.user;
-  if (!u) return;
+  const user = GAME.user;
+  if (!user) return;
 
   const now = Date.now();
 
-  if (!u.last_energy_tick) {
+  if (!user.last_energy_tick) {
+
     await db.from("users")
       .update({ last_energy_tick: now })
-      .eq("id", u.id);
+      .eq("id", user.id);
 
-    u.last_energy_tick = now;
+    user.last_energy_tick = now;
     return;
   }
 
-  const diff = now - u.last_energy_tick;
+  const diff = now - user.last_energy_tick;
   const gain = Math.floor(diff / CONFIG.ENERGY_INTERVAL);
 
   if (gain <= 0) return;
-  if (u.energy >= CONFIG.MAX_ENERGY) return;
+  if (user.energy >= CONFIG.MAX_ENERGY) return;
 
   const newEnergy = Math.min(
     CONFIG.MAX_ENERGY,
-    u.energy + gain
+    user.energy + gain
   );
 
   const newTick =
-    u.last_energy_tick +
+    user.last_energy_tick +
     gain * CONFIG.ENERGY_INTERVAL;
 
   const { error } = await db
@@ -105,102 +87,58 @@ async function regenEnergy() {
       energy: newEnergy,
       last_energy_tick: newTick
     })
-    .eq("id", u.id);
+    .eq("id", user.id);
 
   if (!error) {
-    u.energy = newEnergy;
-    u.last_energy_tick = newTick;
+    user.energy = newEnergy;
+    user.last_energy_tick = newTick;
   }
 }
 
 /* ===================================================
-   RENDER STATS (AUTO SAFE)
-=================================================== */
+   UI RENDER
+   =================================================== */
 
 function renderStats() {
 
   const u = GAME.user;
   if (!u) return;
 
-  const stats = document.getElementById("stats");
-  const xpBar = document.getElementById("xpBar");
-  const energyBar = document.getElementById("energyBar");
+  /* ===== LAYOUT TOPBAR ===== */
+  if (window.renderTopStats)
+    renderTopStats(u);
 
-  if (stats)
-    stats.innerHTML =
-      `Lv ${u.level} | XP ${u.xp}/${CONFIG.XP_LIMIT}
-       | ⚡ ${u.energy} | 💰 ${Number(u.yton).toFixed(2)}`;
-
-  if (xpBar)
-    xpBar.style.width =
-      (u.xp / CONFIG.XP_LIMIT * 100) + "%";
-
-  if (energyBar)
-    energyBar.style.width =
-      (u.energy / CONFIG.MAX_ENERGY * 100) + "%";
+  /* ===== UI ENGINE AUTO SYNC ===== */
+  if (window.UI) {
+    UI.updateStats(u);
+    UI.renderPlayerCard(u);
+  }
 }
 
 /* ===================================================
-   DAILY RESET
-=================================================== */
+   DAILY RESET SYSTEM
+   =================================================== */
 
 function dailyReset() {
 
   const today = new Date().toDateString();
-  const saved = localStorage.getItem("tc_daily");
+  const saved = localStorage.getItem("tc_daily_reset");
 
   if (saved === today) return;
 
-  localStorage.setItem("tc_daily", today);
+  localStorage.setItem("tc_daily_reset", today);
 
-  console.log("✔ Daily reset");
+  console.log("✔ Daily reset executed");
 }
 
 /* ===================================================
-   TON WALLET ENGINE (AUTO UI)
-=================================================== */
-
-function initWallet() {
-
-  if (!window.TON_CONNECT_UI) return;
-
-  const btn = document.getElementById("walletBtn");
-  if (!btn) return;
-
-  const tonUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: CONFIG.MANIFEST,
-    buttonRootId: "walletBtn"
-  });
-
-  tonUI.onStatusChange(async wallet => {
-
-    if (!wallet) return;
-
-    GAME.wallet = wallet.account.address;
-
-    const user = await loadUser();
-    if (!user) return;
-
-    await db.from("users")
-      .update({ ton_wallet: GAME.wallet })
-      .eq("id", CONFIG.USER_ID);
-
-    btn.innerText =
-      GAME.wallet.slice(0,6) +
-      "..." +
-      GAME.wallet.slice(-4);
-
-    console.log("Wallet linked");
-  });
-}
-
-/* ===================================================
-   PVP REALTIME
-=================================================== */
+   PVP REALTIME SUBSCRIBE
+   =================================================== */
 
 function subscribePvP() {
 
   if (GAME.pvpSubscribed) return;
+
   GAME.pvpSubscribed = true;
 
   db.channel("pvp-live")
@@ -220,18 +158,19 @@ function subscribePvP() {
 
 /* ===================================================
    GAME LOOP
-=================================================== */
+   =================================================== */
 
 async function gameLoop() {
+
   await regenEnergy();
   renderStats();
 }
 
 /* ===================================================
-   INIT ENGINE
-=================================================== */
+   INIT GAME
+   =================================================== */
 
-async function initEngine() {
+async function initGame() {
 
   const user = await loadUser();
   if (!user) return;
@@ -239,17 +178,16 @@ async function initEngine() {
   renderStats();
   dailyReset();
   subscribePvP();
-  initWallet();
 
-  /* SAFE LOOP */
+  /* MAIN LOOP — 60s */
   setInterval(gameLoop, 60000);
 }
 
 /* ===================================================
-   START
-=================================================== */
+   START ENGINE
+   =================================================== */
 
 document.addEventListener(
   "DOMContentLoaded",
-  initEngine
+  initGame
 );
