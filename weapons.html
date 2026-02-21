@@ -3,159 +3,160 @@
 <head>
 <meta charset="UTF-8">
 <title>TonCrime - Silah Kaçakçısı</title>
+
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="game-core.js"></script>
 
 <style>
-body{margin:0;background:#140000;color:white;font-family:Arial;}
-.topbar{background:#1a0000;padding:18px 40px;border-bottom:1px solid #330000;display:flex;justify-content:space-between;align-items:center;}
-.left-top{display:flex;align-items:center;gap:15px;}
-.menu-btn{font-size:22px;cursor:pointer;color:#ff1a1a;}
-.logo{font-size:24px;font-weight:bold;color:#ff1a1a;}
-.right-stats{width:420px;}
-.bar{width:100%;height:8px;background:#330000;border-radius:5px;overflow:hidden;margin-bottom:6px;}
-.bar-fill{height:100%;transition:0.3s;}
-.xp-fill{background:#ff3333;}
-.energy-fill{background:#ffcc00;}
-.sidebar{position:fixed;top:0;left:-260px;width:250px;height:100%;background:#1a0000;padding:25px;transition:0.3s;z-index:2000;}
-.sidebar.open{left:0;}
-.overlay{position:fixed;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;z-index:1500;}
-.overlay.show{display:block;}
-.main{display:flex;justify-content:center;gap:40px;padding:40px;}
-.center{width:60%;}
-.userpanel{width:25%;background:#1a0000;padding:20px;border-radius:10px;height:fit-content;border:1px solid #330000;}
-.card{background:#220000;padding:15px;margin-bottom:18px;border-radius:10px;border:1px solid #330000;}
-button{width:100%;padding:10px;background:#ff1a1a;border:none;font-weight:bold;cursor:pointer;border-radius:6px;margin-top:8px;color:white;}
-button:hover{background:#cc0000;}
-.result-box{position:fixed;bottom:30px;right:30px;background:#220000;padding:20px;border-radius:10px;border-left:5px solid #ff1a1a;display:none;z-index:3000;min-width:250px;}
-.result-box.success{border-color:#66ff33;}
-.result-box.fail{border-color:red;}
+body{
+  margin:0;
+  background:#1a0e0e;
+  color:white;
+  font-family:Arial;
+}
+
+/* TOPBAR */
+.topbar{
+  background:#2b1111;
+  padding:18px 40px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.right-stats{ width:420px; }
+
+.bar{
+  width:100%;
+  height:8px;
+  background:#333;
+  border-radius:5px;
+  overflow:hidden;
+  margin-bottom:6px;
+}
+
+.fill{ height:100%; }
+.xp{ background:#ff4444; }
+.energy{ background:#ffaa00; }
+
+/* GRID */
+.main{
+  padding:40px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:20px;
+}
+
+.card{
+  background:#2b1111;
+  padding:20px;
+  border-radius:10px;
+  border:1px solid #5c1f1f;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  background:#ff4444;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover{ opacity:0.85; }
 </style>
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-  <h3 style="color:#ff1a1a">Menü</h3>
-  <p onclick="location.href='index.html'">🏠 Ana Sayfa</p>
-  <p onclick="location.href='missions.html'">🎯 Görevler</p>
-  <p onclick="location.href='nightclub.html'">🎵 Gece Kulübü</p>
-  <p onclick="location.href='coffeeshop.html'">☕ Coffee Shop</p>
-  <p onclick="location.href='weapons.html'">🔫 Silah Kaçakçısı</p>
-</div>
-<div class="overlay" id="overlay"></div>
-
 <div class="topbar">
-  <div class="left-top">
-    <div class="menu-btn" onclick="openMenu()">☰</div>
-    <div class="logo">Silah Kaçakçısı</div>
-  </div>
+  <div><b>🔫 Silah Kaçakçısı</b></div>
+
   <div class="right-stats">
     <div id="stats"></div>
-    <div class="bar"><div class="bar-fill xp-fill" id="xpBar"></div></div>
-    <div class="bar"><div class="bar-fill energy-fill" id="energyBar"></div></div>
+
+    <div class="bar">
+      <div id="xpBar" class="fill xp"></div>
+    </div>
+
+    <div class="bar">
+      <div id="energyBar" class="fill energy"></div>
+    </div>
   </div>
 </div>
 
-<div class="main">
-  <div class="center" id="weaponList"></div>
-  <div class="userpanel" id="userinfo"></div>
-</div>
-
-<div class="result-box" id="resultBox"></div>
+<div class="main" id="shop"></div>
 
 <script>
-const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const userId=localStorage.getItem("tc_user");
-const MAX_ENERGY=100;
-const MAX_XP=100;
+/* ===== SİLAHLAR ===== */
+function generateWeapons(){
 
-function openMenu(){
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("overlay").classList.add("show");
-}
-document.getElementById("overlay").onclick=()=>{
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("overlay").classList.remove("show");
-};
-
-function showResult(text,type){
-  const box=document.getElementById("resultBox");
-  box.className="result-box "+type;
-  box.innerHTML=text;
-  box.style.display="block";
-  setTimeout(()=>box.style.display="none",3000);
+  return [
+    {name:"Tabanca", price:120, xp:5},
+    {name:"Pompalı", price:250, xp:12},
+    {name:"AK-47", price:400, xp:20},
+    {name:"Keskin Nişancı", price:650, xp:35},
+    {name:"MiniGun", price:1000, xp:60}
+  ];
 }
 
-async function loadUser(){
-  const {data}=await db.from("users").select("*").eq("id",userId).maybeSingle();
-  return data;
-}
+/* ===== SATIN AL ===== */
+async function buyWeapon(weapon){
 
-async function buyWeapon(name,price,bonus){
   let user=await loadUser();
   if(!user) return;
 
-  if(user.yton < price){
-    showResult("Yetersiz Yton!","fail");
+  user=await regenEnergy(user);
+
+  if(user.yton < weapon.price){
+    alert("Yetersiz Yton!");
     return;
   }
 
-  await db.from("users").update({
-    yton:user.yton-price,
-    weapon:name,
-    weapon_bonus:bonus
-  }).eq("id",userId);
+  await updateUser({
+    yton:-weapon.price,
+    xp:weapon.xp
+  });
 
-  showResult("Satın alındı! PvP hız bonusu: +" + bonus,"success");
+  alert(weapon.name + " satın alındı! +" + weapon.xp + " XP");
+
   render();
 }
 
-function generateWeapons(){
-  const names=[
-    "Sopa","Bıçak","Sustalı","Tabanca","Revolver",
-    "Uzi","MP5","Shotgun","AK-47","M4A1",
-    "Desert Eagle","Glock","Famas","P90","SCAR",
-    "Sniper","Dragunov","M249","RPG","AWP"
-  ];
-
-  const list=document.getElementById("weaponList");
-
-  for(let i=0;i<20;i++){
-    let price=10 + (i*10);
-    let bonus=i+1;
-
-    list.innerHTML+=`
-      <div class="card">
-        <b>${names[i]}</b><br>
-        Fiyat: ${price} Yton<br>
-        PvP Hız Bonus: +${bonus}
-        <button onclick="buyWeapon('${names[i]}',${price},${bonus})">Satın Al</button>
-      </div>
-    `;
-  }
-}
-
+/* ===== RENDER ===== */
 async function render(){
-  const user=await loadUser();
+
+  let user=await loadUser();
   if(!user) return;
 
-  document.getElementById("stats").innerHTML=
-  `Lv ${user.level} | XP ${user.xp}/100 | ⚡ ${user.energy} | 💰 ${user.yton}`;
+  user=await regenEnergy(user);
 
-  document.getElementById("xpBar").style.width=(user.xp/MAX_XP*100)+"%";
-  document.getElementById("energyBar").style.width=(user.energy/MAX_ENERGY*100)+"%";
+  renderStats(user);
 
-  document.getElementById("userinfo").innerHTML=
-  `ID: ${user.id}<br>
-   Takma Ad: ${user.nickname}<br>
-   Aktif Silah: ${user.weapon || "Yok"}<br>
-   Hız Bonus: +${user.weapon_bonus || 0}`;
+  let weapons=generateWeapons();
+  let html="";
+
+  weapons.forEach(w=>{
+    html+=`
+      <div class="card">
+        <b>${w.name}</b><br>
+        Fiyat: ${w.price} Yton<br>
+        XP Kazancı: ${w.xp}
+        <button onclick='buyWeapon(${JSON.stringify(w)})'>
+          Satın Al
+        </button>
+      </div>
+    `;
+  });
+
+  document.getElementById("shop").innerHTML=html;
 }
 
-generateWeapons();
 render();
+setInterval(render,3000);
+
 </script>
 
 </body>
