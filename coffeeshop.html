@@ -1,4 +1,208 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Coffee Shop</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+body{margin:0;background:#071a0f;color:white;font-family:Arial;}
+
+.sidebar{
+position:fixed;top:0;left:-260px;width:260px;height:100vh;
+background:#062d18;padding:30px 20px;transition:0.3s;z-index:3000;
+}
+.sidebar.open{left:0;}
+
+.overlay{
+position:fixed;top:0;left:0;width:100%;height:100%;
+background:rgba(0,0,0,0.6);display:none;z-index:2500;
+}
+.overlay.show{display:block;}
+
+.topbar{
+position:fixed;top:0;left:0;width:100%;
+background:#0c2e19;padding:18px 40px;
+display:flex;justify-content:space-between;align-items:center;
+z-index:2000;border-bottom:1px solid #145c34;
+}
+
+.menu-btn{font-size:22px;cursor:pointer;color:#00ff88;}
+.logo{font-size:22px;font-weight:bold;color:#00ff88;}
+
+.right-stats{width:400px;font-size:14px;}
+.bar{height:8px;background:#222;border-radius:5px;margin-top:4px;overflow:hidden;}
+.fill{height:100%;transition:0.3s;}
+.xp{background:#00ff88;}
+.energy{background:#00ffaa;}
+
+.main{
+margin-top:100px;padding:40px;
+display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+gap:20px;
+}
+
+.card{
+background:#0f2b1c;padding:15px;border-radius:10px;
+border:1px solid #145c34;
+}
+
+button{
+width:100%;padding:10px;margin-top:8px;
+background:#00ff88;border:none;border-radius:6px;
+font-weight:bold;cursor:pointer;
+}
+button:hover{opacity:0.8;}
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+<h3 style="color:#00ff88">Menü</h3>
+<p onclick="go('index.html')">🏠 Ana Sayfa</p>
+<p onclick="go('missions.html')">🎯 Görevler</p>
+<p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
+<p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
+<p onclick="go('mekan.html')">🏢 Mekan</p>
+<p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
+<p onclick="go('hospital.html')">🏥 Hastane</p>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="topbar">
+<div>
+<span class="menu-btn" onclick="openMenu()">☰</span>
+<span class="logo">Coffee Shop</span>
+</div>
+<div class="right-stats" id="stats"></div>
+</div>
+
+<div class="main" id="shop"></div>
+
+<script>
+const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
+const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const MAX_ENERGY=100;
+const XP_LIMIT=100;
+
+/* ===== USER LOAD ===== */
+async function loadUser(){
+const userId=localStorage.getItem("tc_user");
+if(!userId){window.location.href="index.html";return null;}
+
+const {data}=await db.from("users")
+.select("*")
+.eq("id",userId)
+.maybeSingle();
+
+if(!data){window.location.href="index.html";return null;}
+return data;
+}
+
+/* ===== RENDER ===== */
+function renderStats(user){
+document.getElementById("stats").innerHTML=
+`Lv ${user.level} | XP ${user.xp}/${XP_LIMIT} | ⚡ ${user.energy} | 💰 ${user.yton}
+<div class="bar"><div class="fill xp" style="width:${(user.xp/XP_LIMIT)*100}%"></div></div>
+<div class="bar"><div class="fill energy" style="width:${user.energy}%"></div></div>`;
+}
+
+/* ===== UPDATE CORE ===== */
+async function updateUser(change){
+
+const user=await loadUser();
+if(!user) return;
+
+let newEnergy=user.energy+(change.energy||0);
+let newXp=user.xp+(change.xp||0);
+let newYton=user.yton+(change.yton||0);
+let newLevel=user.level;
+
+if(newEnergy>MAX_ENERGY) newEnergy=MAX_ENERGY;
+if(newEnergy<0) newEnergy=0;
+
+if(newXp>=XP_LIMIT){
+newXp=newXp-XP_LIMIT;
+newLevel=newLevel+1;
+}
+
+await db.from("users").update({
+energy:newEnergy,
+xp:newXp,
+yton:newYton,
+level:newLevel
+}).eq("id",user.id);
+
+const updated={...user,energy:newEnergy,xp:newXp,yton:newYton,level:newLevel};
+renderStats(updated);
+return updated;
+}
+
+/* ===== SHOP ===== */
+function generateProducts(){
+let arr=[];
+for(let i=1;i<=50;i++){
+let price=Math.floor(Math.random()*101)+100;
+let energy=Math.floor((price-100)/100*50)+50;
+arr.push({name:"Ürün "+i,price:price,energy:energy});
+}
+return arr;
+}
+
+async function buy(product){
+
+let user=await loadUser();
+if(user.yton < product.price){
+alert("Yetersiz Yton");
+return;
+}
+
+await updateUser({
+energy:product.energy,
+yton:-product.price
+});
+
+alert("Satın alındı! +" + product.energy + " enerji");
+}
+
+async function loadShop(){
+let user=await loadUser();
+renderStats(user);
+
+let products=generateProducts();
+let html="";
+products.forEach(p=>{
+html+=`
+<div class="card">
+<b>${p.name}</b><br>
+Fiyat: ${p.price} Yton<br>
+Enerji: +${p.energy}
+<button onclick='buy(${JSON.stringify(p)})'>Satın Al</button>
+</div>`;
+});
+document.getElementById("shop").innerHTML=html;
+}
+
+/* ===== MENU ===== */
+function openMenu(){
+document.getElementById("sidebar").classList.add("open");
+document.getElementById("overlay").classList.add("show");
+}
+document.getElementById("overlay").onclick=()=>{
+document.getElementById("sidebar").classList.remove("open");
+document.getElementById("overlay").classList.remove("show");
+}
+function go(p){window.location.href=p;}
+
+/* INIT */
+loadShop();
+</script>
+
+</body>
+</html>
 <html>
 <head>
 <meta charset="UTF-8">
