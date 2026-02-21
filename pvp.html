@@ -1,166 +1,38 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>PvP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body {
-      background:#0b0b0b;
-      color:#fff;
-      font-family:Arial;
-      text-align:center;
-      padding:20px;
-    }
-    .box {
-      max-width:500px;
-      margin:auto;
-      background:#111;
-      padding:20px;
-      border-radius:10px;
-    }
-    button {
-      width:100%;
-      padding:12px;
-      margin:6px 0;
-      font-size:16px;
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-    }
-    button:hover {
-      background:#333;
-    }
-    .error {
-      color:#ff4d4d;
-      font-weight:bold;
-    }
-  </style>
-</head>
+<meta charset="UTF-8">
+<title>TonCrime - PvP Arena</title>
 
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="game-core.js"></script>
+<script src="pvp-rank.js"></script>
+<script src="pvp-match.js"></script>
+
+<style>
+body{
+  background:#0a0a0a;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+  padding:60px;
+}
+
+button{
+  padding:15px 30px;
+  background:red;
+  border:none;
+  font-weight:bold;
+  border-radius:8px;
+  cursor:pointer;
+}
+</style>
+</head>
 <body>
 
-<h2>⚔️ PvP</h2>
+<h1>⚔ PvP Arena</h1>
 
-<div id="content" class="box">
-  Yükleniyor...
-</div>
-
-<script>
-/* =======================
-   SUPABASE AYARLARI
-   ======================= */
-const SUPABASE_URL = "https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-
-/* ======================= */
-const MAX_ENERGY = 100;
-const ENERGY_REGEN_TIME = 300000; // 5 dakika
-
-let player = JSON.parse(localStorage.getItem("player")) || {
-  level:1,
-  xp:0,
-  xpNext:100,
-  energy:80,
-  yton:200,
-  lastEnergyTime: Date.now()
-};
-
-function savePlayer(){
-  localStorage.setItem("player", JSON.stringify(player));
-}
-
-function regenEnergy(){
-
-  let now = Date.now();
-  let diff = now - player.lastEnergyTime;
-
-  let regenPoints = Math.floor(diff / ENERGY_REGEN_TIME);
-
-  if(regenPoints > 0){
-    player.energy = Math.min(MAX_ENERGY, player.energy + regenPoints);
-    player.lastEnergyTime = now;
-    savePlayer();
-  }
-}
-
-function addXP(amount){
-  player.xp += amount;
-
-  while(player.xp >= player.xpNext){
-    player.xp -= player.xpNext;
-    player.level++;
-    player.xpNext = Math.floor(player.xpNext * 1.3);
-  }
-
-  savePlayer();
-}
-
-function removeXP(amount){
-  player.xp = Math.max(0, player.xp - amount);
-  savePlayer();
-}
-
-function addYTon(amount){
-  player.yton += amount;
-  savePlayer();
-}
-
-function removeYTon(amount){
-  player.yton = Math.max(0, player.yton - amount);
-  savePlayer();
-}
-
-function spendEnergy(amount){
-  regenEnergy();
-  if(player.energy < amount) return false;
-
-  player.energy -= amount;
-  savePlayer();
-  return true;
-}
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-/* 🔎 NET BAĞLANTI TESTİ */
-sb.from("pvp_questions").select("id").then(r => {
-  console.log("TEST:", r);
-});
-
-/* PvP yükle */
-async function loadPvP() {
-  const { data, error } = await sb
-    .from("pvp_questions")
-    .select("*")
-    .eq("active", true)
-    .limit(1)
-    .single();
-
-  if (error || !data) {
-    document.getElementById("content").innerHTML =
-      "<div class='error'>❌ PvP sorusu bulunamadı</div>";
-    console.error(error);
-    return;
-  }
-
-  document.getElementById("content").innerHTML = `
-    <p><b>${data.question}</b></p>
-    <button onclick="answer('A')">${data.option_a}</button>
-    <button onclick="answer('B')">${data.option_b}</button>
-    <button onclick="answer('C')">${data.option_c}</button>
-    <button onclick="answer('D')">${data.option_d}</button>
-  `;
-}
-
-/* Şık tıklanınca */
-function answer(opt){
-  alert("Seçtin: " + opt);
-}
-
-/* BAŞLAT */
-loadPvP();
-</script>
+<button onclick="findMatch()">Rakip Ara</button>
 
 </body>
 </html>
