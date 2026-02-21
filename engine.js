@@ -1,106 +1,46 @@
 /* ===================================================
-   TONCRIME GLOBAL ENGINE + AUTH LAYER
-   =================================================== */
+   TONCRIME GLOBAL ENGINE v2
+   FULL CORE SYSTEM
+=================================================== */
 
-/* ---------- SUPABASE ---------- */
+/* ================= CONFIG ================= */
+
+const CONFIG = {
+  SUPABASE_URL:
+    "https://hwhscuyudwphnsipibpy.supabase.co",
+
+  SUPABASE_KEY:
+    "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
+
+  USER_ID: "591676206",
+
+  MAX_ENERGY: 100,
+  XP_LIMIT: 100,
+  ENERGY_INTERVAL: 5 * 60 * 1000,
+
+  MANIFEST:
+  "https://toncrimegame-dotcom.github.io/toncrimegame/tonconnect-manifest.json"
+};
+
+/* ================= SUPABASE ================= */
 
 const db = window.supabase.createClient(
   CONFIG.SUPABASE_URL,
   CONFIG.SUPABASE_KEY
 );
 
-/* ---------- GLOBAL STATE ---------- */
+/* ================= GLOBAL STATE ================= */
 
 const GAME = {
   user: null,
+  loading: false,
   pvpSubscribed: false,
-  loading: false
-};
-
-/* ===================================================
-   AUTH SYSTEM
-   =================================================== */
-
-const AUTH = {
-  token:null,
-  deviceHash:null
-};
-
-/* DEVICE HASH */
-AUTH.createFingerprint = async function(){
-
-  const raw =
-    navigator.userAgent +
-    screen.width +
-    screen.height +
-    navigator.language +
-    Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  const buffer = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(raw)
-  );
-
-  AUTH.deviceHash =
-    Array.from(new Uint8Array(buffer))
-    .map(b=>b.toString(16).padStart(2,"0"))
-    .join("");
-
-  return AUTH.deviceHash;
-};
-
-/* TOKEN */
-AUTH.generateToken = function(){
-  return crypto.randomUUID()+"-"+Date.now();
-};
-
-/* REGISTER SESSION */
-AUTH.registerSession = async function(){
-
-  const hash = await AUTH.createFingerprint();
-  const token = AUTH.generateToken();
-
-  AUTH.token = token;
-
-  await db.from("user_sessions").insert({
-    user_id: CONFIG.USER_ID,
-    device_hash: hash,
-    session_token: token
-  });
-
-  localStorage.setItem("tc_token",token);
-};
-
-/* VALIDATE SESSION */
-AUTH.validate = async function(){
-
-  let token = localStorage.getItem("tc_token");
-
-  if(!token){
-    await AUTH.registerSession();
-    return;
-  }
-
-  const {data} = await db
-    .from("user_sessions")
-    .select("*")
-    .eq("session_token",token)
-    .maybeSingle();
-
-  if(!data){
-    await AUTH.registerSession();
-  }else{
-    AUTH.token = token;
-
-    await db.from("user_sessions")
-      .update({last_seen:new Date()})
-      .eq("id",data.id);
-  }
+  wallet: null
 };
 
 /* ===================================================
    USER LOAD
-   =================================================== */
+=================================================== */
 
 async function loadUser() {
 
@@ -113,51 +53,50 @@ async function loadUser() {
     .eq("id", CONFIG.USER_ID)
     .single();
 
+  GAME.loading = false;
+
   if (error) {
     console.error("User load error:", error);
-    GAME.loading = false;
     return null;
   }
 
   GAME.user = data;
-  GAME.loading = false;
   return data;
 }
 
 /* ===================================================
-   ENERGY REGEN SYSTEM
-   =================================================== */
+   ENERGY REGEN
+=================================================== */
 
 async function regenEnergy() {
 
-  const user = GAME.user;
-  if (!user) return;
+  const u = GAME.user;
+  if (!u) return;
 
   const now = Date.now();
 
-  if (!user.last_energy_tick) {
-
+  if (!u.last_energy_tick) {
     await db.from("users")
       .update({ last_energy_tick: now })
-      .eq("id", user.id);
+      .eq("id", u.id);
 
-    user.last_energy_tick = now;
+    u.last_energy_tick = now;
     return;
   }
 
-  const diff = now - user.last_energy_tick;
+  const diff = now - u.last_energy_tick;
   const gain = Math.floor(diff / CONFIG.ENERGY_INTERVAL);
 
   if (gain <= 0) return;
-  if (user.energy >= CONFIG.MAX_ENERGY) return;
+  if (u.energy >= CONFIG.MAX_ENERGY) return;
 
   const newEnergy = Math.min(
     CONFIG.MAX_ENERGY,
-    user.energy + gain
+    u.energy + gain
   );
 
   const newTick =
-    user.last_energy_tick +
+    u.last_energy_tick +
     gain * CONFIG.ENERGY_INTERVAL;
 
   const { error } = await db
@@ -166,32 +105,31 @@ async function regenEnergy() {
       energy: newEnergy,
       last_energy_tick: newTick
     })
-    .eq("id", user.id);
+    .eq("id", u.id);
 
   if (!error) {
-    user.energy = newEnergy;
-    user.last_energy_tick = newTick;
+    u.energy = newEnergy;
+    u.last_energy_tick = newTick;
   }
 }
 
 /* ===================================================
-   UI RENDER
-   =================================================== */
+   RENDER STATS (AUTO SAFE)
+=================================================== */
 
 function renderStats() {
 
   const u = GAME.user;
   if (!u) return;
 
-  const statsEl = document.getElementById("stats");
+  const stats = document.getElementById("stats");
   const xpBar = document.getElementById("xpBar");
   const energyBar = document.getElementById("energyBar");
 
-  if (statsEl) {
-    statsEl.innerHTML =
+  if (stats)
+    stats.innerHTML =
       `Lv ${u.level} | XP ${u.xp}/${CONFIG.XP_LIMIT}
        | ⚡ ${u.energy} | 💰 ${Number(u.yton).toFixed(2)}`;
-  }
 
   if (xpBar)
     xpBar.style.width =
@@ -204,28 +142,65 @@ function renderStats() {
 
 /* ===================================================
    DAILY RESET
-   =================================================== */
+=================================================== */
 
 function dailyReset() {
 
   const today = new Date().toDateString();
-  const saved = localStorage.getItem("tc_daily_reset");
+  const saved = localStorage.getItem("tc_daily");
 
   if (saved === today) return;
 
-  localStorage.setItem("tc_daily_reset", today);
+  localStorage.setItem("tc_daily", today);
 
-  console.log("✔ Daily reset executed");
+  console.log("✔ Daily reset");
+}
+
+/* ===================================================
+   TON WALLET ENGINE (AUTO UI)
+=================================================== */
+
+function initWallet() {
+
+  if (!window.TON_CONNECT_UI) return;
+
+  const btn = document.getElementById("walletBtn");
+  if (!btn) return;
+
+  const tonUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: CONFIG.MANIFEST,
+    buttonRootId: "walletBtn"
+  });
+
+  tonUI.onStatusChange(async wallet => {
+
+    if (!wallet) return;
+
+    GAME.wallet = wallet.account.address;
+
+    const user = await loadUser();
+    if (!user) return;
+
+    await db.from("users")
+      .update({ ton_wallet: GAME.wallet })
+      .eq("id", CONFIG.USER_ID);
+
+    btn.innerText =
+      GAME.wallet.slice(0,6) +
+      "..." +
+      GAME.wallet.slice(-4);
+
+    console.log("Wallet linked");
+  });
 }
 
 /* ===================================================
    PVP REALTIME
-   =================================================== */
+=================================================== */
 
 function subscribePvP() {
 
   if (GAME.pvpSubscribed) return;
-
   GAME.pvpSubscribed = true;
 
   db.channel("pvp-live")
@@ -245,7 +220,7 @@ function subscribePvP() {
 
 /* ===================================================
    GAME LOOP
-   =================================================== */
+=================================================== */
 
 async function gameLoop() {
   await regenEnergy();
@@ -253,13 +228,10 @@ async function gameLoop() {
 }
 
 /* ===================================================
-   INIT GAME (AUTH FIRST)
-   =================================================== */
+   INIT ENGINE
+=================================================== */
 
-async function initGame() {
-
-  /* ⭐ AUTH FIRST */
-  await AUTH.validate();
+async function initEngine() {
 
   const user = await loadUser();
   if (!user) return;
@@ -267,15 +239,17 @@ async function initGame() {
   renderStats();
   dailyReset();
   subscribePvP();
+  initWallet();
 
+  /* SAFE LOOP */
   setInterval(gameLoop, 60000);
 }
 
 /* ===================================================
-   START ENGINE
-   =================================================== */
+   START
+=================================================== */
 
 document.addEventListener(
   "DOMContentLoaded",
-  initGame
+  initEngine
 );
