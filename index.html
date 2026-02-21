@@ -5,197 +5,166 @@
 <title>TonCrime</title>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="engine.js"></script>
-<script src="layout.engine.js"></script>
+
+<!-- ENGINE CORE -->
+<script src="engine/event.engine.js"></script>
+<script src="engine/state.engine.js"></script>
+<script src="engine/loop.engine.js"></script>
+<script src="engine/ui.engine.js"></script>
+<script src="engine/ui.master.engine.js"></script>
+<script src="engine/presence.engine.js"></script>
+<script src="engine/chat.engine.js"></script>
+
+<script src="engine/question.engine.js"></script>
+<script src="engine/answer.engine.js"></script>
+<script src="engine/resolve.engine.js"></script>
+<script src="engine/elo.engine.js"></script>
+<script src="engine/reward.engine.js"></script>
+
+<script src="engine/daily.engine.js"></script>
+<script src="engine/achievement.engine.js"></script>
+<script src="engine/clan.engine.js"></script>
+<script src="engine/tournament.engine.js"></script>
+<script src="engine/notify.engine.js"></script>
+<script src="engine/world.engine.js"></script>
 
 <style>
-
 body{
-margin:0;
-background:#0e0e0e;
-color:white;
-font-family:Arial;
+ margin:0;
+ background:#0e0e0e;
+ color:white;
+ font-family:Arial;
 }
 
-/* ===== TOPBAR ===== */
-
-.topbar{
-background:#111;
-padding:15px 25px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:1px solid #222;
+.view-card{
+ background:#1a1a1a;
+ padding:20px;
+ border-radius:10px;
+ margin-bottom:20px;
 }
-
-.logo{
-color:gold;
-font-size:22px;
-font-weight:bold;
-}
-
-.menuBtn{
-cursor:pointer;
-margin-right:15px;
-font-size:20px;
-}
-
-/* ===== PAGE ===== */
-
-.page{
-display:flex;
-gap:25px;
-padding:25px;
-}
-
-.leftArea{width:65%;}
-.rightArea{width:25%;}
-
-/* ===== CARDS ===== */
-
-.card{
-background:#1b1b1b;
-padding:20px;
-border-radius:10px;
-margin-bottom:20px;
-}
-
-/* ===== SIDEBAR ===== */
-
-.sidebar{
-position:fixed;
-top:0;
-left:-260px;
-width:250px;
-height:100%;
-background:#151515;
-padding:25px;
-transition:.3s;
-z-index:2000;
-}
-
-.sidebar.open{left:0;}
-
-.overlay{
-position:fixed;
-width:100%;
-height:100%;
-background:rgba(0,0,0,.6);
-display:none;
-z-index:1500;
-}
-
-.overlay.show{display:block;}
-
-input{
-width:100%;
-padding:10px;
-background:#111;
-border:none;
-color:white;
-margin-top:10px;
-border-radius:6px;
-}
-
-button{
-background:gold;
-border:none;
-padding:10px;
-margin-top:10px;
-cursor:pointer;
-font-weight:bold;
-border-radius:6px;
-}
-
 </style>
 </head>
 
 <body>
 
+<div id="tc-content"></div>
+
 <script>
 
-/* =====================================
-   SAYFA İÇERİĞİ
-===================================== */
+/* ===================================================
+   CONFIG
+=================================================== */
 
-buildLayout(`
+window.CONFIG={
+ SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
+ SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
+ USER_ID:"591676206",
+ MAX_ENERGY:100,
+ XP_LIMIT:100,
+ ENERGY_INTERVAL:300000
+};
 
-<div class="card">
-<h3>🏆 Aktif Turnuva</h3>
-<div id="tournamentBox">yükleniyor...</div>
-</div>
+/* ===================================================
+   SUPABASE
+=================================================== */
 
-<div class="card">
-<h3>💬 Clan Chat</h3>
+window.db = window.supabase.createClient(
+ CONFIG.SUPABASE_URL,
+ CONFIG.SUPABASE_KEY
+);
 
-<div id="chatBox"
-style="
-height:250px;
-background:#111;
-overflow:auto;
-padding:10px;
-border-radius:6px;
-margin-bottom:10px;">
-</div>
+/* ===================================================
+   ROUTER
+=================================================== */
 
-<input id="chatInput" placeholder="Mesaj yaz...">
-<button onclick="sendClanMessage()">Gönder</button>
-
-</div>
-
-`);
-
-/* =====================================
-   USER PANEL RENDER
-===================================== */
-
-function renderUserPanel(){
-
-if(!GAME.user) return;
-
-const el=document.getElementById("userInfo");
-
-if(!el) return;
-
-el.innerHTML=`
-ID: ${GAME.user.id}<br>
-Takma Ad: ${GAME.user.nickname}<br>
-Seviye: ${GAME.user.level}<br>
-XP: ${GAME.user.xp}<br>
-Enerji: ${GAME.user.energy}
-`;
+function getView(){
+ const url=new URL(location.href);
+ return url.searchParams.get("view") || "home";
 }
 
-/* =====================================
-   CLAN CHAT (LOCAL DEMO)
-===================================== */
+/* ===================================================
+   VIEWS
+=================================================== */
 
-function sendClanMessage(){
+const VIEWS={
 
-const input=document.getElementById("chatInput");
-const box=document.getElementById("chatBox");
+home(){
+ return `
+ <div class="view-card">
+ <h2>🏠 TonCrime</h2>
+ Aktif Dünya Çalışıyor 🌍
+ </div>
 
-if(!input.value.trim()) return;
+ <div class="view-card">
+ <h3>🏆 Turnuva</h3>
+ <div id="tournamentBoard">yükleniyor...</div>
+ </div>`;
+},
 
-const msg=document.createElement("div");
-msg.innerText="Sen: "+input.value;
+missions(){
+ return `<div class="view-card">
+ <h2>🎯 Görevler</h2>
+ Görev sistemi engine bağlı.
+ </div>`;
+},
 
-box.appendChild(msg);
-box.scrollTop=box.scrollHeight;
+pvp(){
+ return `<div class="view-card">
+ <h2>⚔ PvP Arena</h2>
+ <div id="pvpTargets"></div>
+ </div>`;
+},
 
-input.value="";
+nightclub(){
+ WORLD.enter("nightclub");
+ return `<div class="view-card">
+ 🍾 Gece Kulübü<br>
+ Oyuncular eğleniyor...
+ </div>`;
+},
+
+coffeeshop(){
+ WORLD.enter("coffeeshop");
+ return `<div class="view-card">
+ ☕ Coffee & Smart Shop
+ </div>`;
+},
+
+hospital(){
+ return `<div class="view-card">
+ 🏥 Hastane
+ Enerji satın alabilirsin.
+ </div>`;
 }
 
-/* =====================================
-   ENGINE HOOK
-===================================== */
+};
 
-document.addEventListener("DOMContentLoaded",()=>{
+/* ===================================================
+   RENDER VIEW
+=================================================== */
 
-setTimeout(()=>{
-renderUserPanel();
-},800);
+function renderView(){
+
+ const view=getView();
+
+ const html =
+   VIEWS[view]
+   ? VIEWS[view]()
+   : VIEWS.home();
+
+ document.getElementById("tc-content")
+   .innerHTML=html;
+}
+
+/* ===================================================
+   ENGINE READY
+=================================================== */
+
+EVENT.on("engine:ready",()=>{
+
+ renderView();
+
+ Notify.show("TonCrime Online","#2ecc71");
 
 });
 
