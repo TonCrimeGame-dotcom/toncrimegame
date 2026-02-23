@@ -1,6 +1,6 @@
 /* ===================================================
-   TONCRIME WORLD ENGINE
-   Living World Simulation System
+   TONCRIME WORLD INSTANCE ENGINE
+   Building Presence + Live Rooms
    =================================================== */
 
 (function(){
@@ -11,123 +11,123 @@ if(!window.EVENT){
 }
 
 /* ===========================================
-   CONFIG
-=========================================== */
-
-const NPC_NAMES=[
-  "Rico","Viper","Ghost","Mia","Kobra",
-  "Shadow","Nero","Luna","Axel","Nova",
-  "Scar","Raven","Zero","Blade","Kira"
-];
-
-const BUILDINGS=[
-  "coffee_shop",
-  "night_club",
-  "brothel"
-];
-
-const CHAT_LINES=[
-  "Mal geldi mi?",
-  "Fiyatlar uçmuş bugün.",
-  "Yeni gelen kim?",
-  "Dikkatli ol polis dolu.",
-  "Bu gece hareket var.",
-  "PvP atan var mı?",
-  "Stok bitti yakında.",
-  "Patron kızgın bugün.",
-  "İşler iyi gidiyor.",
-  "Büyük iş dönüyor."
-];
-
-/* ===========================================
    ENGINE
 =========================================== */
 
-const WORLD={
+const WORLD = {
 
-  npcs:{},
+  current:null,
+  players:{},
 
   /* ===================================== */
-  init(){
+  enter(building){
 
-    this.spawnNPCs();
+    if(this.current===building) return;
 
-    setInterval(()=>{
-      this.randomActivity();
-    },15000);
+    this.leave();
 
-    console.log("🌍 World Engine Ready");
+    this.current=building;
+    this.players={};
+
+    console.log("🌍 Entered:",building);
+
+    EVENT.emit("world:entered",building);
+
+    this.mockPresence(); // realtime sim (later supabase realtime)
   },
 
   /* ===================================== */
-  NPC CREATE
-  ===================================== */
+  leave(){
 
-  spawnNPCs(){
+    if(!this.current) return;
 
-    BUILDINGS.forEach(b=>{
+    EVENT.emit("world:left",this.current);
 
-      this.npcs[b]=[];
-
-      for(let i=0;i<3;i++){
-
-        this.npcs[b].push({
-          id:"npc_"+Math.random(),
-          name:NPC_NAMES[
-            Math.floor(Math.random()*NPC_NAMES.length)
-          ]
-        });
-
-      }
-
-    });
-
+    this.current=null;
+    this.players={};
   },
 
   /* ===================================== */
-  RANDOM WORLD ACTION
+  ADD PLAYER
   ===================================== */
 
-  randomActivity(){
+  joinPlayer(player){
 
-    const building=
-      BUILDINGS[Math.floor(Math.random()*BUILDINGS.length)];
+    this.players[player.id]=player;
 
-    const npcList=this.npcs[building];
-    if(!npcList.length) return;
+    EVENT.emit("world:playerJoin",player);
+    this.updateUI();
+  },
 
-    const npc=
-      npcList[Math.floor(Math.random()*npcList.length)];
+  /* ===================================== */
+  REMOVE PLAYER
+  ===================================== */
 
-    const text=
-      CHAT_LINES[Math.floor(Math.random()*CHAT_LINES.length)];
+  leavePlayer(id){
 
-    EVENT.emit("world:npc:chat",{
-      building,
-      npc,
-      text
-    });
+    const p=this.players[id];
+    delete this.players[id];
 
-    /* chat engine hook */
-    if(window.CHAT){
-      CHAT.system(
-        building+"_npc",
-        "🤖 "+npc.name+": "+text
-      );
-    }
+    EVENT.emit("world:playerLeave",p);
+    this.updateUI();
+  },
 
+  /* ===================================== */
+  UI UPDATE
+  ===================================== */
+
+  updateUI(){
+
+    if(!window.UI) return;
+
+    UI.updateWorldPlayers(
+      Object.values(this.players)
+    );
+  },
+
+  /* ===================================== */
+  MOCK REALTIME (TEMP)
+  ===================================== */
+
+  mockPresence(){
+
+    /* demo simulation */
+    setTimeout(()=>{
+      this.joinPlayer({
+        id:"AI_"+Math.floor(Math.random()*999),
+        nickname:"Shadow"+Math.floor(Math.random()*99),
+        level:Math.floor(Math.random()*50)
+      });
+    },2000);
   }
 
 };
 
-window.WORLD=WORLD;
+window.WORLD = WORLD;
 
 /* ===========================================
-   AUTO START
+   EVENTS
 =========================================== */
 
-EVENT.on("game:ready",()=>{
-  WORLD.init();
+EVENT.on("page:enterBuilding",(b)=>{
+  WORLD.enter(b);
 });
+
+EVENT.on("page:leaveBuilding",()=>{
+  WORLD.leave();
+});
+
+/* ===========================================
+   CORE REGISTER
+=========================================== */
+
+if(window.CORE){
+  CORE.register(
+    "World Engine",
+    ()=>!!window.WORLD
+  );
+}
+
+console.log("🌍 World Engine Loaded");
 
 })();
