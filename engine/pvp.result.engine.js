@@ -1,20 +1,20 @@
 /* ===================================================
-   TONCRIME PVP RESULT ENGINE
-   Winner + Reward + Rank Screen
+   TONCRIME PvP RESULT ENGINE
+   Match Resolve + Winner + Rewards + Achievement
    =================================================== */
 
 (function(){
 
 if(!window.EVENT){
-  console.warn("Result engine waiting...");
+  console.warn("Result engine waiting EVENT...");
   return;
 }
 
 const PVP_RESULT = {
 
-  /* ======================================
-     CALCULATE SCORE
-  ====================================== */
+  /* ===========================================
+     SCORE CALCULATION
+  =========================================== */
 
   calculate(results){
 
@@ -22,150 +22,117 @@ const PVP_RESULT = {
     let correct = 0;
 
     results.forEach(r=>{
-      if(r.correct){
-        correct++;
-        totalTime += r.final_time;
-      }else{
-        totalTime += 15000; // yanlış ceza
-      }
+      if(r.correct) correct++;
+      totalTime += r.time;
     });
 
     return {
       correct,
-      totalTime
+      totalTime,
+      score : (correct * 1000) - totalTime
     };
   },
 
-  /* ======================================
-     DETERMINE WINNER
-  ====================================== */
+  /* ===========================================
+     WINNER DETERMINE
+  =========================================== */
 
-  decide(player,enemy){
+  determine(playerA, playerB){
 
-    if(player.correct > enemy.correct) return "win";
-    if(player.correct < enemy.correct) return "lose";
+    if(playerA.score > playerB.score) return playerA.id;
+    if(playerB.score > playerA.score) return playerB.id;
 
-    if(player.totalTime < enemy.totalTime) return "win";
-    if(player.totalTime > enemy.totalTime) return "lose";
+    // tie breaker → faster wins
+    if(playerA.totalTime < playerB.totalTime)
+      return playerA.id;
 
-    return "draw";
+    return playerB.id;
   },
 
-  /* ======================================
-     APPLY REWARDS
-  ====================================== */
+  /* ===========================================
+     RESOLVE MATCH
+  =========================================== */
 
-  async reward(result){
+  async resolve(match){
 
-    const user = GAME.user;
+    if(!match) return;
 
-    let xpGain = 0;
-    let ytonGain = 0;
+    console.log("⚔ Resolving PvP Match...");
 
-    if(result==="win"){
-      xpGain = 60;
-      ytonGain = 4;
+    const A = this.calculate(match.playerA.results);
+    const B = this.calculate(match.playerB.results);
+
+    A.id = match.playerA.id;
+    B.id = match.playerB.id;
+
+    const winnerId = this.determine(A,B);
+
+    const result = {
+      match_id: match.id,
+      winner: winnerId,
+      scoreA: A.score,
+      scoreB: B.score,
+      timeA: A.totalTime,
+      timeB: B.totalTime,
+      finished_at: Date.now()
+    };
+
+    console.log("🏆 Winner:", winnerId);
+
+    /* ===========================================
+       EVENT EMIT
+    =========================================== */
+
+    EVENT.emit("pvp:finished", result);
+
+    /* ===========================================
+       LOCAL PLAYER WIN CHECK
+    =========================================== */
+
+    if(window.GAME && GAME.user){
+
+      if(winnerId === GAME.user.id){
+
+        console.log("✅ You won PvP");
+
+        /* ---------- ACHIEVEMENT ---------- */
+        if(window.ACHIEVEMENT){
+          ACHIEVEMENT.progress("first_pvp");
+        }
+
+        /* ---------- REWARD ---------- */
+        if(window.REWARD){
+          REWARD.give("pvp_win");
+        }
+
+        /* ---------- NOTIFY ---------- */
+        if(window.NOTIFY){
+          NOTIFY.push("🏆 PvP Kazandın!");
+        }
+
+      }else{
+        console.log("❌ PvP Lost");
+      }
+
     }
-    else if(result==="lose"){
-      xpGain = 20;
-      ytonGain = 0;
-    }
-    else{
-      xpGain = 35;
-      ytonGain = 2;
-    }
 
-    user.xp += xpGain;
-    user.yton += ytonGain;
-
-    if(user.xp >= CONFIG.XP_LIMIT){
-      user.level++;
-      user.xp -= CONFIG.XP_LIMIT;
-    }
-
-    await db.from("users")
-      .update({
-        xp:user.xp,
-        yton:user.yton,
-        level:user.level
-      })
-      .eq("id",user.id);
-
-    return {xpGain,ytonGain};
-  },
-
-  /* ======================================
-     RESULT SCREEN UI
-  ====================================== */
-
-  show(result,data,reward){
-
-    const color =
-      result==="win" ? "limegreen" :
-      result==="lose" ? "red" : "gold";
-
-    TEMPLATE.load(`
-      <div class="battleResult">
-
-        <h1 style="color:${color}">
-          ${result==="win"?"ZAFER":"lose"===result?"KAYBETTİN":"BERABERE"}
-        </h1>
-
-        <div class="resultBox">
-
-          ✅ Doğru: ${data.correct}<br>
-          ⏱ Süre: ${(data.totalTime/1000).toFixed(2)} sn
-
-          <hr>
-
-          ⭐ +${reward.xpGain} XP<br>
-          💰 +${reward.ytonGain} YTON
-
-        </div>
-
-        <button onclick="SCENE.load('index')">
-          Ana Sayfa
-        </button>
-
-      </div>
-    `);
-  },
-
-  /* ======================================
-     FINALIZE MATCH
-  ====================================== */
-
-  async finalize(playerResults,enemyResults){
-
-    const player = this.calculate(playerResults);
-    const enemy = this.calculate(enemyResults);
-
-    const result = this.decide(player,enemy);
-
-    const reward = await this.reward(result);
-
-    this.show(result,player,reward);
-
-    EVENT.emit("pvp:completed",result);
+    return result;
   }
 
 };
 
-window.PVP_RESULT = PVP_RESULT;
 
+/* ===========================================
+   EVENT LISTENER
+   (battle engine sonucu gönderir)
+=========================================== */
 
-/* ======================================
-   AUTO LISTENER
-====================================== */
-
-EVENT.on("pvp:resolved",(data)=>{
-
-  PVP_RESULT.finalize(
-    data.player,
-    data.enemy
-  );
-
+EVENT.on("pvp:resolve", (match)=>{
+  PVP_RESULT.resolve(match);
 });
+
+
+window.PVP_RESULT = PVP_RESULT;
 
 console.log("🏆 PvP Result Engine Ready");
 
