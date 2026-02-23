@@ -61,9 +61,7 @@ transition:.3s;
 z-index:2500;
 }
 
-.sidebar.open{
-left:0;
-}
+.sidebar.open{left:0;}
 
 .sidebar p{
 cursor:pointer;
@@ -80,9 +78,7 @@ display:none;
 z-index:2400;
 }
 
-.overlay.show{
-display:block;
-}
+.overlay.show{display:block;}
 
 /* ================= CONTENT ================= */
 
@@ -110,14 +106,11 @@ overflow:hidden;
 margin-top:4px;
 }
 
-.bar-fill{
-height:100%;
-}
-
+.bar-fill{height:100%;}
 .xp-fill{background:limegreen;}
 .energy-fill{background:gold;}
 
-/* ================= CARDS ================= */
+/* ================= CARD ================= */
 
 .card{
 background:#1b1b1b;
@@ -141,7 +134,7 @@ margin-top:10px;
 
 button:hover{opacity:.9}
 
-/* ================= MISSION PROGRESS ================= */
+/* ================= MISSION BAR ================= */
 
 .mission-progress{
 width:100%;
@@ -156,7 +149,58 @@ overflow:hidden;
 height:100%;
 width:0%;
 background:gold;
-transition:width 0.05s linear;
+transition:width .05s linear;
+}
+
+/* ===================================================
+   🎬 FX SYSTEM (EKLENDİ)
+   =================================================== */
+
+/* SCREEN DIM */
+
+#fx-dim{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:black;
+opacity:0;
+pointer-events:none;
+transition:.25s;
+z-index:1800;
+}
+
+/* SHAKE */
+
+@keyframes shake{
+0%{transform:translate(0)}
+25%{transform:translate(-4px,2px)}
+50%{transform:translate(4px,-2px)}
+75%{transform:translate(-3px,1px)}
+100%{transform:translate(0)}
+}
+
+.shake{
+animation:shake .35s;
+}
+
+/* SUCCESS FLASH */
+
+.fx-success{
+position:fixed;
+inset:0;
+background:rgba(0,255,120,.25);
+z-index:1900;
+}
+
+/* FAIL FLASH */
+
+.fx-fail{
+position:fixed;
+inset:0;
+background:rgba(255,0,0,.25);
+z-index:1900;
 }
 
 </style>
@@ -164,23 +208,19 @@ transition:width 0.05s linear;
 
 <body>
 
-<!-- ================= SIDEBAR ================= -->
-
+<!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
 <h3 style="color:gold">Menü</h3>
 
 <p onclick="PAGE.go('index')">🏠 Ana Sayfa</p>
 <p onclick="PAGE.go('missions')">🎯 Görevler</p>
 <p onclick="PAGE.go('pvp')">⚔ PvP</p>
-
 </div>
 
 <div class="overlay" id="overlay"></div>
 
-<!-- ================= TOPBAR ================= -->
-
+<!-- TOPBAR -->
 <div class="topbar">
-
 <div>
 <span class="menu-btn" onclick="openMenu()">☰</span>
 <span class="logo">TonCrime</span>
@@ -197,17 +237,14 @@ transition:width 0.05s linear;
 <div id="energyBar" class="bar-fill energy-fill"></div>
 </div>
 </div>
-
 </div>
 
-<!-- ================= CONTENT ================= -->
-
+<!-- CONTENT -->
 <div class="main">
 <div id="tc-content"></div>
 </div>
 
-<!-- ================= CONFIG ================= -->
-
+<!-- CONFIG -->
 <script>
 window.CONFIG={
 SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
@@ -224,31 +261,26 @@ CONFIG.SUPABASE_KEY
 );
 </script>
 
-<!-- ================= MENU ================= -->
-
+<!-- MENU -->
 <script>
 function openMenu(){
 sidebar.classList.add("open");
 overlay.classList.add("show");
 }
-
 overlay.onclick=()=>{
 sidebar.classList.remove("open");
 overlay.classList.remove("show");
 };
 </script>
 
-<!-- ================= CORE ================= -->
-
+<!-- CORE -->
 <script src="engine/state.engine.js"></script>
 <script src="engine/event.engine.js"></script>
 
 <script>
 window.CORE={
 modules:[],
-register(name,check){
-this.modules.push({name,check});
-},
+register(n,c){this.modules.push({n,c});},
 start(){
 console.log("🚀 TonCrime Started");
 EVENT.emit("game:ready");
@@ -256,15 +288,14 @@ EVENT.emit("game:ready");
 };
 </script>
 
-<!-- ================= ENGINES ================= -->
-
+<!-- ENGINES -->
 <script src="engine/engine.js"></script>
 <script src="engine/ui.engine.js"></script>
 <script src="engine/layout.engine.js"></script>
+<script src="engine/fx.engine.js"></script>
 <script src="engine/missions.engine.js"></script>
 
-<!-- ================= ROUTER ================= -->
-
+<!-- ROUTER -->
 <script>
 
 window.PAGE={
@@ -281,17 +312,15 @@ const page=location.hash.replace("#","")||"index";
 EVENT.emit("page:enter",page);
 
 if(page==="index"){
-tc_content.innerHTML=`
-<h2>🏙 Yeraltı Şehri</h2>
-<p>Şehir yaşıyor...</p>
-`;
+tc_content.innerHTML=
+`<h2>🏙 Yeraltı Şehri</h2>
+<p>Şehir yaşıyor...</p>`;
 }
 
 if(page==="pvp"){
-tc_content.innerHTML=`
-<h2>⚔ PvP Arena</h2>
-<button onclick="PVP_TARGET.search()">Rakip Ara</button>
-`;
+tc_content.innerHTML=
+`<h2>⚔ PvP Arena</h2>
+<button>Rakip Ara</button>`;
 }
 
 }
@@ -300,7 +329,6 @@ window.addEventListener("load",()=>{
 CORE.start();
 loadPage();
 });
-
 </script>
 
 </body>
