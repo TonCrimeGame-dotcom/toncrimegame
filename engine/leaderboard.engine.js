@@ -1,52 +1,39 @@
 /* ===================================================
-   TONCRIME LEADERBOARD ENGINE
-   Live Top Players
+   TONCRIME LIVE LEADERBOARD ENGINE
    =================================================== */
 
 (function(){
 
-if(!window.RANK || !window.TEMPLATE){
-  console.warn("Leaderboard waiting...");
-  return;
-}
+const BOARD={};
 
-const LEADERBOARD = {
+BOARD.render=async function(){
 
-async render(){
+const root=document.getElementById("tc-content");
 
-  const top=await RANK.top(10);
+const {data}=await db
+.from("users")
+.select("id,nickname,level,yton")
+.order("yton",{ascending:false})
+.limit(20);
 
-  let html="<h3>🏆 En İyiler</h3>";
+root.innerHTML=`
+<h2>🏆 Liderler</h2>
 
-  top.forEach((p,i)=>{
-    html+=`
-      <div>
-        ${i+1}. ${p.nickname}
-        — ${p.elo} ELO
-      </div>
-    `;
-  });
-
-  const box=document.getElementById("leaderboard");
-
-  if(box) box.innerHTML=html;
-}
+${data.map((u,i)=>`
+<div class="card">
+#${i+1} ${u.nickname}
+<br>Level ${u.level}
+<br>💰 ${Number(u.yton).toFixed(2)} YTON
+</div>
+`).join("")}
+`;
 
 };
 
-window.LEADERBOARD=LEADERBOARD;
-
-
-/* AUTO UPDATE */
-
-EVENT.on("scene:loaded",(scene)=>{
-
-  if(scene==="index"){
-    setTimeout(()=>LEADERBOARD.render(),500);
-  }
-
+EVENT.on("page:enter",p=>{
+if(p==="leaderboard") BOARD.render();
 });
 
-console.log("📊 Leaderboard Engine Ready");
+window.LEADERBOARD=BOARD;
 
 })();
