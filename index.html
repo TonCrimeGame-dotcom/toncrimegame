@@ -1,233 +1,220 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TonCrime</title>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script>
+<title>🔥 TonCrime</title>
 
 <style>
+
+/* ================= GLOBAL ================= */
+
 body{
 margin:0;
-background:#0e0e0e;
-color:white;
 font-family:Arial;
+background:#0f1115;
+color:white;
+display:flex;
+height:100vh;
+overflow:hidden;
 }
 
-/* ===== TOPBAR ===== */
+/* ================= SIDEBAR ================= */
 
-.topbar{
+#sidebar{
+width:230px;
+background:#0b0c10;
+padding:15px;
+box-sizing:border-box;
+border-right:1px solid #1f222a;
+}
+
+.logo{
+color:#ffd54a;
+font-size:22px;
+font-weight:bold;
+margin-bottom:20px;
+}
+
+.menu button{
+width:100%;
+background:none;
+border:none;
+color:#ccc;
+text-align:left;
+padding:12px;
+margin:4px 0;
+cursor:pointer;
+border-radius:6px;
+font-size:15px;
+}
+
+.menu button:hover{
+background:#1a1d25;
+color:white;
+}
+
+/* ================= MAIN ================= */
+
+#main{
+flex:1;
+display:flex;
+flex-direction:column;
+}
+
+/* ================= TOP BAR ================= */
+
+#topbar{
+background:#111318;
+padding:10px 20px;
+border-bottom:1px solid #222;
 display:flex;
 justify-content:space-between;
 align-items:center;
-background:#111;
-padding:14px 20px;
-border-bottom:1px solid #222;
 }
 
-.logo{color:gold;font-weight:bold;font-size:20px}
-
-.bar{
+.progress{
 height:6px;
-background:#333;
-border-radius:4px;
+background:#222;
+border-radius:10px;
 overflow:hidden;
 margin-top:4px;
 }
 
-.fill{height:100%}
-.xp{background:limegreen}
-.energy{background:gold}
-
-/* ===== LAYOUT ===== */
-
-.layout{
-display:flex;
+.progress div{
+height:100%;
+background:#ffd54a;
 }
 
-.sidebar{
-width:220px;
-background:#151515;
-min-height:100vh;
-padding:15px;
-}
+/* ================= CONTENT ================= */
 
-.sidebar div{
-padding:10px;
-cursor:pointer;
-border-bottom:1px solid #222;
-}
-
-.sidebar div:hover{
-background:#222;
-}
-
-.content{
-flex:1;
+#tc-content{
 padding:20px;
+overflow:auto;
+flex:1;
 }
 
 .card{
-background:#1b1b1b;
-padding:15px;
+background:#171a21;
+padding:18px;
 border-radius:10px;
 margin-bottom:15px;
 }
+
+/* ================= BUTTON ================= */
+
+.wallet{
+background:#1da1f2;
+border:none;
+padding:10px;
+border-radius:8px;
+color:white;
+cursor:pointer;
+width:100%;
+margin-top:20px;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
+<!-- ================= SIDEBAR ================= -->
+
+<div id="sidebar">
+
 <div class="logo">🔥 TonCrime</div>
 
-<div style="width:320px">
-<div id="stats"></div>
-
-<div class="bar"><div id="xpBar" class="fill xp"></div></div>
-<div class="bar"><div id="energyBar" class="fill energy"></div></div>
-
-<div id="onlinePlayers"></div>
+<div class="menu">
+<button onclick="ROUTER.go('home')">🏠 Ana Sayfa</button>
+<button onclick="ROUTER.go('missions')">🎯 Görevler</button>
+<button onclick="ROUTER.go('pvp')">⚔ PvP</button>
+<button onclick="ROUTER.go('market')">🛒 Market</button>
+<button onclick="ROUTER.go('clans')">👥 Clan</button>
+<button onclick="ROUTER.go('territory')">🗺 Bölgeler</button>
+<button onclick="ROUTER.go('leaderboard')">🏆 Liderler</button>
 </div>
-</div>
 
-<div class="layout">
-
-<div class="sidebar">
-
-<div onclick="ROUTER.go('home')">🏠 Ana Sayfa</div>
-<div onclick="ROUTER.go('missions')">🎯 Görevler</div>
-<div onclick="ROUTER.go('pvp')">⚔ PvP</div>
-<div onclick="ROUTER.go('market')">🛒 Market</div>
-<div onclick="ROUTER.go('clans')">👥 Clan</div>
-<div onclick="ROUTER.go('territory')">🗺 Bölgeler</div>
-<div onclick="ROUTER.go('leaderboard')">🏆 Liderler</div>
-
-<div id="walletButton"></div>
+<button class="wallet">Connect Wallet</button>
 
 </div>
 
-<div class="content" id="tc-content"></div>
+<!-- ================= MAIN ================= -->
+
+<div id="main">
+
+<div id="topbar">
+
+<div>
+Lv <span id="lvl">1</span> |
+XP <span id="xp">0</span>/100 ⚡
+<span id="energy">100</span>
+💰 <span id="yton">0</span>
+<div class="progress">
+<div id="xpbar" style="width:0%"></div>
+</div>
+</div>
+
+<div>🟢 Online: <span id="online">1</span></div>
 
 </div>
 
-<div id="crimeFeed"></div>
+<div id="tc-content">Yükleniyor...</div>
+
+</div>
+
+<!-- ================= ENGINE MOCK ================= -->
 
 <script>
 
-/* ===================================================
-CONFIG
-=================================================== */
+/* ===== GAME STATE ===== */
 
-window.CONFIG={
-SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
-SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
-USER_ID:localStorage.getItem("tc_user")||"591676206",
-MAX_ENERGY:100,
-XP_LIMIT:100,
-ENERGY_INTERVAL:300000
+window.GAME={
+user:{
+id:1,
+level:1,
+xp:0,
+energy:100,
+yton:10
+}
 };
 
-window.db = supabase.createClient(
-CONFIG.SUPABASE_URL,
-CONFIG.SUPABASE_KEY
-);
-
-/* ===================================================
-EVENT BUS
-=================================================== */
+/* ===== EVENT ===== */
 
 window.EVENT={
 events:{},
 emit(n,d){(this.events[n]||[]).forEach(f=>f(d));},
-on(n,f){(this.events[n]||(this.events[n]=[])).push(f);}
+on(n,f){(this.events[n]=this.events[n]||[]).push(f);}
 };
 
-/* ===================================================
-GLOBAL GAME STATE
-=================================================== */
-
-window.GAME={
-user:null
-};
-
-/* ===================================================
-LOAD USER
-=================================================== */
-
-async function loadUser(){
-const {data}=await db
-.from("users")
-.select("*")
-.eq("id",CONFIG.USER_ID)
-.single();
-
-GAME.user=data;
-renderStats();
-EVENT.emit("game:ready");
-}
-
-/* ===================================================
-UI
-=================================================== */
+/* ===== UI RENDER ===== */
 
 function renderStats(){
 
 const u=GAME.user;
-if(!u) return;
 
-document.getElementById("stats").innerHTML=
-`Lv ${u.level} | XP ${u.xp}/${CONFIG.XP_LIMIT}
- | ⚡ ${u.energy} | 💰 ${Number(u.yton).toFixed(2)}`;
+document.getElementById("lvl").innerText=u.level;
+document.getElementById("xp").innerText=u.xp;
+document.getElementById("energy").innerText=u.energy;
+document.getElementById("yton").innerText=u.yton;
 
-document.getElementById("xpBar").style.width=
-(u.xp/CONFIG.XP_LIMIT*100)+"%";
-
-document.getElementById("energyBar").style.width=
-(u.energy/CONFIG.MAX_ENERGY*100)+"%";
+document.getElementById("xpbar").style.width=
+(u.xp%100)+"%";
 }
 
-/* ===================================================
-ENERGY REGEN LOOP
-=================================================== */
+/* ===== ENERGY LOOP ===== */
 
-async function regenEnergy(){
-
-const u=GAME.user;
-if(!u) return;
-
-const now=Date.now();
-
-if(!u.last_energy_tick){
-u.last_energy_tick=now;
-await db.from("users")
-.update({last_energy_tick:now})
-.eq("id",u.id);
-return;
-}
-
-const diff=now-u.last_energy_tick;
-const gain=Math.floor(diff/CONFIG.ENERGY_INTERVAL);
-
-if(gain<=0) return;
-
-u.energy=Math.min(CONFIG.MAX_ENERGY,u.energy+gain);
-u.last_energy_tick+=gain*CONFIG.ENERGY_INTERVAL;
-
-await db.from("users").update({
-energy:u.energy,
-last_energy_tick:u.last_energy_tick
-}).eq("id",u.id);
-
+setInterval(()=>{
+if(GAME.user.energy<100){
+GAME.user.energy++;
 renderStats();
 }
+},60000);
 
-setInterval(regenEnergy,60000);
 
 /* ===================================================
-ROUTER
+ROUTER ENGINE
 =================================================== */
 
 window.ROUTER={
@@ -238,64 +225,72 @@ EVENT.emit("page:enter",page);
 
 const root=document.getElementById("tc-content");
 
-if(page==="home"){
+switch(page){
+
+case "home":
 root.innerHTML=`
-<div class="card">Şehre hoşgeldin.</div>
-<div id="crimeFeed"></div>`;
+<div class="card">
+<h3>🏙 Şehre hoşgeldin</h3>
+Oyuna giriş başarılı.
+</div>`;
+break;
+
+case "missions":
+root.innerHTML=`
+<div class="card">
+<h3>🎯 Görevler</h3>
+<button onclick="fakeMission()">Görev Yap</button>
+</div>`;
+break;
+
+case "pvp":
+root.innerHTML=`
+<div class="card">
+<h3>⚔ PvP Arena</h3>
+<button onclick="fakePvp()">PvP Savaşı</button>
+</div>`;
+break;
+
+case "market":
+root.innerHTML=`<div class="card">🛒 Market aktif</div>`;
+break;
+
+case "clans":
+root.innerHTML=`<div class="card">👥 Clan sistemi</div>`;
+break;
+
+case "territory":
+root.innerHTML=`<div class="card">🗺 Bölgeler</div>`;
+break;
+
+case "leaderboard":
+root.innerHTML=`<div class="card">🏆 Liderlik Tablosu</div>`;
+break;
+
 }
 
 }
 
 };
 
-/* ===================================================
-ONLINE PRESENCE
-=================================================== */
+/* ===== TEST ACTIONS ===== */
 
-function startPresence(){
-
-const channel=db.channel("online-users",{
-config:{presence:{key:CONFIG.USER_ID}}
-});
-
-channel.on("presence",{event:"sync"},()=>{
-
-const state=channel.presenceState();
-document.getElementById("onlinePlayers")
-.innerText="🟢 Online: "+Object.keys(state).length;
-
-});
-
-channel.subscribe(async()=>{
-await channel.track({online:true});
-});
-
+function fakeMission(){
+GAME.user.xp+=10;
+renderStats();
 }
 
-/* ===================================================
-TON WALLET
-=================================================== */
+function fakePvp(){
+GAME.user.yton+=2;
+renderStats();
+}
 
-new TON_CONNECT_UI.TonConnectUI({
-manifestUrl:location.origin+"/tonconnect-manifest.json",
-buttonRootId:"walletButton"
-});
+/* ===== INIT ===== */
 
-/* ===================================================
-BOOT
-=================================================== */
-
-async function boot(){
-
-await loadUser();
-startPresence();
-
+renderStats();
 ROUTER.go("home");
 
-console.log("🔥 TONCRIME TEST BUILD READY");
-}
-
-boot();
+console.log("✅ TonCrime Alpha Loaded");
 
 </script>
 
