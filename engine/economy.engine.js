@@ -1,33 +1,45 @@
 /* ===================================================
-   TONCRIME GLOBAL ECONOMY ENGINE
+   TONCRIME WORLD ECONOMY ENGINE
    Dynamic Supply & Demand System
    =================================================== */
 
 (function(){
 
 if(!window.EVENT){
-  console.warn("Economy engine waiting EVENT...");
+  console.warn("Economy waiting EVENT...");
   return;
 }
 
 /* ===========================================
-   CONFIG
+   STORAGE
 =========================================== */
 
-const STORAGE_KEY="tc_global_economy";
+const STORAGE_KEY="tc_economy";
 
-const BUILDINGS=[
-  "coffee_shop",
-  "night_club",
-  "brothel",
-  "weapon_market"
-];
+/* ===========================================
+   PRODUCTS
+=========================================== */
 
-const BASE_PRICE={
-  coffee_shop:5,
-  night_club:8,
-  brothel:120,
-  weapon_market:50
+const PRODUCTS={
+
+coffee:{
+  base:5,
+  demand:1,
+  stock:1000000
+},
+
+alcohol:{
+  base:12,
+  demand:1,
+  stock:1000000
+},
+
+service:{
+  base:100,
+  demand:1,
+  stock:999999
+}
+
 };
 
 /* ===========================================
@@ -36,141 +48,126 @@ const BASE_PRICE={
 
 const ECONOMY={
 
-  market:{},
+data:{},
 
-  /* ===================================== */
-  init(){
+/* =========================================== */
 
-    this.load();
-    this.ensureMarkets();
+init(){
 
-    setInterval(()=>{
-      this.decayDemand();
-    },60000);
+  this.load();
+  this.loop();
 
-    console.log("💰 Economy Engine Ready");
-  },
+  EVENT.on("market:buy",p=>{
+    this.purchase(p);
+  });
 
-  /* ===================================== */
-  load(){
-    try{
-      this.market=
-        JSON.parse(localStorage.getItem(STORAGE_KEY))
-        || {};
-    }catch{
-      this.market={};
-    }
-  },
+  console.log("🌐 Economy Engine Ready");
+},
 
-  save(){
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(this.market)
-    );
-  },
+/* =========================================== */
 
-  /* ===================================== */
-  ensureMarkets(){
+load(){
 
-    BUILDINGS.forEach(b=>{
+  const saved=
+    localStorage.getItem(STORAGE_KEY);
 
-      if(!this.market[b]){
-        this.market[b]={
-          demand:1,
-          price:BASE_PRICE[b]
-        };
-      }
+  this.data = saved
+    ? JSON.parse(saved)
+    : PRODUCTS;
 
-    });
+  this.save();
+},
 
-    this.save();
-  },
+save(){
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(this.data)
+  );
+},
 
-  /* ===================================== */
-  BUY EVENT (PLAYER PURCHASE)
-  ===================================== */
+/* ===========================================
+   PURCHASE EFFECT
+=========================================== */
 
-  buy(building,amount=1){
+purchase(product){
 
-    const m=this.market[building];
-    if(!m) return;
+  if(!this.data[product]) return;
 
-    m.demand += amount*0.05;
+  const p=this.data[product];
 
-    this.recalculate(building);
+  p.stock=Math.max(0,p.stock-1);
+  p.demand+=0.02;
 
-    EVENT.emit("economy:update",{
-      building,
-      price:m.price
-    });
+  this.save();
+},
 
-    this.save();
-  },
+/* ===========================================
+   PRICE AI
+=========================================== */
 
-  /* ===================================== */
-  DEMAND DECAY
-  ===================================== */
+price(product){
 
-  decayDemand(){
+  const p=this.data[product];
+  if(!p) return 0;
 
-    Object.keys(this.market).forEach(b=>{
+  return Number(
+    (p.base*p.demand).toFixed(2)
+  );
+},
 
-      const m=this.market[b];
+/* ===========================================
+   NATURAL MARKET FLOW
+=========================================== */
 
-      m.demand *= 0.97;
+tick(){
 
-      if(m.demand<1)
-        m.demand=1;
+  Object.values(this.data).forEach(p=>{
 
-      this.recalculate(b);
-    });
+    /* supply regeneration */
+    p.stock+=50;
 
-    this.save();
-  },
+    /* demand decay */
+    p.demand*=0.995;
 
-  /* ===================================== */
-  PRICE FORMULA
-  ===================================== */
+    if(p.demand<1) p.demand=1;
+  });
 
-  recalculate(building){
+  this.save();
 
-    const m=this.market[building];
+  EVENT.emit("economy:update");
+},
 
-    const base=BASE_PRICE[building];
+/* ===========================================
+   LOOP
+=========================================== */
 
-    m.price =
-      Number(
-        (base * m.demand).toFixed(2)
-      );
-  },
-
-  /* ===================================== */
-  GET PRICE
-  ===================================== */
-
-  price(building){
-
-    if(!this.market[building])
-      return BASE_PRICE[building];
-
-    return this.market[building].price;
-  }
+loop(){
+  setInterval(()=>{
+    this.tick();
+  },60000); // 1 dk
+}
 
 };
 
 window.ECONOMY=ECONOMY;
 
 /* ===========================================
-   AUTO EVENTS
+   AUTO START
 =========================================== */
 
 EVENT.on("game:ready",()=>{
   ECONOMY.init();
 });
 
-/* player purchase hook */
-EVENT.on("market:buy",(data)=>{
-  ECONOMY.buy(data.building,data.amount||1);
-});
+/* ===========================================
+   CORE REGISTER
+=========================================== */
+
+if(window.CORE){
+  CORE.register(
+    "World Economy",
+    ()=>!!window.ECONOMY
+  );
+}
 
 })();
