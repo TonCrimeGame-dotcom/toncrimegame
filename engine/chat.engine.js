@@ -1,131 +1,173 @@
 /* ===================================================
-   TONCRIME CHAT ENGINE
-   Persistent Realtime Chat
+   TONCRIME CHAT ENGINE v2
+   Persistent Building Chat System
    =================================================== */
 
 (function(){
 
-let channel=null;
-let currentRoom=null;
-
-/* ===============================================
-   JOIN ROOM
-=============================================== */
-
-window.Chat = {
-
-async join(room){
-
-  currentRoom=room;
-
-  if(channel){
-    await channel.unsubscribe();
-    channel=null;
-  }
-
-  const user=GameState.getUser();
-  if(!user) return;
-
-  /* LOAD HISTORY */
-
-  const {data}=await db
-    .from("chat_messages")
-    .select("*")
-    .eq("room",room)
-    .order("created_at",{ascending:true})
-    .limit(100);
-
-  renderMessages(data||[]);
-
-  /* REALTIME */
-
-  channel=db.channel("chat-"+room)
-    .on(
-      "postgres_changes",
-      {
-        event:"INSERT",
-        schema:"public",
-        table:"chat_messages",
-        filter:`room=eq.${room}`
-      },
-      payload=>{
-        addMessage(payload.new);
-      }
-    )
-    .subscribe();
-
-},
-
-/* ===============================================
-   SEND MESSAGE
-=============================================== */
-
-async send(text){
-
-  if(!text.trim()) return;
-
-  const user=GameState.getUser();
-  if(!user) return;
-
-  await db.from("chat_messages").insert({
-    room:currentRoom,
-    user_id:user.id,
-    nickname:user.nickname,
-    message:text
-  });
-
+if(!window.EVENT){
+  console.warn("Chat engine waiting EVENT...");
+  return;
 }
 
-};
+/* ===========================================
+   STORAGE
+=========================================== */
 
+const STORAGE_KEY="tc_chat_history";
 
-/* ===============================================
-   UI RENDER
-=============================================== */
+/* ===========================================
+   ENGINE
+=========================================== */
 
-function renderMessages(list){
+const CHAT={
 
-  const box=document.getElementById("chatBox");
-  if(!box) return;
+  rooms:{},
+  currentRoom:null,
 
-  box.innerHTML="";
+  /* ===================================== */
+  init(){
+    this.load();
+    this.bindPresence();
+    console.log("💬 Chat Engine Ready");
+  },
 
-  list.forEach(addMessage);
-}
+  /* ===================================== */
+  load(){
+    try{
+      this.rooms=
+        JSON.parse(localStorage.getItem(STORAGE_KEY))
+        || {};
+    }catch{
+      this.rooms={};
+    }
+  },
 
-function addMessage(msg){
+  save(){
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(this.rooms)
+    );
+  },
 
-  const box=document.getElementById("chatBox");
-  if(!box) return;
+  /* ===================================== */
+  ENTER ROOM
+  ===================================== */
 
-  const div=document.createElement("div");
+  join(room){
 
-  const time=new Date(msg.created_at)
-    .toLocaleTimeString([],{
-      hour:"2-digit",
-      minute:"2-digit"
+    this.currentRoom=room;
+
+    if(!this.rooms[room])
+      this.rooms[room]=[];
+
+    EVENT.emit("chat:update",{
+      room,
+      messages:this.rooms[room]
+    });
+  },
+
+  /* ===================================== */
+  SEND MESSAGE
+  ===================================== */
+
+  send(text){
+
+    if(!this.currentRoom) return;
+    if(!window.GAME || !GAME.user) return;
+
+    const msg={
+      id:"msg_"+Date.now(),
+      user:GAME.user.id,
+      name:GAME.user.name,
+      text:text,
+      time:Date.now(),
+      type:"message"
+    };
+
+    this.rooms[this.currentRoom].push(msg);
+
+    if(this.rooms[this.currentRoom].length>200)
+      this.rooms[this.currentRoom].shift();
+
+    this.save();
+
+    EVENT.emit("chat:new",msg);
+    EVENT.emit("chat:update",{
+      room:this.currentRoom,
+      messages:this.rooms[this.currentRoom]
+    });
+  },
+
+  /* ===================================== */
+  SYSTEM MESSAGE
+  ===================================== */
+
+  system(room,text){
+
+    if(!this.rooms[room])
+      this.rooms[room]=[];
+
+    const msg={
+      id:"sys_"+Date.now(),
+      text:text,
+      time:Date.now(),
+      type:"system"
+    };
+
+    this.rooms[room].push(msg);
+
+    this.save();
+
+    EVENT.emit("chat:update",{
+      room,
+      messages:this.rooms[room]
+    });
+  },
+
+  /* ===================================== */
+  PRESENCE HOOK
+  ===================================== */
+
+  bindPresence(){
+
+    EVENT.on("presence:enter",(data)=>{
+
+      this.system(
+        data.room,
+        "🟢 "+data.player.name+" içeri girdi"
+      );
+
+      this.join(data.room);
     });
 
-  div.innerHTML=
-    `<span style="color:gold">[${time}]</span>
-     <b>${msg.nickname}</b>: ${msg.message}`;
+    EVENT.on("presence:leave",(data)=>{
 
-  box.appendChild(div);
-  box.scrollTop=box.scrollHeight;
-}
+      this.system(
+        data.room,
+        "🔴 Bir oyuncu ayrıldı"
+      );
+    });
+  },
 
+  /* ===================================== */
+  GET HISTORY
+  ===================================== */
 
-/* ===============================================
-   AUTO CHAT INPUT
-=============================================== */
+  history(room){
+    return this.rooms[room]||[];
+  }
 
-window.sendChatMessage=function(){
-
-  const input=document.getElementById("chatInput");
-  if(!input) return;
-
-  Chat.send(input.value);
-  input.value="";
 };
+
+window.CHAT=CHAT;
+
+/* ===========================================
+   AUTO START
+=========================================== */
+
+EVENT.on("game:ready",()=>{
+  CHAT.init();
+});
 
 })();
