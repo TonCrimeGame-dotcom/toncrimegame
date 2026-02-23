@@ -1,138 +1,130 @@
 /* ===================================================
    TONCRIME PVP TARGET ENGINE
-   Online Player Attack System
+   Building Duel System
    =================================================== */
 
 (function(){
 
-let onlinePlayers={};
-
-/* ===============================================
-   TRACK ONLINE PLAYERS
-=============================================== */
-
-EVENT.on("PLAYER_JOIN",(id)=>{
-  onlinePlayers[id]=true;
-  renderTargets();
-});
-
-EVENT.on("PLAYER_LEAVE",(id)=>{
-  delete onlinePlayers[id];
-  renderTargets();
-});
-
-/* ===============================================
-   RENDER TARGET LIST
-=============================================== */
-
-function renderTargets(){
-
-  const box=document.getElementById("pvpTargets");
-  if(!box) return;
-
-  const me=GameState.getUser();
-  if(!me) return;
-
-  box.innerHTML="";
-
-  Object.keys(onlinePlayers).forEach(id=>{
-
-    if(id==me.id) return;
-
-    const btn=document.createElement("div");
-
-    btn.style.padding="8px";
-    btn.style.margin="6px 0";
-    btn.style.background="#1a1f29";
-    btn.style.cursor="pointer";
-    btn.style.borderRadius="6px";
-
-    btn.innerHTML=`⚔ Oyuncu ${id}`;
-
-    btn.onclick=()=>startPvP(id);
-
-    box.appendChild(btn);
-  });
+if(!window.db || !window.EVENT || !window.BUILDING){
+  console.warn("PvP Target waiting...");
+  return;
 }
 
-/* ===============================================
-   CREATE MATCH
-=============================================== */
+const PVP_TARGET = {
 
-async function startPvP(targetId){
+  channel:null,
 
-  const me=GameState.getUser();
-  if(!me) return;
+  /* ======================================
+     SEND REQUEST
+  ====================================== */
 
-  UI.toast("Rakip aranıyor...");
+  async challenge(targetId){
 
-  const {data,error}=await db
-    .from("pvp_matches")
-    .insert({
-      player1:me.id,
-      player2:targetId,
-      status:"waiting"
-    })
-    .select()
-    .single();
+    const user = GAME.user;
 
-  if(error){
-    console.error(error);
-    UI.toast("PvP başlatılamadı");
-    return;
-  }
+    if(targetId === user.id){
+      alert("Kendine saldıramazsın");
+      return;
+    }
 
-  EVENT.emit("PVP_MATCH_CREATED",data);
+    await db.from("pvp_requests").insert({
+      from_user:user.id,
+      to_user:targetId,
+      building:BUILDING.current
+    });
 
-  listenMatch(data.id);
-}
+    UI.notify("PvP isteği gönderildi ⚔");
+  },
 
-/* ===============================================
-   MATCH LISTENER
-=============================================== */
+  /* ======================================
+     ACCEPT REQUEST
+  ====================================== */
 
-function listenMatch(matchId){
+  async accept(id){
 
-  db.channel("pvp-match-"+matchId)
+    await db.from("pvp_requests")
+      .update({status:"accepted"})
+      .eq("id",id);
+
+    EVENT.emit("pvp:start");
+  },
+
+  /* ======================================
+     DECLINE
+  ====================================== */
+
+  async decline(id){
+
+    await db.from("pvp_requests")
+      .update({status:"declined"})
+      .eq("id",id);
+  },
+
+  /* ======================================
+     REALTIME LISTENER
+  ====================================== */
+
+  subscribe(){
+
+    if(this.channel) return;
+
+    this.channel = db.channel("pvp-request-live")
+
+    .on("postgres_changes",
+      {
+        event:"INSERT",
+        schema:"public",
+        table:"pvp_requests"
+      },
+      payload=>{
+
+        const req=payload.new;
+
+        if(req.to_user===GAME.user.id &&
+           req.status==="pending"){
+
+          UI.confirm(
+            "PvP meydan okuması!",
+            ()=>this.accept(req.id),
+            ()=>this.decline(req.id)
+          );
+        }
+
+      })
+
     .on("postgres_changes",
       {
         event:"UPDATE",
         schema:"public",
-        table:"pvp_matches",
-        filter:`id=eq.${matchId}`
+        table:"pvp_requests"
       },
       payload=>{
 
-        const match=payload.new;
+        const req=payload.new;
 
-        if(match.status==="active"){
-          UI.toast("⚔ PvP Başladı!");
+        if(req.from_user===GAME.user.id &&
+           req.status==="accepted"){
+
+          UI.notify("Rakip kabul etti ⚔");
+          EVENT.emit("pvp:start");
         }
 
-        if(match.status==="finished"){
-          EVENT.emit("PVP_FINISHED",match);
-        }
+      })
 
-      }
-    )
     .subscribe();
-}
+  }
 
-/* ===============================================
-   AUTO UI PANEL
-=============================================== */
+};
+
+window.PVP_TARGET=PVP_TARGET;
+
+
+/* AUTO START */
 
 document.addEventListener("DOMContentLoaded",()=>{
-
-  const content=document.getElementById("tc-content");
-  if(!content) return;
-
-  const panel=document.createElement("div");
-  panel.className="ui-card";
-  panel.innerHTML="<h3>⚔ PvP Hedefleri</h3><div id='pvpTargets'></div>";
-
-  content.appendChild(panel);
-
+  PVP_TARGET.subscribe();
 });
+
+console.log("⚔ PvP Target Engine Ready");
 
 })();
