@@ -1,118 +1,162 @@
 /* ===================================================
-   TONCRIME ACHIEVEMENT ENGINE
+   TONCRIME ACHIEVEMENT ENGINE v2
+   Persistent Achievement System
    =================================================== */
 
 (function(){
 
-if(!window.db || !window.EVENT){
-  console.warn("Achievement waiting...");
+if(!window.EVENT){
+  console.warn("Achievement waiting EVENT...");
   return;
 }
 
-const ACHIEVEMENT = {
+/* ===========================================
+   DEFINITIONS
+=========================================== */
 
-today(){ return new Date().toISOString().slice(0,10); },
+const ACHIEVEMENTS=[
 
-/* ======================================
-   INIT PLAYER ACHIEVEMENTS
-====================================== */
-
-async init(){
-
-  const user=GAME.user;
-  if(!user) return;
-
-  const {data:defs}=await db
-    .from("achievements")
-    .select("*");
-
-  for(const a of defs){
-
-    const {data}=await db
-      .from("user_achievements")
-      .select("*")
-      .eq("user_id",user.id)
-      .eq("code",a.code)
-      .maybeSingle();
-
-    if(!data){
-      await db.from("user_achievements").insert({
-        user_id:user.id,
-        code:a.code
-      });
-    }
-  }
-
+{
+id:"first_pvp",
+name:"🥊 First Blood",
+reward:10,
+check:(data)=>data==="pvp:win"
 },
 
-/* ======================================
-   PROGRESS
-====================================== */
-
-async progress(code,amount=1){
-
-  const user=GAME.user;
-
-  const {data}=await db
-    .from("user_achievements")
-    .select("*")
-    .eq("user_id",user.id)
-    .eq("code",code)
-    .single();
-
-  if(!data || data.completed) return;
-
-  let newProgress=data.progress+amount;
-
-  const {data:def}=await db
-    .from("achievements")
-    .select("*")
-    .eq("code",code)
-    .single();
-
-  let completed=false;
-
-  if(newProgress>=def.goal){
-    newProgress=def.goal;
-    completed=true;
-    await this.reward(def);
-  }
-
-  await db.from("user_achievements")
-    .update({
-      progress:newProgress,
-      completed
-    })
-    .eq("id",data.id);
+{
+id:"missions_50",
+name:"🎯 Worker",
+reward:20,
+check:(data)=>data.missions>=50
 },
 
-/* ======================================
-   REWARD
-====================================== */
+{
+id:"daily_7",
+name:"🔥 Loyal",
+reward:25,
+check:(data)=>data.streak===7
+},
 
-async reward(def){
+{
+id:"watch_ad",
+name:"📺 Sponsor",
+reward:5,
+check:(data)=>data==="ad:watched"
+},
 
-  const user=GAME.user;
+{
+id:"invite_friend",
+name:"🤝 Recruiter",
+reward:30,
+check:(data)=>data==="friend:joined"
+}
 
-  user.xp+=def.xp_reward;
-  user.yton+=def.yton_reward;
+];
 
-  if(user.xp>=CONFIG.XP_LIMIT){
-    user.level++;
-    user.xp-=CONFIG.XP_LIMIT;
+/* ===========================================
+   STORAGE
+=========================================== */
+
+const STORAGE_KEY="tc_achievements";
+
+/* ===========================================
+   ENGINE
+=========================================== */
+
+const ACHIEVEMENT={
+
+data:{},
+
+init(){
+  this.load();
+  this.bind();
+  console.log("🏅 Achievement Engine Ready");
+},
+
+load(){
+  try{
+    this.data=
+      JSON.parse(localStorage.getItem(STORAGE_KEY))
+      || {};
+  }catch{
+    this.data={};
   }
 
-  await db.from("users").update({
-    xp:user.xp,
-    yton:user.yton,
-    level:user.level
-  }).eq("id",user.id);
+  if(!this.data[CONFIG.USER_ID])
+    this.data[CONFIG.USER_ID]={};
+},
 
-  EVENT.emit("notify",{
-    title:"🏆 Başarım Açıldı!",
-    text:`${def.title}
-+${def.xp_reward} XP
-+${def.yton_reward} YTON`
+save(){
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(this.data)
+  );
+},
+
+completed(id){
+  return this.data[CONFIG.USER_ID][id];
+},
+
+unlock(def){
+
+  if(this.completed(def.id)) return;
+
+  this.data[CONFIG.USER_ID][def.id]=true;
+
+  GAME.user.yton+=def.reward;
+
+  EVENT.emit(
+    "notify",
+    `🏅 ${def.name} +${def.reward} YTON`
+  );
+
+  EVENT.emit("user:update",GAME.user);
+
+  EVENT.emit("crimefeed:add",
+    `${GAME.user.nickname} başarı kazandı: ${def.name}`
+  );
+
+  this.save();
+},
+
+/* ===========================================
+   EVENT LISTENERS
+=========================================== */
+
+bind(){
+
+  EVENT.on("pvp:win",()=>{
+    this.check("pvp:win");
+  });
+
+  EVENT.on("mission:completed",data=>{
+    this.check({missions:data.total});
+  });
+
+  EVENT.on("daily:claimed",data=>{
+    this.check({streak:data.streak});
+  });
+
+  EVENT.on("ad:watched",()=>{
+    this.check("ad:watched");
+  });
+
+  EVENT.on("friend:joined",()=>{
+    this.check("friend:joined");
+  });
+},
+
+/* ===========================================
+   CHECK LOGIC
+=========================================== */
+
+check(data){
+
+  ACHIEVEMENTS.forEach(def=>{
+    try{
+      if(def.check(data))
+        this.unlock(def);
+    }catch(e){}
   });
 }
 
@@ -120,13 +164,23 @@ async reward(def){
 
 window.ACHIEVEMENT=ACHIEVEMENT;
 
+/* ===========================================
+   AUTO START
+=========================================== */
 
-/* AUTO INIT */
-
-EVENT.on("engine:userLoaded",()=>{
-  setTimeout(()=>ACHIEVEMENT.init(),2000);
+EVENT.on("game:ready",()=>{
+  ACHIEVEMENT.init();
 });
 
-console.log("🏆 Achievement Engine Ready");
+/* ===========================================
+   CORE REGISTER
+=========================================== */
+
+if(window.CORE){
+  CORE.register(
+    "Achievement Engine",
+    ()=>!!window.ACHIEVEMENT
+  );
+}
 
 })();
