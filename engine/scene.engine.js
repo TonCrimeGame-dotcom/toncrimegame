@@ -1,75 +1,57 @@
 /* ===================================================
-   TONCRIME SCENE ENGINE
-   SPA Game Navigation System
-   =================================================== */
+   TONCRIME SCENE REGISTRY
+=================================================== */
 
 (function(){
 
-if(!window.TEMPLATE || !window.EVENT){
-  console.warn("Scene engine waiting...");
-  return;
-}
+/* ================= HOME ================= */
 
-const SCENE = {
+SCENE.register("index",async()=>{
 
-  current:null,
-  scenes:{},
-
-  /* ======================================
-     REGISTER SCENE
-  ====================================== */
-
-  register(name,loader){
-    this.scenes[name]=loader;
-  },
-
-  /* ======================================
-     LOAD SCENE
-  ====================================== */
-
-  async load(name){
-
-    if(!this.scenes[name]){
-      console.warn("Scene not found:",name);
-      return;
-    }
-
-    console.log("🎬 Loading scene:",name);
-
-    this.current=name;
-
-    EVENT.emit("scene:change",name);
-
-    const html = await this.scenes[name]();
-
-    TEMPLATE.load(html);
-
-    EVENT.emit("scene:loaded",name);
-  }
-
-};
-
-window.SCENE=SCENE;
-
-
-/* ======================================
-   MENU HOOK (AUTO SPA)
-====================================== */
-
-document.addEventListener("click",(e)=>{
-
-  const btn=e.target.closest("[data-page]");
-  if(!btn) return;
-
-  e.preventDefault();
-
-  const page=btn.dataset.page;
-
-  SCENE.load(page);
+return `
+<h2>🌆 Yeraltı Şehri</h2>
+<p>Şehir yaşıyor...</p>
+`;
 
 });
 
+/* ================= MISSIONS ================= */
 
-console.log("🎬 Scene Engine Ready");
+SCENE.register("missions",async()=>{
+
+return `
+<h2>🎯 Görevler</h2>
+<div id="missionsArea"></div>
+`;
+
+});
+
+/* ================= PVP ================= */
+
+SCENE.register("pvp",async()=>{
+
+return `
+<h2>⚔ PvP Arena</h2>
+<button onclick="EVENT.emit('pvp:queue')">
+PvP Ara
+</button>
+`;
+
+});
+
+/* ================= HOSPITAL ================= */
+
+SCENE.register("hospital",async()=>{
+
+return `
+<h2>🏥 Hastane</h2>
+<button onclick="HOSPITAL.revive()">
+💊 700 YTON ile çık
+</button>
+`;
+
+});
+
+console.log("📚 Scenes Registered");
 
 })();
