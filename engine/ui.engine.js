@@ -1,90 +1,193 @@
 /* ===================================================
-   TONCRIME MASTER UI ENGINE
-   Global UI Renderer
-   SAFE VERSION
-=================================================== */
+   TONCRIME UI ENGINE
+   Global Interface Controller
+   =================================================== */
 
 (function(){
 
-/* ===================================================
+if(!window.EVENT){
+  console.warn("UI waiting EVENT...");
+  return;
+}
+
+/* ===========================================
    UI OBJECT
-=================================================== */
+=========================================== */
 
-window.UI = {
+const UI={
 
-  /* -----------------------------------------
-     UPDATE TOP STATS BAR
-  ----------------------------------------- */
-  updateStats(user){
+/* ================= INIT ================= */
 
-    if(!user) return;
+init(){
 
-    const stats=document.getElementById("top-stats");
-    if(!stats) return;
+  EVENT.on("user:loaded",user=>{
+    this.updateStats(user);
+    this.renderPlayerCard(user);
+  });
 
-    stats.innerHTML =
-      `Lv ${user.level} | XP ${user.xp}/${CONFIG.XP_LIMIT}
-       ⚡ ${user.energy}
-       💰 ${Number(user.yton).toFixed(2)}`;
-  },
+  EVENT.on("user:update",user=>{
+    this.updateStats(user);
+    this.renderPlayerCard(user);
+  });
 
-  /* -----------------------------------------
-     PLAYER CARD
-  ----------------------------------------- */
-  renderPlayerCard(user){
+  EVENT.on("notify",msg=>{
+    this.notify(msg);
+  });
 
-    const card=document.getElementById("player-card");
-    if(!card || !user) return;
+  EVENT.on("crimefeed:add",txt=>{
+    this.addFeed(txt);
+  });
 
-    card.innerHTML = `
-      <b>Oyuncu</b><br>
-      ID: ${user.id}<br>
-      Takma Ad: ${user.nickname || "Player"}<br>
-      Seviye: ${user.level}<br>
-      XP: ${user.xp}<br>
-      Enerji: ${user.energy}
-    `;
-  },
+  console.log("🎨 UI Engine Ready");
+},
 
-  /* -----------------------------------------
-     ONLINE COUNT
-  ----------------------------------------- */
-  setOnline(count){
+/* ================= STATS ================= */
 
-    const el=document.getElementById("online-count");
-    if(!el) return;
+updateStats(user){
 
-    el.innerText=count+" online";
-  },
+  const stats=document.getElementById("stats");
+  const xpBar=document.getElementById("xpBar");
+  const energyBar=document.getElementById("energyBar");
 
-  /* -----------------------------------------
-     CHAT RENDER
-  ----------------------------------------- */
-  pushChatMessage(msg){
+  if(!stats) return;
 
-    const box=document.getElementById("chat-box");
-    if(!box) return;
+  stats.innerHTML=
+  `Lv ${user.level}
+   | XP ${user.xp}/${CONFIG.XP_LIMIT}
+   | ⚡ ${user.energy}
+   | 💰 ${Number(user.yton).toFixed(2)}`;
 
-    const div=document.createElement("div");
+  if(xpBar)
+    xpBar.style.width=
+      (user.xp/CONFIG.XP_LIMIT*100)+"%";
 
-    div.innerHTML=
-      `<b>${msg.user}</b>: ${msg.text}`;
+  if(energyBar)
+    energyBar.style.width=
+      (user.energy/CONFIG.MAX_ENERGY*100)+"%";
+},
 
-    box.appendChild(div);
+/* ================= PLAYER CARD ================= */
 
-    box.scrollTop=box.scrollHeight;
-  },
+renderPlayerCard(user){
 
-  /* -----------------------------------------
-     SAFE INIT (🔥 FIX)
-  ----------------------------------------- */
-  init(){
+  const card=document.getElementById("playerCard");
+  if(!card) return;
 
-    console.log("🎮 UI Init OK");
-  }
+  card.innerHTML=`
+
+  <h3>${user.nickname}</h3>
+
+  <hr>
+
+  <div>ID: ${user.id}</div>
+  <div>Level: ${user.level}</div>
+  <div>Reputation: ${user.reputation||0}</div>
+  <div>Clan: ${user.clan||"Yok"}</div>
+
+  <hr>
+
+  <div>Silah: ${user.weapon||"Yok"}</div>
+  <div>PvP Rank: ${user.elo||1000}</div>
+
+  <hr>
+
+  <div>Premium:
+    ${user.premium ? "✅ Aktif" : "❌ Yok"}
+  </div>
+
+  `;
+},
+
+/* ================= NOTIFY ================= */
+
+notify(text){
+
+  let box=document.createElement("div");
+
+  box.className="tc-notify";
+  box.innerText=text;
+
+  document.body.appendChild(box);
+
+  setTimeout(()=>{
+    box.classList.add("show");
+  },50);
+
+  setTimeout(()=>{
+    box.classList.remove("show");
+    setTimeout(()=>box.remove(),400);
+  },3000);
+},
+
+/* ================= CRIME FEED ================= */
+
+addFeed(text){
+
+  const feed=document.getElementById("crimeFeed");
+  if(!feed) return;
+
+  const line=document.createElement("div");
+  line.innerText=text;
+
+  feed.prepend(line);
+
+  while(feed.children.length>6)
+    feed.removeChild(feed.lastChild);
+}
 
 };
 
-console.log("🧩 Master UI Ready");
+/* ===========================================
+   STYLE INJECTION
+=========================================== */
+
+(function(){
+
+const style=document.createElement("style");
+
+style.innerHTML=`
+
+.tc-notify{
+position:fixed;
+right:20px;
+bottom:70px;
+background:#1b1b1b;
+padding:12px 18px;
+border-left:4px solid gold;
+opacity:0;
+transform:translateY(20px);
+transition:.3s;
+z-index:9999;
+}
+
+.tc-notify.show{
+opacity:1;
+transform:translateY(0);
+}
+
+#playerCard h3{
+color:gold;
+margin-top:0;
+}
+
+`;
+
+document.head.appendChild(style);
+
+})();
+
+/* ===========================================
+   GLOBAL EXPORT
+=========================================== */
+
+window.UI=UI;
+
+/* ===========================================
+   START
+=========================================== */
+
+EVENT.on("game:ready",()=>{
+  UI.init();
+});
 
 })();
