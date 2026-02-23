@@ -1,33 +1,27 @@
-<!DOCTYPE html>
-<html lang="tr">
+<!DOCTYPE html><html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-
-<title>🔥 TonCrime</title>
-
-<style>
-
-/* ================= GLOBAL ================= */
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>🔥 TonCrime</title><!-- TON CONNECT --><script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script><style>
 
 body{
 margin:0;
-font-family:Arial;
 background:#0f1115;
-color:white;
+font-family:Arial;
+color:#fff;
 display:flex;
 height:100vh;
 overflow:hidden;
 }
 
-/* ================= SIDEBAR ================= */
+/* SIDEBAR */
 
 #sidebar{
 width:230px;
 background:#0b0c10;
 padding:15px;
-box-sizing:border-box;
 border-right:1px solid #1f222a;
+display:flex;
+flex-direction:column;
 }
 
 .logo{
@@ -41,21 +35,20 @@ margin-bottom:20px;
 width:100%;
 background:none;
 border:none;
-color:#ccc;
+color:#bbb;
 text-align:left;
 padding:12px;
 margin:4px 0;
 cursor:pointer;
 border-radius:6px;
-font-size:15px;
 }
 
 .menu button:hover{
-background:#1a1d25;
-color:white;
+background:#1b1e26;
+color:#fff;
 }
 
-/* ================= MAIN ================= */
+/* MAIN */
 
 #main{
 flex:1;
@@ -63,36 +56,18 @@ display:flex;
 flex-direction:column;
 }
 
-/* ================= TOP BAR ================= */
-
 #topbar{
 background:#111318;
-padding:10px 20px;
+padding:12px 20px;
 border-bottom:1px solid #222;
 display:flex;
 justify-content:space-between;
-align-items:center;
 }
-
-.progress{
-height:6px;
-background:#222;
-border-radius:10px;
-overflow:hidden;
-margin-top:4px;
-}
-
-.progress div{
-height:100%;
-background:#ffd54a;
-}
-
-/* ================= CONTENT ================= */
 
 #tc-content{
 padding:20px;
-overflow:auto;
 flex:1;
+overflow:auto;
 }
 
 .card{
@@ -102,77 +77,32 @@ border-radius:10px;
 margin-bottom:15px;
 }
 
-/* ================= BUTTON ================= */
-
-.wallet{
-background:#1da1f2;
-border:none;
-padding:10px;
-border-radius:8px;
-color:white;
-cursor:pointer;
-width:100%;
-margin-top:20px;
+#wallet{
+margin-top:auto;
 }
 
-</style>
-</head>
-
-<body>
-
-<!-- ================= SIDEBAR ================= -->
-
-<div id="sidebar">
-
-<div class="logo">🔥 TonCrime</div>
-
-<div class="menu">
+</style></head><body><!-- SIDEBAR --><div id="sidebar"><div class="logo">🔥 TonCrime</div><div class="menu">
 <button onclick="ROUTER.go('home')">🏠 Ana Sayfa</button>
 <button onclick="ROUTER.go('missions')">🎯 Görevler</button>
 <button onclick="ROUTER.go('pvp')">⚔ PvP</button>
 <button onclick="ROUTER.go('market')">🛒 Market</button>
-<button onclick="ROUTER.go('clans')">👥 Clan</button>
-<button onclick="ROUTER.go('territory')">🗺 Bölgeler</button>
-<button onclick="ROUTER.go('leaderboard')">🏆 Liderler</button>
-</div>
-
-<button class="wallet">Connect Wallet</button>
-
-</div>
-
-<!-- ================= MAIN ================= -->
-
-<div id="main">
-
-<div id="topbar">
-
+<button onclick="ROUTER.go('clan')">👥 Clan</button>
+<button onclick="ROUTER.go('world')">🗺 Bölgeler</button>
+</div><div id="wallet"></div></div><!-- MAIN --><div id="main"><div id="topbar">
 <div>
-Lv <span id="lvl">1</span> |
-XP <span id="xp">0</span>/100 ⚡
-<span id="energy">100</span>
-💰 <span id="yton">0</span>
-<div class="progress">
-<div id="xpbar" style="width:0%"></div>
-</div>
-</div>
+Lv <span id="ui-level">1</span> |
+XP <span id="ui-xp">0</span> ⚡
+<span id="ui-energy">100</span>
+💰 <span id="ui-yton">10</span>
+</div><div>🟢 Online: <span id="online-count">1</span></div>
+</div><div id="tc-content">Yükleniyor...</div></div><script>
 
-<div>🟢 Online: <span id="online">1</span></div>
-
-</div>
-
-<div id="tc-content">Yükleniyor...</div>
-
-</div>
-
-<!-- ================= ENGINE MOCK ================= -->
-
-<script>
-
-/* ===== GAME STATE ===== */
+/* =====================================================
+   CORE GAME STATE
+===================================================== */
 
 window.GAME={
 user:{
-id:1,
 level:1,
 xp:0,
 energy:100,
@@ -180,119 +110,112 @@ yton:10
 }
 };
 
-/* ===== EVENT ===== */
-
-window.EVENT={
-events:{},
-emit(n,d){(this.events[n]||[]).forEach(f=>f(d));},
-on(n,f){(this.events[n]=this.events[n]||[]).push(f);}
-};
-
-/* ===== UI RENDER ===== */
-
-function renderStats(){
-
-const u=GAME.user;
-
-document.getElementById("lvl").innerText=u.level;
-document.getElementById("xp").innerText=u.xp;
-document.getElementById("energy").innerText=u.energy;
-document.getElementById("yton").innerText=u.yton;
-
-document.getElementById("xpbar").style.width=
-(u.xp%100)+"%";
-}
-
-/* ===== ENERGY LOOP ===== */
-
-setInterval(()=>{
-if(GAME.user.energy<100){
-GAME.user.energy++;
-renderStats();
-}
-},60000);
-
-
-/* ===================================================
-ROUTER ENGINE
-=================================================== */
+/* =====================================================
+   ROUTER
+===================================================== */
 
 window.ROUTER={
 
 go(page){
 
-EVENT.emit("page:enter",page);
-
 const root=document.getElementById("tc-content");
 
-switch(page){
+if(page==="home"){
+root.innerHTML=`<div class="card">Şehre hoşgeldin.</div>`;
+}
 
-case "home":
-root.innerHTML=`
-<div class="card">
-<h3>🏙 Şehre hoşgeldin</h3>
-Oyuna giriş başarılı.
+if(page==="missions"){
+root.innerHTML=`<div class="card">
+Görev Sistemi Aktif<br><br>
+<button onclick="mission()">Görev Yap</button>
 </div>`;
-break;
+}
 
-case "missions":
-root.innerHTML=`
-<div class="card">
-<h3>🎯 Görevler</h3>
-<button onclick="fakeMission()">Görev Yap</button>
+if(page==="pvp"){
+root.innerHTML=`<div class="card">
+PvP Arena<br><br>
+<button onclick="pvp()">Savaş Başlat</button>
 </div>`;
-break;
+}
 
-case "pvp":
-root.innerHTML=`
-<div class="card">
-<h3>⚔ PvP Arena</h3>
-<button onclick="fakePvp()">PvP Savaşı</button>
-</div>`;
-break;
+if(page==="market"){
+root.innerHTML=`<div class="card">Market yakında...</div>`;
+}
 
-case "market":
-root.innerHTML=`<div class="card">🛒 Market aktif</div>`;
-break;
+if(page==="clan"){
+root.innerHTML=`<div class="card">Clan sistemi aktif.</div>`;
+}
 
-case "clans":
-root.innerHTML=`<div class="card">👥 Clan sistemi</div>`;
-break;
-
-case "territory":
-root.innerHTML=`<div class="card">🗺 Bölgeler</div>`;
-break;
-
-case "leaderboard":
-root.innerHTML=`<div class="card">🏆 Liderlik Tablosu</div>`;
-break;
-
+if(page==="world"){
+root.innerHTML=`<div class="card">Şehir haritası.</div>`;
 }
 
 }
 
 };
 
-/* ===== TEST ACTIONS ===== */
+/* =====================================================
+   UI UPDATE
+===================================================== */
 
-function fakeMission(){
+function updateUI(){
+
+document.getElementById("ui-level").textContent=GAME.user.level;
+document.getElementById("ui-xp").textContent=GAME.user.xp;
+document.getElementById("ui-energy").textContent=GAME.user.energy;
+document.getElementById("ui-yton").textContent=GAME.user.yton;
+
+}
+
+/* =====================================================
+   TEST ACTIONS
+===================================================== */
+
+function mission(){
 GAME.user.xp+=10;
-renderStats();
-}
-
-function fakePvp(){
 GAME.user.yton+=2;
-renderStats();
+updateUI();
 }
 
-/* ===== INIT ===== */
+function pvp(){
+GAME.user.energy-=5;
+GAME.user.yton+=5;
+updateUI();
+}
 
-renderStats();
+/* =====================================================
+   WALLET INIT (KRİTİK)
+===================================================== */
+
+let tonConnect;
+
+function initWallet(){
+
+tonConnect = new TON_CONNECT_UI.TonConnectUI({
+manifestUrl:
+"https://toncrimegame-dotcom.github.io/toncrimegame/tonconnect-manifest.json",
+buttonRootId:"wallet"
+});
+
+tonConnect.onStatusChange(wallet=>{
+console.log("Wallet:",wallet);
+});
+
+}
+
+/* =====================================================
+   BOOTSTRAP (EN ÖNEMLİ KISIM)
+===================================================== */
+
+document.addEventListener("DOMContentLoaded",()=>{
+
+updateUI();
 ROUTER.go("home");
+initWallet();
 
-console.log("✅ TonCrime Alpha Loaded");
+console.log("🔥 TonCrime Ready");
 
-</script>
+});
 
-</body>
+</script></body>
 </html>
