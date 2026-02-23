@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TonCrime</title>
 
+<!-- TELEGRAM MINI APP -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- SUPABASE -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
 
-/* ================= GLOBAL ================= */
-
+/* ===== GLOBAL ===== */
 body{
 margin:0;
 background:#0e0e0e;
@@ -19,8 +22,7 @@ font-family:Arial;
 overflow-x:hidden;
 }
 
-/* ================= TOPBAR ================= */
-
+/* ===== TOPBAR ===== */
 .topbar{
 position:fixed;
 top:0;
@@ -35,20 +37,10 @@ border-bottom:1px solid #222;
 z-index:2000;
 }
 
-.logo{
-font-size:22px;
-color:gold;
-font-weight:bold;
-}
+.logo{color:gold;font-weight:bold;font-size:22px;}
+.menu-btn{cursor:pointer;font-size:22px;margin-right:15px;}
 
-.menu-btn{
-cursor:pointer;
-font-size:22px;
-margin-right:15px;
-}
-
-/* ================= SIDEBAR ================= */
-
+/* ===== SIDEBAR ===== */
 .sidebar{
 position:fixed;
 top:0;
@@ -60,14 +52,8 @@ padding:25px;
 transition:.3s;
 z-index:2500;
 }
-
 .sidebar.open{left:0;}
-
-.sidebar p{
-cursor:pointer;
-padding:10px 0;
-border-bottom:1px solid #222;
-}
+.sidebar p{padding:10px 0;border-bottom:1px solid #222;cursor:pointer;}
 
 .overlay{
 position:fixed;
@@ -77,25 +63,18 @@ background:rgba(0,0,0,.6);
 display:none;
 z-index:2400;
 }
-
 .overlay.show{display:block;}
 
-/* ================= CONTENT ================= */
-
+/* ===== CONTENT ===== */
 .main{
 margin-top:80px;
 padding:25px;
 max-width:900px;
-margin-left:auto;
-margin-right:auto;
+margin:auto;
 }
 
-/* ================= USER STATS ================= */
-
-.stats{
-font-size:14px;
-text-align:right;
-}
+/* ===== STATS ===== */
+.stats{font-size:14px;text-align:right;}
 
 .bar{
 width:260px;
@@ -105,13 +84,11 @@ border-radius:6px;
 overflow:hidden;
 margin-top:4px;
 }
-
 .bar-fill{height:100%;}
 .xp-fill{background:limegreen;}
 .energy-fill{background:gold;}
 
-/* ================= CARD ================= */
-
+/* ===== CARD ===== */
 .card{
 background:#1b1b1b;
 padding:18px;
@@ -119,8 +96,7 @@ margin:15px 0;
 border-radius:10px;
 }
 
-/* ================= BUTTON ================= */
-
+/* ===== BUTTON ===== */
 button{
 width:100%;
 padding:12px;
@@ -132,10 +108,7 @@ cursor:pointer;
 margin-top:10px;
 }
 
-button:hover{opacity:.9}
-
-/* ================= MISSION BAR ================= */
-
+/* ===== MISSION BAR ===== */
 .mission-progress{
 width:100%;
 height:8px;
@@ -144,34 +117,24 @@ border-radius:6px;
 margin:10px 0;
 overflow:hidden;
 }
-
 .progress-fill{
 height:100%;
 width:0%;
 background:gold;
-transition:width .05s linear;
+transition:.05s linear;
 }
 
-/* ===================================================
-   🎬 FX SYSTEM (EKLENDİ)
-   =================================================== */
-
-/* SCREEN DIM */
+/* ===== FX ===== */
 
 #fx-dim{
 position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
+inset:0;
 background:black;
 opacity:0;
 pointer-events:none;
 transition:.25s;
 z-index:1800;
 }
-
-/* SHAKE */
 
 @keyframes shake{
 0%{transform:translate(0)}
@@ -180,12 +143,7 @@ z-index:1800;
 75%{transform:translate(-3px,1px)}
 100%{transform:translate(0)}
 }
-
-.shake{
-animation:shake .35s;
-}
-
-/* SUCCESS FLASH */
+.shake{animation:shake .35s;}
 
 .fx-success{
 position:fixed;
@@ -193,9 +151,6 @@ inset:0;
 background:rgba(0,255,120,.25);
 z-index:1900;
 }
-
-/* FAIL FLASH */
-
 .fx-fail{
 position:fixed;
 inset:0;
@@ -211,7 +166,6 @@ z-index:1900;
 <!-- SIDEBAR -->
 <div class="sidebar" id="sidebar">
 <h3 style="color:gold">Menü</h3>
-
 <p onclick="PAGE.go('index')">🏠 Ana Sayfa</p>
 <p onclick="PAGE.go('missions')">🎯 Görevler</p>
 <p onclick="PAGE.go('pvp')">⚔ PvP</p>
@@ -228,28 +182,22 @@ z-index:1900;
 
 <div class="stats">
 <div id="stats"></div>
-
-<div class="bar">
-<div id="xpBar" class="bar-fill xp-fill"></div>
-</div>
-
-<div class="bar">
-<div id="energyBar" class="bar-fill energy-fill"></div>
-</div>
+<div class="bar"><div id="xpBar" class="bar-fill xp-fill"></div></div>
+<div class="bar"><div id="energyBar" class="bar-fill energy-fill"></div></div>
 </div>
 </div>
 
-<!-- CONTENT -->
 <div class="main">
 <div id="tc-content"></div>
 </div>
 
-<!-- CONFIG -->
 <script>
+
+/* ================= CONFIG ================= */
+
 window.CONFIG={
 SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
 SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
-USER_ID:localStorage.getItem("tc_user")||"591676206",
 XP_LIMIT:100,
 MAX_ENERGY:100,
 ENERGY_INTERVAL:300000
@@ -259,10 +207,58 @@ window.db=supabase.createClient(
 CONFIG.SUPABASE_URL,
 CONFIG.SUPABASE_KEY
 );
-</script>
 
-<!-- MENU -->
-<script>
+/* ================= TELEGRAM LOGIN ================= */
+
+async function telegramLogin(){
+
+if(!window.Telegram){
+console.log("Browser mode");
+CONFIG.USER_ID="591676206";
+startGame();
+return;
+}
+
+const tg=Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+const user=tg.initDataUnsafe.user;
+
+if(!user){
+alert("Telegram user bulunamadı");
+return;
+}
+
+const id=String(user.id);
+
+localStorage.setItem("tc_user",id);
+CONFIG.USER_ID=id;
+
+const {data}=await db.from("users")
+.select("*")
+.eq("id",id)
+.maybeSingle();
+
+if(!data){
+
+await db.from("users").insert({
+id:id,
+nickname:user.username||user.first_name,
+level:1,
+xp:0,
+energy:100,
+yton:5,
+last_energy_tick:Date.now()
+});
+
+}
+
+startGame();
+}
+
+/* ================= MENU ================= */
+
 function openMenu(){
 sidebar.classList.add("open");
 overlay.classList.add("show");
@@ -271,36 +267,12 @@ overlay.onclick=()=>{
 sidebar.classList.remove("open");
 overlay.classList.remove("show");
 };
-</script>
 
-<!-- CORE -->
-<script src="engine/state.engine.js"></script>
-<script src="engine/event.engine.js"></script>
-
-<script>
-window.CORE={
-modules:[],
-register(n,c){this.modules.push({n,c});},
-start(){
-console.log("🚀 TonCrime Started");
-EVENT.emit("game:ready");
-}
-};
-</script>
-
-<!-- ENGINES -->
-<script src="engine/engine.js"></script>
-<script src="engine/ui.engine.js"></script>
-<script src="engine/layout.engine.js"></script>
-<script src="engine/fx.engine.js"></script>
-<script src="engine/missions.engine.js"></script>
-
-<!-- ROUTER -->
-<script>
+/* ================= ROUTER ================= */
 
 window.PAGE={
-go(page){
-location.hash=page;
+go(p){
+location.hash=p;
 loadPage();
 }
 };
@@ -309,27 +281,38 @@ function loadPage(){
 
 const page=location.hash.replace("#","")||"index";
 
-EVENT.emit("page:enter",page);
-
 if(page==="index"){
-tc_content.innerHTML=
-`<h2>🏙 Yeraltı Şehri</h2>
-<p>Şehir yaşıyor...</p>`;
+tc_content.innerHTML="<h2>🏙 Yeraltı Şehri</h2>";
+}
+
+if(page==="missions"){
+if(window.MISSIONS) MISSIONS.render();
 }
 
 if(page==="pvp"){
-tc_content.innerHTML=
-`<h2>⚔ PvP Arena</h2>
-<button>Rakip Ara</button>`;
+tc_content.innerHTML="<h2>⚔ PvP Arena</h2>";
 }
 
 }
 
-window.addEventListener("load",()=>{
-CORE.start();
+/* ================= GAME START ================= */
+
+function startGame(){
+console.log("🚀 TonCrime Started");
 loadPage();
-});
+}
+
+/* START */
+telegramLogin();
+
 </script>
+
+<!-- ENGINES -->
+<script src="engine/engine.js"></script>
+<script src="engine/ui.engine.js"></script>
+<script src="engine/layout.engine.js"></script>
+<script src="engine/fx.engine.js"></script>
+<script src="engine/missions.engine.js"></script>
 
 </body>
 </html>
