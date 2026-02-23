@@ -1,123 +1,99 @@
 /* ===================================================
-   TONCRIME DAILY BONUS ENGINE
-   Login Reward + Streak System
+   TONCRIME DAILY LOGIN ENGINE
+   7 Day Streak Reward System
    =================================================== */
 
 (function(){
 
-const REWARDS = [
-  {yton:1,xp:20},
-  {yton:1.5,xp:25},
-  {yton:2,xp:35},
-  {yton:3,xp:50},
-  {yton:5,xp:70},
-  {yton:7,xp:90},
-  {yton:10,xp:120}
-];
-
-
-/* ===================================================
-   TODAY STRING
-   =================================================== */
-
-function today(){
-  return new Date().toISOString().slice(0,10);
+if(!window.db || !window.GAME){
+  console.warn("Daily engine waiting...");
+  return;
 }
 
+const DAILY = {
 
-/* ===================================================
-   CHECK CLAIM
-   =================================================== */
+BASE_REWARD:5,
+STREAK_BONUS:25,
+MAX_STREAK:7,
 
-async function checkDaily(){
+/* ======================================
+   CHECK LOGIN REWARD
+====================================== */
+
+async check(){
 
   const user = GAME.user;
   if(!user) return;
 
-  const t = today();
+  const today = new Date().toISOString().slice(0,10);
 
-  if(user.last_daily_claim === t)
-    return; // bugün almış
-
-  await giveReward(user);
-}
-
-
-/* ===================================================
-   GIVE REWARD
-   =================================================== */
-
-async function giveReward(user){
-
-  const t = today();
-
-  let streak = user.daily_streak || 0;
-
-  const yesterday =
-    new Date(Date.now()-86400000)
-      .toISOString().slice(0,10);
-
-  /* streak kontrol */
-  if(user.last_daily_claim !== yesterday){
-    streak = 0;
+  /* already claimed today */
+  if(user.last_login_reward === today){
+    console.log("🎁 Daily already claimed");
+    return;
   }
 
-  const reward = REWARDS[streak];
+  let streak = user.login_streak || 0;
 
-  let xp = reward.xp;
+  /* yesterday control */
+  const yesterday = new Date(Date.now()-86400000)
+    .toISOString().slice(0,10);
 
-  /* premium bonus */
-  if(user.premium)
-    xp = Math.round(xp*1.3);
+  if(user.last_login_reward === yesterday){
+    streak++;
+  }else{
+    streak = 1;
+  }
 
-  const newData={
-    yton:Number(user.yton)+reward.yton,
-    xp:user.xp+xp,
-    daily_streak:streak+1,
-    last_daily_claim:t
-  };
+  let reward = this.BASE_REWARD;
 
-  /* 7 gün reset */
-  if(newData.daily_streak>=7)
-    newData.daily_streak=0;
+  /* 7 DAY BONUS */
+  if(streak >= this.MAX_STREAK){
+    reward += this.STREAK_BONUS;
+    streak = 0; // reset cycle
+  }
+
+  const newYton = Number(user.yton) + reward;
 
   await db.from("users")
-    .update(newData)
+    .update({
+      yton:newYton,
+      login_streak:streak,
+      last_login_reward:today
+    })
     .eq("id",user.id);
 
-  Object.assign(user,newData);
+  user.yton = newYton;
+  user.login_streak = streak;
+  user.last_login_reward = today;
 
-  EVENT.emit("daily:claimed",{
-    reward,
-    streak:newData.daily_streak
+  this.notify(reward,streak);
+},
+
+/* ======================================
+   UI NOTIFY
+====================================== */
+
+notify(reward,streak){
+
+  EVENT.emit("notify",{
+    title:"Günlük Ödül 🎁",
+    text:`+${reward} YTON kazandın!\nSeri: ${streak}/7`
   });
+
 }
 
+};
 
-/* ===================================================
-   EVENT HOOK
-   =================================================== */
-
-EVENT.on("engine:ready",checkDaily);
+window.DAILY = DAILY;
 
 
-/* ===================================================
-   NOTIFY
-   =================================================== */
+/* AUTO RUN AFTER USER LOAD */
 
-EVENT.on("daily:claimed",(d)=>{
-
-  Notify.show(
-    `🎁 Günlük Ödül<br>
-     +${d.reward.yton} YTON<br>
-     +${d.reward.xp} XP<br>
-     🔥 Streak: ${d.streak}`,
-    "#f39c12",
-    4000
-  );
-
+EVENT.on("engine:userLoaded",()=>{
+  setTimeout(()=>DAILY.check(),1500);
 });
 
-console.log("🎁 Daily Bonus Engine Ready");
+console.log("🎁 Daily Login Engine Ready");
 
 })();
