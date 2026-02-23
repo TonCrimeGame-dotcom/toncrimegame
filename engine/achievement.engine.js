@@ -1,134 +1,132 @@
 /* ===================================================
    TONCRIME ACHIEVEMENT ENGINE
-   Progression + Badge System
    =================================================== */
 
 (function(){
 
-/* ===================================================
-   ACHIEVEMENT LIST
-   =================================================== */
+if(!window.db || !window.EVENT){
+  console.warn("Achievement waiting...");
+  return;
+}
 
-const ACHIEVEMENTS = {
+const ACHIEVEMENT = {
 
-  FIRST_WIN:{
-    name:"İlk Kan",
-    desc:"İlk PvP zaferi"
-  },
+today(){ return new Date().toISOString().slice(0,10); },
 
-  PVP_10:{
-    name:"Sokak Dövüşçüsü",
-    desc:"10 PvP kazandın"
-  },
+/* ======================================
+   INIT PLAYER ACHIEVEMENTS
+====================================== */
 
-  RICH_100:{
-    name:"Para Konuşur",
-    desc:"100 YTON'a ulaştın"
-  },
+async init(){
 
-  STREAK_3:{
-    name:"Bağımlı",
-    desc:"3 gün üst üste giriş"
-  },
+  const user=GAME.user;
+  if(!user) return;
 
-  LEVEL_10:{
-    name:"Yükselen Güç",
-    desc:"Level 10 oldun"
-  },
+  const {data:defs}=await db
+    .from("achievements")
+    .select("*");
 
-  NO_SLEEP:{
-    name:"Uyku Yok",
-    desc:"7 gün streak tamamlandı"
+  for(const a of defs){
+
+    const {data}=await db
+      .from("user_achievements")
+      .select("*")
+      .eq("user_id",user.id)
+      .eq("code",a.code)
+      .maybeSingle();
+
+    if(!data){
+      await db.from("user_achievements").insert({
+        user_id:user.id,
+        code:a.code
+      });
+    }
   }
+
+},
+
+/* ======================================
+   PROGRESS
+====================================== */
+
+async progress(code,amount=1){
+
+  const user=GAME.user;
+
+  const {data}=await db
+    .from("user_achievements")
+    .select("*")
+    .eq("user_id",user.id)
+    .eq("code",code)
+    .single();
+
+  if(!data || data.completed) return;
+
+  let newProgress=data.progress+amount;
+
+  const {data:def}=await db
+    .from("achievements")
+    .select("*")
+    .eq("code",code)
+    .single();
+
+  let completed=false;
+
+  if(newProgress>=def.goal){
+    newProgress=def.goal;
+    completed=true;
+    await this.reward(def);
+  }
+
+  await db.from("user_achievements")
+    .update({
+      progress:newProgress,
+      completed
+    })
+    .eq("id",data.id);
+},
+
+/* ======================================
+   REWARD
+====================================== */
+
+async reward(def){
+
+  const user=GAME.user;
+
+  user.xp+=def.xp_reward;
+  user.yton+=def.yton_reward;
+
+  if(user.xp>=CONFIG.XP_LIMIT){
+    user.level++;
+    user.xp-=CONFIG.XP_LIMIT;
+  }
+
+  await db.from("users").update({
+    xp:user.xp,
+    yton:user.yton,
+    level:user.level
+  }).eq("id",user.id);
+
+  EVENT.emit("notify",{
+    title:"🏆 Başarım Açıldı!",
+    text:`${def.title}
++${def.xp_reward} XP
++${def.yton_reward} YTON`
+  });
+}
 
 };
 
-
-/* ===================================================
-   CHECK EXIST
-   =================================================== */
-
-async function hasAchievement(userId,code){
-
-  const { data } = await db
-    .from("user_achievements")
-    .select("id")
-    .eq("user_id",userId)
-    .eq("code",code)
-    .maybeSingle();
-
-  return !!data;
-}
+window.ACHIEVEMENT=ACHIEVEMENT;
 
 
-/* ===================================================
-   UNLOCK
-   =================================================== */
+/* AUTO INIT */
 
-async function unlock(userId,code){
+EVENT.on("engine:userLoaded",()=>{
+  setTimeout(()=>ACHIEVEMENT.init(),2000);
+});
 
-  if(await hasAchievement(userId,code))
-    return;
-
-  await db.from("user_achievements")
-    .insert({
-      user_id:userId,
-      code
-    });
-
-  const a = ACHIEVEMENTS[code];
-
-  Notify.show(
-    `🏅 ${a.name}<br>${a.desc}`,
-    "#f1c40f",
-    4500
-  );
-
-  EVENT.emit("achievement:unlock",{code});
-}
-
-
-/* ===================================================
-   CHECK RULES
-   =================================================== */
-
-async function check(user){
-
-  if(!user) return;
-
-  /* FIRST WIN */
-  if(user.wins>=1)
-    unlock(user.id,"FIRST_WIN");
-
-  /* 10 PvP */
-  if(user.wins>=10)
-    unlock(user.id,"PVP_10");
-
-  /* Rich */
-  if(Number(user.yton)>=100)
-    unlock(user.id,"RICH_100");
-
-  /* Level */
-  if(user.level>=10)
-    unlock(user.id,"LEVEL_10");
-
-  /* streak */
-  if(user.daily_streak>=3)
-    unlock(user.id,"STREAK_3");
-
-  if(user.daily_streak>=7)
-    unlock(user.id,"NO_SLEEP");
-}
-
-
-/* ===================================================
-   AUTO CHECK EVENTS
-   =================================================== */
-
-EVENT.on("reward:given",()=>check(GAME.user));
-EVENT.on("daily:claimed",()=>check(GAME.user));
-EVENT.on("elo:updated",()=>check(GAME.user));
-
-console.log("🏅 Achievement Engine Ready");
+console.log("🏆 Achievement Engine Ready");
 
 })();
