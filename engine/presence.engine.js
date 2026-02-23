@@ -1,103 +1,158 @@
 /* ===================================================
-   TONCRIME PRESENCE ENGINE
-   Realtime Online Player System
+   TONCRIME PRESENCE ENGINE v2
+   Building Presence + Online Players System
    =================================================== */
 
 (function(){
 
-let channel = null;
-
-/* ===============================================
-   JOIN PRESENCE
-=============================================== */
-
-async function joinPresence(){
-
-  if(channel) return;
-
-  const user = GameState.getUser();
-  if(!user) return;
-
-  channel = db.channel("online-global",{
-    config:{
-      presence:{ key:user.id }
-    }
-  });
-
-  /* --- TRACK SELF --- */
-
-  channel.on("presence",{event:"sync"},()=>{
-
-    const state = channel.presenceState();
-    const count = Object.keys(state).length;
-
-    GameState.setOnline(count);
-
-    EVENT.emit("ONLINE_UPDATED",count);
-  });
-
-  /* --- PLAYER JOIN --- */
-
-  channel.on("presence",{event:"join"},({key,newPresences})=>{
-
-    EVENT.emit("PLAYER_JOIN",key);
-
-  });
-
-  /* --- PLAYER LEAVE --- */
-
-  channel.on("presence",{event:"leave"},({key})=>{
-
-    EVENT.emit("PLAYER_LEAVE",key);
-
-  });
-
-  await channel.subscribe(async(status)=>{
-
-    if(status !== "SUBSCRIBED") return;
-
-    await channel.track({
-      id:user.id,
-      name:user.nickname,
-      level:user.level,
-      ts:Date.now()
-    });
-
-    console.log("🟢 Presence joined");
-  });
-
+if(!window.EVENT){
+  console.warn("Presence waiting EVENT...");
+  return;
 }
 
+/* ===========================================
+   STORAGE
+=========================================== */
 
-/* ===============================================
-   HEARTBEAT (LOOP ENGINE İLE)
-=============================================== */
+const STORAGE_KEY="tc_presence_rooms";
 
-EVENT.on("ONLINE_PULSE",async()=>{
+/* ===========================================
+   ENGINE
+=========================================== */
 
-  if(!channel) return;
+const PRESENCE={
 
-  const user = GameState.getUser();
-  if(!user) return;
+  rooms:{},
+  currentRoom:null,
 
-  await channel.track({
-    id:user.id,
-    level:user.level,
-    ts:Date.now()
-  });
+  /* ===================================== */
+  init(){
+    this.load();
+    console.log("🌐 Presence Engine Ready");
+  },
 
+  /* ===================================== */
+  load(){
+    try{
+      this.rooms=
+        JSON.parse(localStorage.getItem(STORAGE_KEY))
+        || {};
+    }catch{
+      this.rooms={};
+    }
+  },
+
+  save(){
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(this.rooms)
+    );
+  },
+
+  /* ===================================== */
+  ENTER ROOM
+  ===================================== */
+
+  enter(room){
+
+    if(!window.GAME || !GAME.user) return;
+
+    this.leave();
+
+    if(!this.rooms[room])
+      this.rooms[room]=[];
+
+    const player={
+      id:GAME.user.id,
+      name:GAME.user.name,
+      time:Date.now()
+    };
+
+    this.rooms[room].push(player);
+    this.currentRoom=room;
+
+    this.save();
+
+    EVENT.emit("presence:enter",{
+      room,
+      player
+    });
+
+    this.broadcast(room);
+
+  },
+
+  /* ===================================== */
+  LEAVE ROOM
+  ===================================== */
+
+  leave(){
+
+    if(!this.currentRoom) return;
+
+    const room=this.currentRoom;
+
+    if(!this.rooms[room]) return;
+
+    this.rooms[room]=
+      this.rooms[room].filter(
+        p=>p.id!==GAME.user.id
+      );
+
+    EVENT.emit("presence:leave",{
+      room,
+      player:GAME.user.id
+    });
+
+    this.currentRoom=null;
+
+    this.save();
+  },
+
+  /* ===================================== */
+  BROADCAST ROOM STATE
+  ===================================== */
+
+  broadcast(room){
+
+    EVENT.emit("presence:update",{
+      room,
+      players:this.rooms[room]||[]
+    });
+
+  },
+
+  /* ===================================== */
+  GET ONLINE PLAYERS
+  ===================================== */
+
+  players(room){
+    return this.rooms[room]||[];
+  }
+
+};
+
+window.PRESENCE=PRESENCE;
+
+/* ===========================================
+   AUTO EVENTS
+=========================================== */
+
+EVENT.on("room:enter",(room)=>{
+  PRESENCE.enter(room);
 });
 
-
-/* ===============================================
-   AUTO START WHEN USER READY
-=============================================== */
-
-STATE.subscribe("user",()=>{
-
-  setTimeout(joinPresence,500);
-
+EVENT.on("room:leave",()=>{
+  PRESENCE.leave();
 });
 
+EVENT.on("game:ready",()=>{
+  PRESENCE.init();
+});
+
+/* leave on close */
+window.addEventListener("beforeunload",()=>{
+  PRESENCE.leave();
+});
 
 })();
