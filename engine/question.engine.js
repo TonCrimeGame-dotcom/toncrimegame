@@ -1,164 +1,158 @@
 /* ===================================================
    TONCRIME QUESTION ENGINE
-   Infinite Deterministic Question System
+   Infinite Non-Repeating Question System
    =================================================== */
 
 (function(){
 
-/* ===================================================
-   QUESTION POOLS
-   (örnek — sonra büyüteceğiz)
-   =================================================== */
+if(!window.EVENT){
+  console.warn("Question engine waiting EVENT...");
+  return;
+}
 
-const POOLS = {
+/* ===========================================
+   SAMPLE QUESTION BANK
+   (sonra DB'ye taşınabilir)
+=========================================== */
 
-  math:[
-    q => `${q.a} + ${q.b} kaçtır?`,
-    q => `${q.a} × ${q.b} kaçtır?`,
-    q => `${q.a} - ${q.b} kaçtır?`
-  ],
+const QUESTION_BANK=[
 
-  compare:[
-    q => `${q.a} mi büyük ${q.b} mi?`
-  ]
+{
+id:1,
+q:"Türkiye'nin başkenti neresidir?",
+a:["İstanbul","Ankara","İzmir","Bursa"],
+c:1
+},
+{
+id:2,
+q:"5 + 7 kaçtır?",
+a:["10","11","12","13"],
+c:2
+},
+{
+id:3,
+q:"HTML neyin kısaltmasıdır?",
+a:[
+"Hyper Text Markup Language",
+"High Transfer Machine Logic",
+"Home Tool Mark Language",
+"Hyper Tool Multi Language"
+],
+c:0
+},
+{
+id:4,
+q:"Dünya kaç kıtadan oluşur?",
+a:["5","6","7","8"],
+c:2
+},
+{
+id:5,
+q:"TON hangi blockchain üzerine kuruludur?",
+a:["Ethereum","TON","Solana","Polygon"],
+c:1
+}
+
+];
+
+/* ===========================================
+   STORAGE
+=========================================== */
+
+const STORAGE_KEY="tc_answered";
+
+/* ===========================================
+   ENGINE
+=========================================== */
+
+const QUESTIONS={
+
+answered:{},
+
+init(){
+  this.load();
+  console.log("🧠 Question Engine Ready");
+},
+
+load(){
+  try{
+    this.answered=
+      JSON.parse(localStorage.getItem(STORAGE_KEY))
+      || {};
+  }catch{
+    this.answered={};
+  }
+
+  if(!this.answered[CONFIG.USER_ID])
+    this.answered[CONFIG.USER_ID]=[];
+},
+
+save(){
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(this.answered)
+  );
+},
+
+/* ===========================================
+   GET RANDOM QUESTION
+=========================================== */
+
+get(){
+
+  const used=this.answered[CONFIG.USER_ID];
+
+  let available=
+    QUESTION_BANK.filter(q=>!used.includes(q.id));
+
+  /* reset if finished */
+  if(available.length===0){
+    this.answered[CONFIG.USER_ID]=[];
+    available=[...QUESTION_BANK];
+  }
+
+  const q=
+    available[
+      Math.floor(Math.random()*available.length)
+    ];
+
+  used.push(q.id);
+  this.save();
+
+  return q;
+},
+
+/* ===========================================
+   GET SET (5 QUESTIONS)
+=========================================== */
+
+getSet(count=5){
+
+  let set=[];
+
+  for(let i=0;i<count;i++)
+    set.push(this.get());
+
+  return set;
+}
 
 };
 
+window.QUESTIONS=QUESTIONS;
 
-/* ===================================================
-   SEEDED RANDOM (DETERMINISTIC)
-   Aynı seed = aynı soru
-   =================================================== */
+/* START */
 
-function seededRandom(seed){
+EVENT.on("game:ready",()=>{
+  QUESTIONS.init();
+});
 
-  let x = Math.sin(seed++) * 10000;
-  return x - Math.floor(x);
+/* REGISTER */
+
+if(window.CORE){
+  CORE.register(
+    "Question Engine",
+    ()=>!!window.QUESTIONS
+  );
 }
-
-
-/* ===================================================
-   RANDOM INT
-   =================================================== */
-
-function rand(seed,min,max){
-  return Math.floor(
-    seededRandom(seed)*(max-min+1)
-  ) + min;
-}
-
-
-/* ===================================================
-   QUESTION GENERATOR
-   =================================================== */
-
-function generate(seed){
-
-  const typeIndex =
-    rand(seed,0,Object.keys(POOLS).length-1);
-
-  const type =
-    Object.keys(POOLS)[typeIndex];
-
-  const templates = POOLS[type];
-
-  const template =
-    templates[rand(seed+3,0,templates.length-1)];
-
-  const data={
-    a: rand(seed+11,1,20),
-    b: rand(seed+19,1,20)
-  };
-
-  const questionText = template(data);
-
-  const answer = solve(type,data);
-
-  return {
-    seed,
-    type,
-    question:questionText,
-    answer,
-    hash:createHash(answer)
-  };
-}
-
-
-/* ===================================================
-   SOLVER
-   =================================================== */
-
-function solve(type,d){
-
-  switch(type){
-
-    case "math":
-      return d.a + d.b; // default (expand later)
-
-    case "compare":
-      return d.a > d.b ? d.a : d.b;
-
-    default:
-      return 0;
-  }
-}
-
-
-/* ===================================================
-   SIMPLE HASH
-   Anti Cheat Base
-   =================================================== */
-
-function createHash(value){
-
-  let str = String(value);
-  let hash = 0;
-
-  for(let i=0;i<str.length;i++){
-    hash = ((hash<<5)-hash)+str.charCodeAt(i);
-    hash |= 0;
-  }
-
-  return hash.toString();
-}
-
-
-/* ===================================================
-   PUBLIC API
-   =================================================== */
-
-window.QUESTION = {
-
-  current:null,
-
-  create(matchId){
-
-    const seed =
-      Number(matchId) +
-      Math.floor(Date.now()/1000);
-
-    const q = generate(seed);
-
-    this.current = q;
-
-    console.log("🧠 Question Created:",q);
-
-    EVENT.emit("question:new",q);
-
-    return q;
-  },
-
-  verify(answer){
-
-    if(!this.current) return false;
-
-    const hash=createHash(answer);
-
-    return hash===this.current.hash;
-  }
-
-};
-
-console.log("🧠 Question Engine Ready");
 
 })();
