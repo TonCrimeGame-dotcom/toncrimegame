@@ -1,155 +1,62 @@
 /* ===================================================
-   TONCRIME TON WALLET ENGINE (UPDATED)
-   Withdrawal Rules Fixed
+   TONCRIME TON WALLET ENGINE
    =================================================== */
 
 (function(){
 
-if(!window.EVENT){
-  console.warn("Wallet engine waiting EVENT...");
-  return;
+const WALLET={};
+
+let tonUI;
+
+/* ================= INIT ================= */
+
+WALLET.init=function(){
+
+tonUI = new TON_CONNECT_UI.TonConnectUI({
+manifestUrl: window.location.origin + "/tonconnect-manifest.json",
+buttonRootId:"walletButton"
+});
+
+tonUI.onStatusChange(wallet=>{
+if(wallet){
+WALLET.connected(wallet);
 }
+});
 
-/* ===========================================
-   CONFIG
-=========================================== */
+};
 
-const YTON_RATE = 0.05;      // 1 YTON = 0.05 TON
-const MIN_WITHDRAW = 20;     // minimum çekim
-const REQUIRED_LEVEL = 50;   // çekim level
+/* ================= CONNECTED ================= */
 
-/* ===========================================
-   ENGINE
-=========================================== */
+WALLET.connected=async function(wallet){
 
-const WALLET={
+const address = wallet.account.address;
 
-  address:null,
+const userId = CONFIG.USER_ID;
 
-  /* ===================================== */
-  connect(address){
+await db.from("users")
+.update({wallet:address})
+.eq("id",userId);
 
-    if(!address){
-      NOTIFY.push("Geçersiz adres");
-      return;
-    }
+EVENT.emit("notify","💰 Wallet bağlandı");
 
-    this.address=address;
-    localStorage.setItem("tc_wallet",address);
+console.log("Wallet:",address);
+};
 
-    NOTIFY.push("💎 TON cüzdan bağlandı");
-  },
+/* ================= CHECK ================= */
 
-  load(){
-    this.address =
-      localStorage.getItem("tc_wallet");
-  },
+WALLET.canWithdraw=function(user){
 
-  /* ===================================== */
-  WITHDRAW PERMISSION
-  ===================================== */
+if(user.premium) return true;
 
-  canWithdraw(){
-
-    const u = GAME.user;
-    if(!u) return false;
-
-    /* ✅ SENİN KURALIN */
-    if(u.level >= REQUIRED_LEVEL) return true;
-    if(u.premium === true) return true;
-
-    NOTIFY.push(
-      "🔒 Çekim için Level 50 olmalısın"
-    );
-
-    return false;
-  },
-
-  /* ===================================== */
-  CONVERT
-  ===================================== */
-
-  toTON(yton){
-    return Number(yton * YTON_RATE).toFixed(2);
-  },
-
-  /* ===================================== */
-  WITHDRAW REQUEST
-  ===================================== */
-
-  withdraw(yton){
-
-    const u = GAME.user;
-
-    if(!this.canWithdraw()) return;
-
-    if(yton < MIN_WITHDRAW){
-      NOTIFY.push("Minimum 20 YTON çekilebilir");
-      return;
-    }
-
-    if(u.yton < yton){
-      NOTIFY.push("Yetersiz bakiye");
-      return;
-    }
-
-    if(!this.address){
-      NOTIFY.push("Önce TON cüzdan bağla");
-      return;
-    }
-
-    const ton = this.toTON(yton);
-
-    /* bakiye düş */
-    u.yton -= yton;
-
-    EVENT.emit("wallet:withdrawRequest",{
-      user:u.id,
-      yton,
-      ton,
-      address:this.address,
-      created_at:Date.now()
-    });
-
-    NOTIFY.push(
-      "⏳ Çekim isteği gönderildi: "+ton+" TON"
-    );
-  },
-
-  /* ===================================== */
-  SERVER DEPOSIT
-  ===================================== */
-
-  deposit(amount){
-
-    GAME.user.yton += amount;
-
-    NOTIFY.push("💰 "+amount+" YTON yatırıldı");
-  }
-
+return user.level>=50;
 };
 
 window.WALLET=WALLET;
 
-/* ===========================================
-   START
-=========================================== */
+/* AUTO START */
 
-EVENT.on("game:ready",()=>{
-  WALLET.load();
+document.addEventListener("DOMContentLoaded",()=>{
+setTimeout(()=>WALLET.init(),500);
 });
-
-/* ===========================================
-   CORE REGISTER
-=========================================== */
-
-if(window.CORE){
-  CORE.register(
-    "Wallet Engine",
-    ()=>!!window.WALLET
-  );
-}
-
-console.log("💎 Wallet Engine Ready");
 
 })();
