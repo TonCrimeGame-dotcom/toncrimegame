@@ -2,76 +2,261 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TonCrime - Görevler</title>
+<title>Görevler</title>
+
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="game-core.js"></script>
+
+<style>
+body{
+margin:0;
+background:#0e0e0e;
+color:white;
+font-family:Arial;
+}
+
+/* TOPBAR */
+
+.topbar{
+background:#111;
+padding:18px 40px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #222;
+}
+
+.logo{color:gold;font-weight:bold;font-size:22px;}
+
+.bar{height:8px;background:#333;margin-top:5px;border-radius:5px;}
+.fill{height:100%;}
+.xp{background:limegreen;}
+.energy{background:gold;}
+
+.main{
+display:flex;
+gap:40px;
+padding:40px;
+justify-content:center;
+}
+
+.missions{width:55%;}
+.userpanel{
+width:25%;
+background:#151515;
+padding:20px;
+border-radius:10px;
+}
+
+.card{
+background:#1b1b1b;
+padding:18px;
+margin-bottom:20px;
+border-radius:10px;
+}
+
+button{
+width:100%;
+padding:12px;
+background:gold;
+border:none;
+font-weight:bold;
+cursor:pointer;
+margin-top:10px;
+}
+
+.result{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#1b1b1b;
+padding:15px;
+border-radius:10px;
+display:none;
+}
+</style>
 </head>
+
 <body>
 
+<div class="topbar">
+<div class="logo">TonCrime — Görevler</div>
 <div id="stats"></div>
-<div style="width:300px;height:8px;background:#333">
-<div id="xpBar" style="height:8px;background:limegreen"></div>
-</div>
-<div style="width:300px;height:8px;background:#333;margin-top:5px">
-<div id="energyBar" style="height:8px;background:gold"></div>
 </div>
 
-<div id="missions"></div>
+<div class="main">
+<div class="missions" id="missions"></div>
+<div class="userpanel" id="userinfo"></div>
+</div>
+
+<div id="result" class="result"></div>
 
 <script>
 
-async function render(){
+/* ================= CONFIG ================= */
 
-  let user=await loadUser();
-  if(!user) return;
+const db = supabase.createClient(
+"https://hwhscuyudwphnsipibpy.supabase.co",
+"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
+);
 
-  user=await regenEnergy(user);
-  renderStats(user);
+const USER_ID="591676206";
+const MAX_ENERGY=100;
+const XP_LIMIT=100;
 
-  const {data:missions}=await db.from("missions").select("*");
+/* ================= DAILY QUEST SAFE CALL ================= */
 
-  let html="";
-  missions.forEach(m=>{
-    html+=`
-    <div style="border:1px solid #444;padding:10px;margin:10px">
-      <b>${m.name}</b><br>
-      Enerji: ${m.energy_cost}<br>
-      XP: ${m.xp_reward}<br>
-      Yton: ${m.yton_reward}<br>
-      <button onclick="startMission(${m.id})">Başlat</button>
-    </div>
-    `;
-  });
-
-  document.getElementById("missions").innerHTML=html;
+function dailyMissionProgress(){
+if(window.DAILYQUEST){
+DAILYQUEST.progress("missions");
 }
+}
+
+/* ================= USER LOAD ================= */
+
+async function loadUser(){
+const {data}=await db.from("users")
+.select("*")
+.eq("id",USER_ID)
+.single();
+
+return data;
+}
+
+/* ================= UI ================= */
+
+function renderStats(u){
+
+document.getElementById("stats").innerHTML=
+`Lv ${u.level} | XP ${u.xp}/${XP_LIMIT}
+ | ⚡ ${u.energy} | 💰 ${Number(u.yton).toFixed(2)}
+
+<div class="bar">
+<div class="fill xp" style="width:${u.xp}%"></div>
+</div>
+
+<div class="bar">
+<div class="fill energy" style="width:${u.energy}%"></div>
+</div>`;
+}
+
+function popup(text){
+const el=document.getElementById("result");
+el.innerHTML=text;
+el.style.display="block";
+setTimeout(()=>el.style.display="none",2500);
+}
+
+/* ================= MISSIONS LOAD ================= */
+
+async function loadMissions(){
+
+const {data}=await db.from("missions").select("*");
+
+let html="";
+
+data.forEach(m=>{
+
+html+=`
+<div class="card">
+<b>${m.name}</b><br><br>
+
+Enerji: ${m.energy_cost}<br>
+XP: ${m.xp_reward}<br>
+Kazanç: ${m.yton_reward} YTON<br>
+Başarı: %${m.success_rate}
+
+<button onclick="startMission(${m.id})">
+Başlat
+</button>
+</div>`;
+});
+
+document.getElementById("missions").innerHTML=html;
+}
+
+/* ================= START MISSION ================= */
 
 async function startMission(id){
 
-  const user=await loadUser();
-  if(!user) return;
+let user=await loadUser();
 
-  const {data:mission}=await db.from("missions")
-  .select("*")
-  .eq("id",id)
-  .single();
+const {data:mission}=await db
+.from("missions")
+.select("*")
+.eq("id",id)
+.single();
 
-  if(user.energy<mission.energy_cost){
-    alert("Yetersiz enerji");
-    return;
-  }
+/* enerji kontrol */
 
-  await updateUser({
-    energy:-mission.energy_cost,
-    xp:mission.xp_reward,
-    yton:mission.yton_reward
-  });
-
-  render();
+if(user.energy < mission.energy_cost){
+popup("⚡ Enerji yetersiz");
+return;
 }
 
+let energy=user.energy-mission.energy_cost;
+let xp=user.xp;
+let yton=Number(user.yton);
+let level=user.level;
+
+/* başarı */
+
+const success =
+Math.random()*100 < mission.success_rate;
+
+if(success){
+
+xp+=mission.xp_reward;
+yton+=mission.yton_reward;
+
+popup(`✅ Başarılı<br>
++${mission.xp_reward} XP<br>
++${mission.yton_reward} YTON`);
+
+/* 🔥 DAILY QUEST HOOK */
+dailyMissionProgress();
+
+}else{
+
+popup("❌ Başarısız");
+}
+
+/* LEVEL */
+
+if(xp>=XP_LIMIT){
+level++;
+xp-=XP_LIMIT;
+}
+
+/* UPDATE DB */
+
+await db.from("users").update({
+energy,
+xp,
+yton,
+level
+}).eq("id",USER_ID);
+
 render();
-setInterval(render,3000);
+}
+
+/* ================= RENDER ================= */
+
+async function render(){
+
+const user=await loadUser();
+
+renderStats(user);
+
+document.getElementById("userinfo").innerHTML=
+`ID: ${user.id}<br>
+Takma Ad: ${user.nickname}<br>
+Level: ${user.level}`;
+}
+
+/* INIT */
+
+loadMissions();
+render();
 
 </script>
 
