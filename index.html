@@ -1,35 +1,262 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>TonCrime</title>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-<script src="engine/loader.engine.js"></script>
-<script src="engine/bootstrap.engine.js"></script>
-
 <style>
+
+/* ================= BODY ================= */
+
 body{
-  margin:0;
-  background:#111;
-  color:white;
-  font-family:Arial;
+margin:0;
+background:#0e0e0e;
+color:white;
+font-family:Arial;
+overflow-x:hidden;
+}
+
+/* ================= TOPBAR ================= */
+
+.topbar{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+background:#111;
+padding:15px 25px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #222;
+z-index:2000;
+}
+
+.logo{
+color:gold;
+font-size:22px;
+font-weight:bold;
+}
+
+.menu-btn{
+cursor:pointer;
+font-size:22px;
+margin-right:15px;
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+position:fixed;
+top:0;
+left:-260px;
+width:260px;
+height:100%;
+background:#151515;
+padding:25px;
+transition:.3s;
+z-index:3000;
+}
+
+.sidebar.open{left:0;}
+
+.sidebar p{
+cursor:pointer;
+padding:10px;
+border-bottom:1px solid #222;
+}
+
+.overlay{
+position:fixed;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.6);
+display:none;
+z-index:2500;
+}
+
+.overlay.show{display:block;}
+
+/* ================= STATS ================= */
+
+.stats{
+text-align:right;
+width:420px;
+font-size:14px;
+}
+
+.bar{
+width:100%;
+height:8px;
+background:#333;
+border-radius:5px;
+margin-top:5px;
+overflow:hidden;
+}
+
+.fill{
+height:100%;
+}
+
+.xp{background:limegreen;}
+.energy{background:gold;}
+
+/* ================= LAYOUT ================= */
+
+.main{
+margin-top:80px;
+display:flex;
+justify-content:center;
+gap:40px;
+padding:30px;
+flex-wrap:wrap;
 }
 
 .card{
-  background:#1b1b1b;
-  padding:15px;
-  margin:15px;
-  border-radius:10px;
+background:#151515;
+padding:20px;
+border-radius:10px;
+width:420px;
 }
-</style>
 
+.userpanel{
+background:#151515;
+padding:20px;
+border-radius:10px;
+width:260px;
+height:fit-content;
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:900px){
+.main{flex-direction:column;align-items:center;}
+}
+
+</style>
 </head>
 
 <body>
 
-<div id="app"></div>
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+<h3 style="color:gold">Menü</h3>
+
+<p onclick="go('index.html')">🏠 Ana Sayfa</p>
+<p onclick="go('missions.html')">🎯 Görevler</p>
+<p onclick="go('pvp.html')">⚔ PvP</p>
+<p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
+<p onclick="go('nightclub.html')">🍾 Gece Kulübü</p>
+<p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
+<p onclick="go('hospital.html')">🏥 Hastane</p>
+
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+
+<div style="display:flex;align-items:center;">
+<div class="menu-btn" onclick="openMenu()">☰</div>
+<div class="logo">TonCrime</div>
+</div>
+
+<div class="stats">
+<div id="stats">yükleniyor...</div>
+
+<div class="bar">
+<div id="xpBar" class="fill xp"></div>
+</div>
+
+<div class="bar">
+<div id="energyBar" class="fill energy"></div>
+</div>
+
+</div>
+
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<div class="card">
+<h2>🌆 Yeraltı Şehri</h2>
+<p>
+Şehir yaşıyor.<br>
+PvP aktif.<br>
+Polis devriyede.<br>
+Black Market açık.
+</p>
+</div>
+
+<div class="userpanel" id="playerCard">
+Oyuncu yükleniyor...
+</div>
+
+</div>
+
+<!-- ================= CONFIG ================= -->
+
+<script>
+
+window.CONFIG={
+SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
+SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
+USER_ID:"591676206",
+XP_LIMIT:100,
+MAX_ENERGY:100,
+ENERGY_INTERVAL:300000
+};
+
+</script>
+
+<!-- ================= ENGINE CORE ================= -->
+
+<script src="engine/event.engine.js"></script>
+<script src="engine/state.engine.js"></script>
+<script src="engine/ui.engine.js"></script>
+<script src="engine/loop.engine.js"></script>
+
+<script src="engine/world.engine.js"></script>
+<script src="engine/world.radar.engine.js"></script>
+<script src="engine/minimap.engine.js"></script>
+
+<script src="engine/heat.engine.js"></script>
+<script src="engine/hospital.engine.js"></script>
+<script src="engine/police.engine.js"></script>
+
+<script src="engine/market.engine.js"></script>
+<script src="engine/priceai.engine.js"></script>
+<script src="engine/demand.engine.js"></script>
+<script src="engine/blackmarket.engine.js"></script>
+
+<script src="engine/bounty.engine.js"></script>
+
+<script src="engine/bootstrap.engine.js"></script>
+
+<!-- ================= MENU ================= -->
+
+<script>
+
+function openMenu(){
+document.getElementById("sidebar").classList.add("open");
+document.getElementById("overlay").classList.add("show");
+}
+
+document.getElementById("overlay").onclick=()=>{
+document.getElementById("sidebar").classList.remove("open");
+document.getElementById("overlay").classList.remove("show");
+};
+
+function go(p){
+location.href=p;
+}
+
+</script>
 
 </body>
-</html>
+  </html>
