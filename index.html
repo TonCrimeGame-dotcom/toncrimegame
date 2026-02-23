@@ -8,6 +8,9 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
+
+/* ================= GLOBAL ================= */
+
 body{
 margin:0;
 background:#0e0e0e;
@@ -15,13 +18,193 @@ color:white;
 font-family:Arial;
 overflow-x:hidden;
 }
+
+/* ================= TOPBAR ================= */
+
+.topbar{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+background:#111;
+padding:16px 25px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-bottom:1px solid #222;
+z-index:2000;
+}
+
+.logo{
+font-size:22px;
+color:gold;
+font-weight:bold;
+}
+
+.menu-btn{
+cursor:pointer;
+font-size:22px;
+margin-right:15px;
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+position:fixed;
+top:0;
+left:-260px;
+width:260px;
+height:100%;
+background:#151515;
+padding:25px;
+transition:.3s;
+z-index:2500;
+}
+
+.sidebar.open{
+left:0;
+}
+
+.sidebar p{
+cursor:pointer;
+padding:10px 0;
+border-bottom:1px solid #222;
+}
+
+.overlay{
+position:fixed;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.6);
+display:none;
+z-index:2400;
+}
+
+.overlay.show{
+display:block;
+}
+
+/* ================= CONTENT ================= */
+
+.main{
+margin-top:80px;
+padding:25px;
+max-width:900px;
+margin-left:auto;
+margin-right:auto;
+}
+
+/* ================= USER STATS ================= */
+
+.stats{
+font-size:14px;
+text-align:right;
+}
+
+.bar{
+width:260px;
+height:8px;
+background:#333;
+border-radius:6px;
+overflow:hidden;
+margin-top:4px;
+}
+
+.bar-fill{
+height:100%;
+}
+
+.xp-fill{background:limegreen;}
+.energy-fill{background:gold;}
+
+/* ================= CARDS ================= */
+
+.card{
+background:#1b1b1b;
+padding:18px;
+margin:15px 0;
+border-radius:10px;
+}
+
+/* ================= BUTTON ================= */
+
+button{
+width:100%;
+padding:12px;
+background:gold;
+border:none;
+border-radius:6px;
+font-weight:bold;
+cursor:pointer;
+margin-top:10px;
+}
+
+button:hover{opacity:.9}
+
+/* ================= MISSION PROGRESS ================= */
+
+.mission-progress{
+width:100%;
+height:8px;
+background:#333;
+border-radius:6px;
+margin:10px 0;
+overflow:hidden;
+}
+
+.progress-fill{
+height:100%;
+width:0%;
+background:gold;
+transition:width 0.05s linear;
+}
+
 </style>
 </head>
 
 <body>
 
-<!-- CONTENT ROOT -->
-<div id="app"></div>
+<!-- ================= SIDEBAR ================= -->
+
+<div class="sidebar" id="sidebar">
+<h3 style="color:gold">Menü</h3>
+
+<p onclick="PAGE.go('index')">🏠 Ana Sayfa</p>
+<p onclick="PAGE.go('missions')">🎯 Görevler</p>
+<p onclick="PAGE.go('pvp')">⚔ PvP</p>
+
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- ================= TOPBAR ================= -->
+
+<div class="topbar">
+
+<div>
+<span class="menu-btn" onclick="openMenu()">☰</span>
+<span class="logo">TonCrime</span>
+</div>
+
+<div class="stats">
+<div id="stats"></div>
+
+<div class="bar">
+<div id="xpBar" class="bar-fill xp-fill"></div>
+</div>
+
+<div class="bar">
+<div id="energyBar" class="bar-fill energy-fill"></div>
+</div>
+</div>
+
+</div>
+
+<!-- ================= CONTENT ================= -->
+
+<div class="main">
+<div id="tc-content"></div>
+</div>
 
 <!-- ================= CONFIG ================= -->
 
@@ -29,20 +212,33 @@ overflow-x:hidden;
 window.CONFIG={
 SUPABASE_URL:"https://hwhscuyudwphnsipibpy.supabase.co",
 SUPABASE_KEY:"sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu",
-USER_ID:localStorage.getItem("tc_user") || "591676206",
-
+USER_ID:localStorage.getItem("tc_user")||"591676206",
 XP_LIMIT:100,
 MAX_ENERGY:100,
 ENERGY_INTERVAL:300000
 };
 
-window.db = supabase.createClient(
+window.db=supabase.createClient(
 CONFIG.SUPABASE_URL,
 CONFIG.SUPABASE_KEY
 );
 </script>
 
-<!-- ================= CORE ENGINES ================= -->
+<!-- ================= MENU ================= -->
+
+<script>
+function openMenu(){
+sidebar.classList.add("open");
+overlay.classList.add("show");
+}
+
+overlay.onclick=()=>{
+sidebar.classList.remove("open");
+overlay.classList.remove("show");
+};
+</script>
+
+<!-- ================= CORE ================= -->
 
 <script src="engine/state.engine.js"></script>
 <script src="engine/event.engine.js"></script>
@@ -54,39 +250,23 @@ register(name,check){
 this.modules.push({name,check});
 },
 start(){
-console.log("🚀 Booting TonCrime...");
+console.log("🚀 TonCrime Started");
 EVENT.emit("game:ready");
 }
 };
 </script>
 
-<!-- ================= GAME ENGINES ================= -->
+<!-- ================= ENGINES ================= -->
 
 <script src="engine/engine.js"></script>
-<script src="engine/layout.engine.js"></script>
 <script src="engine/ui.engine.js"></script>
-<script src="engine/world.engine.js"></script>
-<script src="engine/chat.engine.js"></script>
+<script src="engine/layout.engine.js"></script>
+<script src="engine/missions.engine.js"></script>
 
-<script src="engine/pvp.target.engine.js"></script>
-<script src="engine/pvp.matchmaker.engine.js"></script>
-<script src="engine/question.engine.js"></script>
-<script src="engine/answer.engine.js"></script>
-<script src="engine/pvp.resolve.engine.js"></script>
-<script src="engine/elo.engine.js"></script>
-
-<script src="engine/daily.engine.js"></script>
-<script src="engine/achievement.engine.js"></script>
-<script src="engine/season.engine.js"></script>
-
-<script src="engine/economy.engine.js"></script>
-<script src="engine/cityevents.engine.js"></script>
-
-<!-- ================= BOOTSTRAP ================= -->
+<!-- ================= ROUTER ================= -->
 
 <script>
 
-/* PAGE SYSTEM */
 window.PAGE={
 go(page){
 location.hash=page;
@@ -94,43 +274,21 @@ loadPage();
 }
 };
 
-/* SIMPLE ROUTER */
-
 function loadPage(){
 
-const page=location.hash.replace("#","") || "index";
+const page=location.hash.replace("#","")||"index";
 
 EVENT.emit("page:enter",page);
 
-const root=document.getElementById("tc-content");
-
-if(!root) return;
-
 if(page==="index"){
-root.innerHTML=`
+tc_content.innerHTML=`
 <h2>🏙 Yeraltı Şehri</h2>
 <p>Şehir yaşıyor...</p>
-
-<button onclick="DAILY.claim()">🎁 Günlük Ödül</button>
-
-<div id="onlinePlayers"></div>
-
-<div class="chatBox">
-<div id="chatMessages"></div>
-<div class="chatInput">
-<input id="chatInput">
-<button onclick="CHAT.send()">Gönder</button>
-</div>
-</div>
 `;
 }
 
-if(page==="missions"){
-root.innerHTML="<h2>🎯 Görevler yükleniyor...</h2>";
-}
-
 if(page==="pvp"){
-root.innerHTML=`
+tc_content.innerHTML=`
 <h2>⚔ PvP Arena</h2>
 <button onclick="PVP_TARGET.search()">Rakip Ara</button>
 `;
@@ -138,13 +296,9 @@ root.innerHTML=`
 
 }
 
-/* START GAME */
-
 window.addEventListener("load",()=>{
-
 CORE.start();
 loadPage();
-
 });
 
 </script>
