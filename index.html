@@ -1,221 +1,220 @@
-<!DOCTYPE html><html lang="tr">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>🔥 TonCrime</title><!-- TON CONNECT --><script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script><style>
+<title>TonCrime</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+
+/* ===== BODY ===== */
 body{
-margin:0;
-background:#0f1115;
-font-family:Arial;
-color:#fff;
-display:flex;
-height:100vh;
-overflow:hidden;
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:url('background.jpg') no-repeat center center fixed;
+  background-size:cover;
+  color:white;
 }
 
-/* SIDEBAR */
+/* ===== OVERLAY DARK ===== */
+body::before{
+  content:"";
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.75);
+  z-index:-1;
+}
 
-#sidebar{
-width:230px;
-background:#0b0c10;
-padding:15px;
-border-right:1px solid #1f222a;
-display:flex;
-flex-direction:column;
+/* ===== TOPBAR ===== */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 20px;
+  background:#111;
+  border-bottom:1px solid #222;
 }
 
 .logo{
-color:#ffd54a;
-font-size:22px;
-font-weight:bold;
-margin-bottom:20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
-.menu button{
-width:100%;
-background:none;
-border:none;
-color:#bbb;
-text-align:left;
-padding:12px;
-margin:4px 0;
-cursor:pointer;
-border-radius:6px;
+.logo img{
+  height:40px;
 }
 
-.menu button:hover{
-background:#1b1e26;
-color:#fff;
+.stats{
+  text-align:right;
+  font-size:14px;
 }
 
-/* MAIN */
-
-#main{
-flex:1;
-display:flex;
-flex-direction:column;
+.coin{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
 }
 
-#topbar{
-background:#111318;
-padding:12px 20px;
-border-bottom:1px solid #222;
-display:flex;
-justify-content:space-between;
+.coin img{
+  height:20px;
 }
 
-#tc-content{
-padding:20px;
-flex:1;
-overflow:auto;
+/* ===== XP / ENERGY BAR ===== */
+.bar{
+  height:6px;
+  background:#333;
+  border-radius:5px;
+  margin-top:4px;
+  overflow:hidden;
 }
 
-.card{
-background:#171a21;
-padding:18px;
-border-radius:10px;
-margin-bottom:15px;
+.fill{
+  height:100%;
 }
 
-#wallet{
-margin-top:auto;
+.xp{ background:#00ff88; }
+.energy{ background:gold; }
+
+/* ===== MENU GRID ===== */
+.menu-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+  padding:25px;
 }
 
-</style></head><body><!-- SIDEBAR --><div id="sidebar"><div class="logo">🔥 TonCrime</div><div class="menu">
-<button onclick="ROUTER.go('home')">🏠 Ana Sayfa</button>
-<button onclick="ROUTER.go('missions')">🎯 Görevler</button>
-<button onclick="ROUTER.go('pvp')">⚔ PvP</button>
-<button onclick="ROUTER.go('market')">🛒 Market</button>
-<button onclick="ROUTER.go('clan')">👥 Clan</button>
-<button onclick="ROUTER.go('world')">🗺 Bölgeler</button>
-</div><div id="wallet"></div></div><!-- MAIN --><div id="main"><div id="topbar">
-<div>
-Lv <span id="ui-level">1</span> |
-XP <span id="ui-xp">0</span> ⚡
-<span id="ui-energy">100</span>
-💰 <span id="ui-yton">10</span>
-</div><div>🟢 Online: <span id="online-count">1</span></div>
-</div><div id="tc-content">Yükleniyor...</div></div><script>
-
-/* =====================================================
-   CORE GAME STATE
-===================================================== */
-
-window.GAME={
-user:{
-level:1,
-xp:0,
-energy:100,
-yton:10
-}
-};
-
-/* =====================================================
-   ROUTER
-===================================================== */
-
-window.ROUTER={
-
-go(page){
-
-const root=document.getElementById("tc-content");
-
-if(page==="home"){
-root.innerHTML=`<div class="card">Şehre hoşgeldin.</div>`;
+.menu-btn{
+  background:#1b1b1b;
+  border:1px solid #333;
+  padding:20px;
+  text-align:center;
+  border-radius:12px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
 }
 
-if(page==="missions"){
-root.innerHTML=`<div class="card">
-Görev Sistemi Aktif<br><br>
-<button onclick="mission()">Görev Yap</button>
-</div>`;
+.menu-btn:hover{
+  background:#262626;
 }
 
-if(page==="pvp"){
-root.innerHTML=`<div class="card">
-PvP Arena<br><br>
-<button onclick="pvp()">Savaş Başlat</button>
-</div>`;
+/* ===== FOOTER ===== */
+.footer{
+  text-align:center;
+  font-size:12px;
+  opacity:0.6;
+  padding:15px;
 }
 
-if(page==="market"){
-root.innerHTML=`<div class="card">Market yakında...</div>`;
+</style>
+</head>
+<body>
+
+<div class="topbar">
+
+  <div class="logo">
+    <img src="logo.png">
+    <div>
+      <div id="username">Player</div>
+      <div style="font-size:12px;opacity:0.7;">Level <span id="level">1</span></div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div>XP <span id="xpText">0/100</span></div>
+    <div class="bar"><div id="xpBar" class="fill xp" style="width:0%"></div></div>
+
+    <div style="margin-top:6px;">⚡ <span id="energyText">100</span></div>
+    <div class="bar"><div id="energyBar" class="fill energy" style="width:100%"></div></div>
+
+    <div class="coin" style="margin-top:6px;">
+      <img src="yton.png">
+      <span id="ytonText">0</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="menu-grid">
+
+  <div class="menu-btn" onclick="go('missions.html')">🎯 Görevler</div>
+  <div class="menu-btn" onclick="go('pvp.html')">⚔ PvP Arena</div>
+  <div class="menu-btn" onclick="go('nightclub.html')">🍾 Gece Kulübü</div>
+  <div class="menu-btn" onclick="go('coffeeshop.html')">☕ Coffee Shop</div>
+  <div class="menu-btn" onclick="go('mekan.html')">💋 Genel Ev</div>
+  <div class="menu-btn" onclick="go('weapons.html')">🔫 Silah Kaçakçısı</div>
+  <div class="menu-btn" onclick="go('hospital.html')">🏥 Hastane</div>
+  <div class="menu-btn" onclick="go('clan.html')">👑 Clan</div>
+
+</div>
+
+<div class="footer">
+  TonCrime © Telegram Mini App
+</div>
+
+<script>
+
+/* ===== TELEGRAM INIT ===== */
+const tg = window.Telegram.WebApp;
+tg.expand();
+tg.ready();
+
+/* ===== SUPABASE ===== */
+const db = supabase.createClient(
+  "https://hwhscuyudwphnsipibpy.supabase.co",
+  "sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu"
+);
+
+/* ===== USER LOAD ===== */
+
+async function loadUser(){
+
+  const telegramUser = tg.initDataUnsafe?.user;
+  if(!telegramUser) return;
+
+  const userId = telegramUser.id.toString();
+
+  const {data} = await db
+    .from("users")
+    .select("*")
+    .eq("id",userId)
+    .maybeSingle();
+
+  if(!data) return;
+
+  document.getElementById("username").innerText = data.nickname;
+  document.getElementById("level").innerText = data.level;
+
+  document.getElementById("xpText").innerText =
+    data.xp + "/100";
+
+  document.getElementById("xpBar").style.width =
+    (data.xp/100*100) + "%";
+
+  document.getElementById("energyText").innerText =
+    data.energy;
+
+  document.getElementById("energyBar").style.width =
+    data.energy + "%";
+
+  document.getElementById("ytonText").innerText =
+    data.yton.toFixed(2);
 }
 
-if(page==="clan"){
-root.innerHTML=`<div class="card">Clan sistemi aktif.</div>`;
+function go(page){
+  window.location.href = page;
 }
 
-if(page==="world"){
-root.innerHTML=`<div class="card">Şehir haritası.</div>`;
-}
+loadUser();
 
-}
+</script>
 
-};
-
-/* =====================================================
-   UI UPDATE
-===================================================== */
-
-function updateUI(){
-
-document.getElementById("ui-level").textContent=GAME.user.level;
-document.getElementById("ui-xp").textContent=GAME.user.xp;
-document.getElementById("ui-energy").textContent=GAME.user.energy;
-document.getElementById("ui-yton").textContent=GAME.user.yton;
-
-}
-
-/* =====================================================
-   TEST ACTIONS
-===================================================== */
-
-function mission(){
-GAME.user.xp+=10;
-GAME.user.yton+=2;
-updateUI();
-}
-
-function pvp(){
-GAME.user.energy-=5;
-GAME.user.yton+=5;
-updateUI();
-}
-
-/* =====================================================
-   WALLET INIT (KRİTİK)
-===================================================== */
-
-let tonConnect;
-
-function initWallet(){
-
-tonConnect = new TON_CONNECT_UI.TonConnectUI({
-manifestUrl:
-"https://toncrimegame-dotcom.github.io/toncrimegame/tonconnect-manifest.json",
-buttonRootId:"wallet"
-});
-
-tonConnect.onStatusChange(wallet=>{
-console.log("Wallet:",wallet);
-});
-
-}
-
-/* =====================================================
-   BOOTSTRAP (EN ÖNEMLİ KISIM)
-===================================================== */
-
-document.addEventListener("DOMContentLoaded",()=>{
-
-updateUI();
-ROUTER.go("home");
-initWallet();
-
-console.log("🔥 TonCrime Ready");
-
-});
-
-</script></body>
+</body>
 </html>
