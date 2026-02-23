@@ -1,130 +1,80 @@
 /* ===================================================
    TONCRIME PVP TARGET ENGINE
-   Building Duel System
+   Player Attack Selector
    =================================================== */
 
 (function(){
 
-if(!window.db || !window.EVENT || !window.BUILDING){
-  console.warn("PvP Target waiting...");
+if(!window.EVENT){
+  console.warn("PvP Target waiting EVENT...");
   return;
 }
 
-const PVP_TARGET = {
+const PVP_TARGET={
 
-  channel:null,
+target:null,
 
-  /* ======================================
-     SEND REQUEST
-  ====================================== */
+/* ===========================================
+   SELECT TARGET
+=========================================== */
 
-  async challenge(targetId){
+select(playerId,nickname){
 
-    const user = GAME.user;
+  this.target={
+    id:playerId,
+    name:nickname
+  };
 
-    if(targetId === user.id){
-      alert("Kendine saldıramazsın");
-      return;
-    }
+  EVENT.emit(
+    "notify",
+    "⚔ Hedef seçildi: "+nickname
+  );
+},
 
-    await db.from("pvp_requests").insert({
-      from_user:user.id,
-      to_user:targetId,
-      building:BUILDING.current
-    });
+/* ===========================================
+   ATTACK TARGET
+=========================================== */
 
-    UI.notify("PvP isteği gönderildi ⚔");
-  },
+attack(playerId){
 
-  /* ======================================
-     ACCEPT REQUEST
-  ====================================== */
+  if(!GAME.user) return;
 
-  async accept(id){
+  EVENT.emit("notify","Rakip aranıyor...");
 
-    await db.from("pvp_requests")
-      .update({status:"accepted"})
-      .eq("id",id);
+  EVENT.emit("pvp:queue",{
+    attacker:GAME.user.id,
+    defender:playerId
+  });
 
-    EVENT.emit("pvp:start");
-  },
+},
 
-  /* ======================================
-     DECLINE
-  ====================================== */
+/* ===========================================
+   SOLO SEARCH
+=========================================== */
 
-  async decline(id){
+search(){
 
-    await db.from("pvp_requests")
-      .update({status:"declined"})
-      .eq("id",id);
-  },
+  EVENT.emit("notify","Rakip aranıyor...");
+  EVENT.emit("pvp:queue",{
+    attacker:GAME.user.id,
+    defender:null
+  });
 
-  /* ======================================
-     REALTIME LISTENER
-  ====================================== */
-
-  subscribe(){
-
-    if(this.channel) return;
-
-    this.channel = db.channel("pvp-request-live")
-
-    .on("postgres_changes",
-      {
-        event:"INSERT",
-        schema:"public",
-        table:"pvp_requests"
-      },
-      payload=>{
-
-        const req=payload.new;
-
-        if(req.to_user===GAME.user.id &&
-           req.status==="pending"){
-
-          UI.confirm(
-            "PvP meydan okuması!",
-            ()=>this.accept(req.id),
-            ()=>this.decline(req.id)
-          );
-        }
-
-      })
-
-    .on("postgres_changes",
-      {
-        event:"UPDATE",
-        schema:"public",
-        table:"pvp_requests"
-      },
-      payload=>{
-
-        const req=payload.new;
-
-        if(req.from_user===GAME.user.id &&
-           req.status==="accepted"){
-
-          UI.notify("Rakip kabul etti ⚔");
-          EVENT.emit("pvp:start");
-        }
-
-      })
-
-    .subscribe();
-  }
+}
 
 };
 
 window.PVP_TARGET=PVP_TARGET;
 
+/* ===========================================
+   CORE REGISTER
+=========================================== */
 
-/* AUTO START */
-
-document.addEventListener("DOMContentLoaded",()=>{
-  PVP_TARGET.subscribe();
-});
-
-console.log("⚔ PvP Target Engine Ready");
+if(window.CORE){
+  CORE.register(
+    "PvP Target Engine",
+    ()=>!!window.PVP_TARGET
+  );
+}
 
 })();
