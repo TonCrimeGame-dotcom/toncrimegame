@@ -1,12 +1,12 @@
 /* ===================================================
    TONCRIME SEASON ENGINE
-   Live Service Season Pass System
+   Weekly + Monthly Live Seasons
    =================================================== */
 
 (function(){
 
 if(!window.EVENT){
-  console.warn("Season engine waiting EVENT...");
+  console.warn("Season waiting EVENT...");
   return;
 }
 
@@ -16,205 +16,141 @@ if(!window.EVENT){
 
 const STORAGE_KEY="tc_season";
 
-const SEASON_DURATION = 30*86400000;
-
-const LEVEL_XP = 100;
-
-/* rewards */
-const FREE_REWARDS = {
-  5:5,
-  10:10,
-  20:20,
-  30:40
-};
-
-const PREMIUM_REWARDS = {
-  5:10,
-  10:25,
-  20:50,
-  30:100
-};
-
 /* ===========================================
    ENGINE
 =========================================== */
 
 const SEASON={
 
-  data:null,
+data:null,
 
-  /* ===================================== */
-  init(){
-    this.load();
-    this.ensure();
-    this.bindEvents();
+/* =========================================== */
 
-    setInterval(()=>{
-      this.checkReset();
-    },60000);
+init(){
 
-    console.log("🎮 Season Engine Ready");
-  },
+  this.load();
+  this.checkReset();
+  this.bindEvents();
 
-  load(){
-    try{
-      this.data=
-        JSON.parse(localStorage.getItem(STORAGE_KEY))
-        || null;
-    }catch{
-      this.data=null;
-    }
-  },
+  console.log("🏁 Season Engine Ready");
+},
 
-  save(){
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(this.data)
-    );
-  },
+/* =========================================== */
 
-  /* ===================================== */
-  CREATE SEASON
-  ===================================== */
+load(){
 
-  ensure(){
+  const saved=
+    localStorage.getItem(STORAGE_KEY);
 
-    if(this.data) return;
-
-    this.data={
-      start:Date.now(),
-      players:{}
-    };
-
-    this.save();
-  },
-
-  /* ===================================== */
-  PLAYER DATA
-  ===================================== */
-
-  player(){
-
-    const id=GAME.user.id;
-
-    if(!this.data.players[id]){
-      this.data.players[id]={
-        xp:0,
-        level:1,
-        claimed:{}
-      };
-    }
-
-    return this.data.players[id];
-  },
-
-  /* ===================================== */
-  ADD XP
-  ===================================== */
-
-  addXP(amount){
-
-    const p=this.player();
-
-    p.xp+=amount;
-
-    while(p.xp>=LEVEL_XP){
-      p.xp-=LEVEL_XP;
-      p.level++;
-      this.reward(p.level);
-    }
-
-    this.save();
-  },
-
-  /* ===================================== */
-  REWARD SYSTEM
-  ===================================== */
-
-  reward(level){
-
-    const p=this.player();
-
-    if(FREE_REWARDS[level] &&
-       !p.claimed["free_"+level]){
-
-      GAME.user.yton+=FREE_REWARDS[level];
-
-      p.claimed["free_"+level]=true;
-
-      NOTIFY.push(
-        "🎁 Sezon ödülü +"+
-        FREE_REWARDS[level]+" YTON"
-      );
-    }
-
-    if(GAME.user.premium &&
-       PREMIUM_REWARDS[level] &&
-       !p.claimed["premium_"+level]){
-
-      GAME.user.yton+=PREMIUM_REWARDS[level];
-
-      p.claimed["premium_"+level]=true;
-
-      NOTIFY.push(
-        "⭐ Premium sezon ödülü +"+
-        PREMIUM_REWARDS[level]+" YTON"
-      );
-    }
-  },
-
-  /* ===================================== */
-  RESET
-  ===================================== */
-
-  checkReset(){
-
-    if(Date.now()-this.data.start < SEASON_DURATION)
-      return;
-
-    this.finishSeason();
-  },
-
-  finishSeason(){
-
-    Object.keys(this.data.players).forEach(id=>{
-
-      EVENT.emit("season:finished",{
-        player:id,
-        level:this.data.players[id].level
-      });
-
-    });
-
-    this.data={
-      start:Date.now(),
-      players:{}
-    };
-
-    this.save();
-
-    console.log("🔄 New Season Started");
-  },
-
-  /* ===================================== */
-  EVENTS
-  ===================================== */
-
-  bindEvents(){
-
-    EVENT.on("pvp:win",()=>{
-      this.addXP(15);
-    });
-
-    EVENT.on("mission:completed",()=>{
-      this.addXP(5);
-    });
-
-    EVENT.on("daily:claimed",()=>{
-      this.addXP(10);
-    });
-
+  if(saved){
+    this.data=JSON.parse(saved);
+    return;
   }
+
+  this.data={
+    weeklyStart:Date.now(),
+    monthlyStart:Date.now(),
+    points:0,
+    level:1
+  };
+
+  this.save();
+},
+
+save(){
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(this.data)
+  );
+},
+
+/* ===========================================
+   ADD POINTS
+=========================================== */
+
+add(points){
+
+  this.data.points+=points;
+
+  const needed=this.data.level*100;
+
+  if(this.data.points>=needed){
+    this.data.points-=needed;
+    this.data.level++;
+
+    EVENT.emit(
+      "notify",
+      "🏁 Season Level Up!"
+    );
+  }
+
+  this.save();
+},
+
+/* ===========================================
+   RESET CONTROL
+=========================================== */
+
+checkReset(){
+
+  const now=Date.now();
+
+  const WEEK=7*24*60*60*1000;
+  const MONTH=30*24*60*60*1000;
+
+  if(now-this.data.weeklyStart>WEEK){
+    this.weeklyReset();
+  }
+
+  if(now-this.data.monthlyStart>MONTH){
+    this.monthlyReset();
+  }
+},
+
+weeklyReset(){
+
+  EVENT.emit(
+    "crimefeed:add",
+    "🏁 Haftalık lig sıfırlandı"
+  );
+
+  this.data.weeklyStart=Date.now();
+  this.save();
+},
+
+monthlyReset(){
+
+  EVENT.emit(
+    "crimefeed:add",
+    "👑 Yeni sezon başladı!"
+  );
+
+  this.data.monthlyStart=Date.now();
+  this.data.level=1;
+  this.data.points=0;
+
+  this.save();
+},
+
+/* ===========================================
+   EVENTS
+=========================================== */
+
+bindEvents(){
+
+  EVENT.on("pvp:win",()=>{
+    this.add(20);
+  });
+
+  EVENT.on("mission:completed",()=>{
+    this.add(5);
+  });
+
+  EVENT.on("daily:claimed",()=>{
+    this.add(10);
+  });
+
+}
 
 };
 
@@ -227,5 +163,16 @@ window.SEASON=SEASON;
 EVENT.on("game:ready",()=>{
   SEASON.init();
 });
+
+/* ===========================================
+   CORE REGISTER
+=========================================== */
+
+if(window.CORE){
+  CORE.register(
+    "Season Engine",
+    ()=>!!window.SEASON
+  );
+}
 
 })();
