@@ -1,6 +1,6 @@
 /* ===================================================
    TONCRIME HOSPITAL ENGINE
-   24h Lock System
+   24h Lock + Paid Revive System
    =================================================== */
 
 (function(){
@@ -14,9 +14,10 @@ const HOSPITAL = {
 
   locked:false,
   remaining:0,
+  reviveCost:700,
 
   /* ===========================================
-     SEND TO HOSPITAL
+     SEND PLAYER TO HOSPITAL
   =========================================== */
 
   async admit(userId){
@@ -34,6 +35,7 @@ const HOSPITAL = {
     if(userId===GAME.user.id){
       this.locked=true;
       this.remaining=until-Date.now();
+
       notify("🏥 Hastaneye kaldırıldın (24 Saat)");
     }
 
@@ -66,14 +68,51 @@ const HOSPITAL = {
       EVENT.emit("hospital:locked",this.remaining);
 
     }else{
-
       this.locked=false;
       EVENT.emit("hospital:free");
     }
   },
 
   /* ===========================================
-     BLOCK ACTIONS
+     EARLY EXIT (700 YTON)
+  =========================================== */
+
+  async revive(){
+
+    if(!this.locked){
+      notify("Zaten hastanede değilsin.");
+      return;
+    }
+
+    const user = GAME.user;
+
+    if(user.yton < this.reviveCost){
+      notify("❌ Yetersiz Yton (700 gerekli)");
+      return;
+    }
+
+    /* ödeme */
+    await db.from("users")
+      .update({
+        yton:user.yton - this.reviveCost,
+        hospital_until:0
+      })
+      .eq("id",user.id);
+
+    /* local state update */
+    user.yton -= this.reviveCost;
+
+    this.locked=false;
+    this.remaining=0;
+
+    notify("💊 Tedavi satın alındı — Hastaneden çıktın");
+
+    EVENT.emit("hospital:free");
+    EVENT.emit("stats:update",user);
+  },
+
+  /* ===========================================
+     BLOCK GAME ACTIONS
   =========================================== */
 
   canPlay(){
@@ -134,6 +173,6 @@ setInterval(()=>{
   HOSPITAL.tick();
 },1000);
 
-console.log("🏥 Hospital Engine Ready");
+console.log("🏥 Hospital Engine Ready (Revive Enabled)");
 
 })();
