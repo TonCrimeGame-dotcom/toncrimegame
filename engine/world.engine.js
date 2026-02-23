@@ -1,173 +1,133 @@
 /* ===================================================
    TONCRIME WORLD ENGINE
-   Live MMO World Simulation
+   Living World Simulation System
    =================================================== */
 
 (function(){
 
-let WORLD=null;
-
-
-/* ===================================================
-   LOAD WORLD
-=================================================== */
-
-async function loadWorld(){
-
-  const { data } = await db
-    .from("world_state")
-    .select("*")
-    .eq("id",1)
-    .single();
-
-  WORLD=data;
-
-  EVENT.emit("world:update",WORLD);
-
+if(!window.EVENT){
+  console.warn("World engine waiting EVENT...");
+  return;
 }
 
+/* ===========================================
+   CONFIG
+=========================================== */
 
-/* ===================================================
-   UPDATE FIELD
-=================================================== */
+const NPC_NAMES=[
+  "Rico","Viper","Ghost","Mia","Kobra",
+  "Shadow","Nero","Luna","Axel","Nova",
+  "Scar","Raven","Zero","Blade","Kira"
+];
 
-async function updateField(field,delta){
+const BUILDINGS=[
+  "coffee_shop",
+  "night_club",
+  "brothel"
+];
 
-  if(!WORLD) return;
+const CHAT_LINES=[
+  "Mal geldi mi?",
+  "Fiyatlar uçmuş bugün.",
+  "Yeni gelen kim?",
+  "Dikkatli ol polis dolu.",
+  "Bu gece hareket var.",
+  "PvP atan var mı?",
+  "Stok bitti yakında.",
+  "Patron kızgın bugün.",
+  "İşler iyi gidiyor.",
+  "Büyük iş dönüyor."
+];
 
-  WORLD[field]+=delta;
+/* ===========================================
+   ENGINE
+=========================================== */
 
-  await db.from("world_state")
-    .update({
-      [field]:WORLD[field],
-      updated_at:new Date()
-    })
-    .eq("id",1);
+const WORLD={
 
-}
+  npcs:{},
 
+  /* ===================================== */
+  init(){
 
-/* ===================================================
-   PLAYER JOIN WORLD
-=================================================== */
+    this.spawnNPCs();
 
-async function playerJoin(){
+    setInterval(()=>{
+      this.randomActivity();
+    },15000);
 
-  await updateField("online_players",1);
+    console.log("🌍 World Engine Ready");
+  },
 
-  Notify.show("🌍 Dünyaya giriş yaptın","#3498db",2000);
-}
+  /* ===================================== */
+  NPC CREATE
+  ===================================== */
 
+  spawnNPCs(){
 
-/* ===================================================
-   PLAYER LEAVE WORLD
-=================================================== */
+    BUILDINGS.forEach(b=>{
 
-async function playerLeave(){
-  await updateField("online_players",-1);
-}
+      this.npcs[b]=[];
 
+      for(let i=0;i<3;i++){
 
-/* ===================================================
-   BUILDING ENTER
-=================================================== */
+        this.npcs[b].push({
+          id:"npc_"+Math.random(),
+          name:NPC_NAMES[
+            Math.floor(Math.random()*NPC_NAMES.length)
+          ]
+        });
 
-async function enterBuilding(type){
+      }
 
-  const map={
-    nightclub:"nightclub_population",
-    coffeeshop:"coffeeshop_population",
-    brothel:"brothel_population"
-  };
+    });
 
-  if(!map[type]) return;
+  },
 
-  await updateField(map[type],1);
-}
+  /* ===================================== */
+  RANDOM WORLD ACTION
+  ===================================== */
 
+  randomActivity(){
 
-/* ===================================================
-   BUILDING EXIT
-=================================================== */
+    const building=
+      BUILDINGS[Math.floor(Math.random()*BUILDINGS.length)];
 
-async function leaveBuilding(type){
+    const npcList=this.npcs[building];
+    if(!npcList.length) return;
 
-  const map={
-    nightclub:"nightclub_population",
-    coffeeshop:"coffeeshop_population",
-    brothel:"brothel_population"
-  };
+    const npc=
+      npcList[Math.floor(Math.random()*npcList.length)];
 
-  if(!map[type]) return;
+    const text=
+      CHAT_LINES[Math.floor(Math.random()*CHAT_LINES.length)];
 
-  await updateField(map[type],-1);
-}
+    EVENT.emit("world:npc:chat",{
+      building,
+      npc,
+      text
+    });
 
+    /* chat engine hook */
+    if(window.CHAT){
+      CHAT.system(
+        building+"_npc",
+        "🤖 "+npc.name+": "+text
+      );
+    }
 
-/* ===================================================
-   REALTIME SYNC
-=================================================== */
+  }
 
-function subscribeWorld(){
-
-  db.channel("world-live")
-    .on("postgres_changes",{
-      event:"UPDATE",
-      schema:"public",
-      table:"world_state"
-    },payload=>{
-
-      WORLD=payload.new;
-      EVENT.emit("world:update",WORLD);
-
-    })
-    .subscribe();
-
-}
-
-
-/* ===================================================
-   WORLD ECONOMY LOOP
-   (server üretimi)
-=================================================== */
-
-async function economyTick(){
-
-  console.log("🌍 World economy tick");
-
-  EVENT.emit("world:economy");
-}
-
-
-/* ===================================================
-   INIT
-=================================================== */
-
-EVENT.on("engine:ready",async()=>{
-
-  await loadWorld();
-  await playerJoin();
-  subscribeWorld();
-
-  /* 5 dk server tick */
-  setInterval(economyTick,300000);
-
-});
-
-
-window.addEventListener("beforeunload",playerLeave);
-
-
-/* ===================================================
-   PUBLIC API
-=================================================== */
-
-window.WORLD={
-  enter:enterBuilding,
-  leave:leaveBuilding,
-  state:()=>WORLD
 };
 
-console.log("🌍 World Engine Ready");
+window.WORLD=WORLD;
+
+/* ===========================================
+   AUTO START
+=========================================== */
+
+EVENT.on("game:ready",()=>{
+  WORLD.init();
+});
 
 })();
