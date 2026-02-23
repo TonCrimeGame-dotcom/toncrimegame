@@ -1,116 +1,158 @@
 /* ===================================================
    TONCRIME ANSWER ENGINE
-   PvP Answer + Time + Hash System
+   PvP Timing + Anti Cheat Core
    =================================================== */
 
 (function(){
 
-let startTime = 0;
-let answered = false;
-
-
-/* ===================================================
-   START QUESTION TIMER
-   =================================================== */
-
-function startTimer(){
-
-  startTime = Date.now();
-  answered = false;
-
-  console.log("⏱ Question timer started");
+if(!window.EVENT){
+  console.warn("Answer engine waiting EVENT...");
+  return;
 }
 
+const ANSWER={
 
-/* ===================================================
-   CREATE ANSWER HASH
-   =================================================== */
+startTime:0,
+currentQuestion:null,
+answers:[],
+matchId:null,
 
-function createHash(value,time){
+/* ===========================================
+   START QUESTION
+=========================================== */
 
-  const raw = value + "|" + time;
+start(question,matchId){
 
-  let hash = 0;
+  this.currentQuestion=question;
+  this.matchId=matchId;
+  this.startTime=performance.now();
 
-  for(let i=0;i<raw.length;i++){
-    hash = ((hash<<5)-hash)+raw.charCodeAt(i);
-    hash |= 0;
-  }
+  EVENT.emit("question:render",question);
+},
 
-  return hash.toString();
-}
+/* ===========================================
+   SUBMIT ANSWER
+=========================================== */
 
+submit(choice){
 
-/* ===================================================
-   SEND ANSWER
-   =================================================== */
+  if(!this.currentQuestion) return;
 
-async function submit(answer){
+  const end=performance.now();
 
-  if(answered) return;
-  if(!QUESTION.current) return;
-  if(!GAME.user) return;
+  let elapsed=end-this.startTime; // ms
 
-  answered = true;
+  /* weapon modifier */
+  elapsed=this.applyWeaponBonus(elapsed);
 
-  const elapsed =
-    Math.floor((Date.now()-startTime)/1000);
+  const correct =
+    choice===this.currentQuestion.c;
 
-  const hash =
-    createHash(answer,elapsed);
-
-  const payload = {
-
-    match_id: STATE.get("currentMatch"),
-    user_id: GAME.user.id,
-    answer: answer,
-    time: elapsed,
-    hash: hash,
-    question_seed: QUESTION.current.seed
+  const result={
+    questionId:this.currentQuestion.id,
+    choice,
+    correct,
+    time:Math.round(elapsed)
   };
 
-  console.log("📨 Sending Answer:",payload);
+  this.answers.push(result);
 
-  const { error } = await db
-    .from("pvp_answers")
-    .insert(payload);
+  EVENT.emit("answer:recorded",result);
+},
 
-  if(error){
-    console.error("Answer send error:",error);
-    answered=false;
-    return;
-  }
+/* ===========================================
+   WEAPON BONUS
+   (slower timer effect)
+=========================================== */
 
-  EVENT.emit("answer:sent",payload);
+applyWeaponBonus(time){
+
+  const weapon=GAME.user.weapon_bonus||0;
+
+  /* örnek:
+     %10 bonus = süre %10 düşer
+  */
+
+  const modified=
+    time*(1-(weapon/100));
+
+  return modified;
+},
+
+/* ===========================================
+   FINISH MATCH
+=========================================== */
+
+async finish(){
+
+  const totalTime=
+    this.answers.reduce((t,a)=>t+a.time,0);
+
+  const score=
+    this.answers.filter(a=>a.correct).length;
+
+  const hash=await this.createHash({
+    answers:this.answers,
+    totalTime,
+    score
+  });
+
+  EVENT.emit("pvp:submit",{
+    matchId:this.matchId,
+    score,
+    totalTime,
+    hash
+  });
+
+  this.reset();
+},
+
+/* ===========================================
+   HASH (ANTI CHEAT)
+=========================================== */
+
+async createHash(data){
+
+  const enc=new TextEncoder();
+  const buffer=enc.encode(JSON.stringify(data));
+
+  const hashBuffer=
+    await crypto.subtle.digest(
+      "SHA-256",
+      buffer
+    );
+
+  const hashArray=
+    Array.from(new Uint8Array(hashBuffer));
+
+  return hashArray
+    .map(b=>b.toString(16).padStart(2,"0"))
+    .join("");
+},
+
+/* ===========================================
+   RESET
+=========================================== */
+
+reset(){
+  this.answers=[];
+  this.currentQuestion=null;
+  this.startTime=0;
 }
-
-
-/* ===================================================
-   LISTEN QUESTION EVENT
-   =================================================== */
-
-EVENT.on("question:new",()=>{
-  startTimer();
-});
-
-
-/* ===================================================
-   PUBLIC API
-   =================================================== */
-
-window.ANSWER = {
-
-  send(value){
-    submit(value);
-  },
-
-  reset(){
-    answered=false;
-    startTime=0;
-  }
 
 };
 
-console.log("⚔️ Answer Engine Ready");
+window.ANSWER=ANSWER;
+
+/* ===========================================
+   CORE REGISTER
+=========================================== */
+
+if(window.CORE){
+  CORE.register(
+    "Answer Engine",
+    ()=>!!window.ANSWER
+  );
+}
 
 })();
