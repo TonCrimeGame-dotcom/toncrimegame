@@ -1,180 +1,238 @@
 /* ===================================================
-   TONCRIME TOURNAMENT ENGINE
-   Weekly PvP Competition System
+   TONCRIME TOURNAMENT & LEAGUE ENGINE
+   Weekly + Monthly Competition System
    =================================================== */
 
 (function(){
 
-let ACTIVE_TOURNAMENT=null;
-
-
-/* ===================================================
-   LOAD ACTIVE TOURNAMENT
-   =================================================== */
-
-async function loadTournament(){
-
-  const { data } = await db
-    .from("tournaments")
-    .select("*")
-    .eq("active",true)
-    .maybeSingle();
-
-  if(!data) return;
-
-  ACTIVE_TOURNAMENT=data;
-
-  console.log("🏆 Tournament Active:",data.name);
+if(!window.EVENT){
+  console.warn("Tournament engine waiting EVENT...");
+  return;
 }
 
+/* ===========================================
+   STORAGE
+=========================================== */
 
-/* ===================================================
-   ADD SCORE
-   =================================================== */
+const STORAGE_KEY="tc_tournaments";
 
-async function addScore(userId,points){
+/* ===========================================
+   CONFIG
+=========================================== */
 
-  if(!ACTIVE_TOURNAMENT) return;
+const WEEK = 7*86400000;
+const MONTH = 30*86400000;
 
-  const tid = ACTIVE_TOURNAMENT.id;
-
-  const { data } = await db
-    .from("tournament_scores")
-    .select("*")
-    .eq("tournament_id",tid)
-    .eq("user_id",userId)
-    .maybeSingle();
-
-  if(!data){
-
-    await db.from("tournament_scores")
-      .insert({
-        tournament_id:tid,
-        user_id:userId,
-        score:points
-      });
-
-  }else{
-
-    await db.from("tournament_scores")
-      .update({
-        score:data.score + points
-      })
-      .eq("id",data.id);
-  }
-
-}
-
-
-/* ===================================================
-   RESULT HOOK
-   =================================================== */
-
-EVENT.on("pvp:resolved",async payload=>{
-
-  if(!ACTIVE_TOURNAMENT) return;
-
-  const { data:match } = await db
-    .from("pvp_matches")
-    .select("*")
-    .eq("id",payload.matchId)
-    .single();
-
-  if(!match) return;
-
-  if(payload.winner){
-
-    await addScore(payload.winner,10);
-
-    const loser =
-      match.player1_id===payload.winner
-        ? match.player2_id
-        : match.player1_id;
-
-    if(loser)
-      await addScore(loser,2);
-
-  }else{
-    await addScore(match.player1_id,5);
-    await addScore(match.player2_id,5);
-  }
-
-});
-
-
-/* ===================================================
-   LEADERBOARD
-   =================================================== */
-
-async function getLeaderboard(){
-
-  if(!ACTIVE_TOURNAMENT) return [];
-
-  const { data } = await db
-    .from("tournament_scores")
-    .select("*")
-    .eq("tournament_id",ACTIVE_TOURNAMENT.id)
-    .order("score",{ascending:false})
-    .limit(10);
-
-  return data||[];
-}
-
-
-/* ===================================================
-   WEEKLY RESET CHECK
-   =================================================== */
-
-async function weeklyCheck(){
-
-  const today = new Date();
-
-  if(today.getDay()!==1) return; // Monday
-
-  const { data } = await db
-    .from("tournaments")
-    .select("*")
-    .eq("active",true)
-    .maybeSingle();
-
-  if(data) return;
-
-  const start = new Date();
-  const end = new Date();
-  end.setDate(end.getDate()+6);
-
-  await db.from("tournaments")
-    .insert({
-      name:"Haftalık PvP Turnuvası",
-      start_date:start.toISOString().slice(0,10),
-      end_date:end.toISOString().slice(0,10),
-      active:true
-    });
-
-  loadTournament();
-}
-
-
-/* ===================================================
-   INIT
-   =================================================== */
-
-EVENT.on("engine:ready",async()=>{
-
-  await weeklyCheck();
-  await loadTournament();
-
-});
-
-
-/* ===================================================
-   PUBLIC API
-   =================================================== */
-
-window.TOURNAMENT={
-  leaderboard:getLeaderboard
+const REWARD_POOL_GAIN = {
+  pvp_win:2,
+  mission:1
 };
 
-console.log("🏆 Tournament Engine Ready");
+/* ===========================================
+   ENGINE
+=========================================== */
+
+const TOURNAMENT={
+
+  data:null,
+
+  /* ===================================== */
+  init(){
+
+    this.load();
+    this.ensure();
+    this.bindEvents();
+
+    setInterval(()=>{
+      this.checkReset();
+    },60000);
+
+    console.log("🏆 Tournament Engine Ready");
+  },
+
+  load(){
+    try{
+      this.data=
+        JSON.parse(localStorage.getItem(STORAGE_KEY))
+        || null;
+    }catch{
+      this.data=null;
+    }
+  },
+
+  save(){
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(this.data)
+    );
+  },
+
+  /* ===================================== */
+  CREATE STRUCTURE
+  ===================================== */
+
+  ensure(){
+
+    if(this.data) return;
+
+    const now=Date.now();
+
+    this.data={
+      weekly:{
+        start:now,
+        pool:0,
+        scores:{}
+      },
+      monthly:{
+        start:now,
+        pool:0,
+        scores:{}
+      }
+    };
+
+    this.save();
+  },
+
+  /* ===================================== */
+  ADD SCORE
+  ===================================== */
+
+  addScore(type){
+
+    const id=GAME.user.id;
+
+    this.add(this.data.weekly,id,type);
+    this.add(this.data.monthly,id,type);
+
+    this.save();
+  },
+
+  add(block,id,type){
+
+    if(!block.scores[id])
+      block.scores[id]=0;
+
+    block.scores[id]++;
+
+    block.pool += REWARD_POOL_GAIN[type] || 1;
+  },
+
+  /* ===================================== */
+  EVENTS
+  ===================================== */
+
+  bindEvents(){
+
+    EVENT.on("pvp:win",()=>{
+      this.addScore("pvp_win");
+    });
+
+    EVENT.on("mission:completed",()=>{
+      this.addScore("mission");
+    });
+
+  },
+
+  /* ===================================== */
+  RESET CHECK
+  ===================================== */
+
+  checkReset(){
+
+    const now=Date.now();
+
+    if(now-this.data.weekly.start > WEEK){
+      this.finish("weekly");
+    }
+
+    if(now-this.data.monthly.start > MONTH){
+      this.finish("monthly");
+    }
+  },
+
+  /* ===================================== */
+  FINISH TOURNAMENT
+  ===================================== */
+
+  finish(type){
+
+    const block=this.data[type];
+
+    const winner=this.getWinner(block.scores);
+
+    if(winner){
+
+      EVENT.emit("tournament:winner",{
+        type,
+        winner,
+        reward:block.pool
+      });
+
+      console.log(
+        "🏆 "+type+" winner:",
+        winner,
+        "reward:",
+        block.pool
+      );
+    }
+
+    /* reset */
+    block.start=Date.now();
+    block.pool=0;
+    block.scores={};
+
+    this.save();
+  },
+
+  /* ===================================== */
+  FIND WINNER
+  ===================================== */
+
+  getWinner(scores){
+
+    let best=null;
+    let max=-1;
+
+    Object.keys(scores).forEach(id=>{
+      if(scores[id]>max){
+        max=scores[id];
+        best=id;
+      }
+    });
+
+    return best;
+  },
+
+  /* ===================================== */
+  LEAGUE (ELO BASED)
+  ===================================== */
+
+  league(){
+
+    if(!window.RANKING) return "Unranked";
+
+    const elo =
+      RANKING.ensurePlayer(GAME.user.id).elo;
+
+    if(elo<800) return "Bronze";
+    if(elo<1200) return "Silver";
+    if(elo<1600) return "Gold";
+    if(elo<2000) return "Platinum";
+    if(elo<2400) return "Diamond";
+
+    return "Legend";
+  }
+
+};
+
+window.TOURNAMENT=TOURNAMENT;
+
+/* ===========================================
+   AUTO START
+=========================================== */
+
+EVENT.on("game:ready",()=>{
+  TOURNAMENT.init();
+});
 
 })();
