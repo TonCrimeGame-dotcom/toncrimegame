@@ -1,134 +1,57 @@
 /* ===================================================
-   TONCRIME GLOBAL CRIME FEED ENGINE
-   Living City Event Stream
+   TONCRIME GLOBAL CRIME FEED
    =================================================== */
 
 (function(){
 
-if(!window.EVENT){
-  console.warn("CrimeFeed waiting EVENT...");
-  return;
-}
+const FEED={};
 
-/* ===========================================
-   STORAGE
-=========================================== */
+/* ================= ADD ================= */
 
-const STORAGE_KEY="tc_crime_feed";
-const MAX_FEED=50;
+FEED.add=async function(text){
 
-/* ===========================================
-   ENGINE
-=========================================== */
-
-const CRIMEFEED={
-
-  feed:[],
-
-  /* ===================================== */
-  init(){
-    this.load();
-    this.bindEvents();
-    this.render();
-
-    console.log("📰 Crime Feed Ready");
-  },
-
-  load(){
-    try{
-      this.feed=
-        JSON.parse(localStorage.getItem(STORAGE_KEY))
-        || [];
-    }catch{
-      this.feed=[];
-    }
-  },
-
-  save(){
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(this.feed)
-    );
-  },
-
-  /* ===================================== */
-  ADD EVENT
-  ===================================== */
-
-  add(text){
-
-    this.feed.unshift({
-      text,
-      time:Date.now()
-    });
-
-    if(this.feed.length>MAX_FEED)
-      this.feed.pop();
-
-    this.save();
-    this.render();
-  },
-
-  /* ===================================== */
-  EVENTS LISTEN
-  ===================================== */
-
-  bindEvents(){
-
-    EVENT.on("pvp:win",(d)=>{
-      this.add(`⚔ ${d.winner} ${d.loser}'i yendi`);
-    });
-
-    EVENT.on("player:hospitalized",()=>{
-      this.add(`🏥 ${GAME.user.nickname} hastanelik oldu`);
-    });
-
-    EVENT.on("tournament:winner",(d)=>{
-      this.add(`🏆 ${d.winner} turnuvayı kazandı`);
-    });
-
-    EVENT.on("territory:capture",(d)=>{
-      this.add(`🔥 ${d.faction} ${d.zone} bölgesini ele geçirdi`);
-    });
-
-    EVENT.on("season:finished",(d)=>{
-      this.add(`⭐ ${d.player} sezonu tamamladı`);
-    });
-
-  },
-
-  /* ===================================== */
-  RENDER
-  ===================================== */
-
-  render(){
-
-    if(!window.UI) return;
-
-    UI.renderCrimeFeed(this.feed.slice(0,10));
-  }
+await db.from("crime_feed").insert({
+message:text
+});
 
 };
 
-window.CRIMEFEED=CRIMEFEED;
+/* ================= RENDER ================= */
 
-/* ===========================================
-   START
-=========================================== */
+FEED.render=async function(){
 
-EVENT.on("game:ready",()=>{
-  CRIMEFEED.init();
+const root=document.getElementById("crimeFeed");
+
+if(!root) return;
+
+const {data}=await db
+.from("crime_feed")
+.select("*")
+.order("created_at",{ascending:false})
+.limit(20);
+
+root.innerHTML=data.map(x=>
+`<div>📰 ${x.message}</div>`
+).join("");
+};
+
+/* ================= EVENTS ================= */
+
+EVENT.on("mission:completed",()=>{
+FEED.add("Bir oyuncu görev tamamladı");
 });
 
-/* ===========================================
-   CORE REGISTER
-=========================================== */
+EVENT.on("pvp:win",()=>{
+FEED.add("⚔ PvP savaşı kazanıldı");
+});
 
-if(window.CORE){
-  CORE.register(
-    "Crime Feed Engine",
-    ()=>!!window.CRIMEFEED
-  );
-}
+EVENT.on("territory:capture",()=>{
+FEED.add("🗺 Yeni bölge ele geçirildi!");
+});
+
+/* realtime refresh */
+setInterval(()=>FEED.render(),5000);
+
+window.CRIMEFEED=FEED;
 
 })();
