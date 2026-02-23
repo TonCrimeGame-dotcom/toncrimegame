@@ -1,84 +1,75 @@
 /* ===================================================
    TONCRIME SCENE ENGINE
-   Game Scene Manager
-=================================================== */
+   SPA Game Navigation System
+   =================================================== */
 
 (function(){
+
+if(!window.TEMPLATE || !window.EVENT){
+  console.warn("Scene engine waiting...");
+  return;
+}
 
 const SCENE = {
 
   current:null,
   scenes:{},
 
-  containerId:"scene-root",
-
-  /* ======================================
-     INIT ROOT
-  ====================================== */
-
-  init(){
-
-    let root=document.getElementById(this.containerId);
-
-    if(!root){
-      root=document.createElement("div");
-      root.id=this.containerId;
-      root.style.padding="20px";
-      document.body.appendChild(root);
-    }
-
-    console.log("🎬 Scene Engine Ready");
-  },
-
   /* ======================================
      REGISTER SCENE
   ====================================== */
 
-  register(name,render){
-
-    this.scenes[name]=render;
-    console.log("📦 Scene:",name);
+  register(name,loader){
+    this.scenes[name]=loader;
   },
 
   /* ======================================
      LOAD SCENE
   ====================================== */
 
-  async load(name,data=null){
+  async load(name){
 
     if(!this.scenes[name]){
       console.warn("Scene not found:",name);
       return;
     }
 
+    console.log("🎬 Loading scene:",name);
+
     this.current=name;
 
-    const root=document.getElementById(this.containerId);
+    EVENT.emit("scene:change",name);
 
-    root.innerHTML=`
-      <div style="opacity:.6">Yükleniyor...</div>
-    `;
+    const html = await this.scenes[name]();
 
-    try{
-      await this.scenes[name](root,data);
+    TEMPLATE.load(html);
 
-      if(window.EVENT)
-        EVENT.emit("scene:changed",name);
-
-    }catch(e){
-      console.error("Scene crash:",e);
-      root.innerHTML="Scene error";
-    }
+    EVENT.emit("scene:loaded",name);
   }
 
 };
 
 window.SCENE=SCENE;
 
-document.addEventListener("DOMContentLoaded",()=>{
-  SCENE.init();
+
+/* ======================================
+   MENU HOOK (AUTO SPA)
+====================================== */
+
+document.addEventListener("click",(e)=>{
+
+  const btn=e.target.closest("[data-page]");
+  if(!btn) return;
+
+  e.preventDefault();
+
+  const page=btn.dataset.page;
+
+  SCENE.load(page);
+
 });
 
-console.log("🎮 Scene Engine Loaded");
+
+console.log("🎬 Scene Engine Ready");
 
 })();
