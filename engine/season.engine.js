@@ -1,155 +1,231 @@
 /* ===================================================
    TONCRIME SEASON ENGINE
-   Live Service Season System
+   Live Service Season Pass System
    =================================================== */
 
 (function(){
 
-if(!window.db || !window.EVENT){
-  console.warn("Season engine waiting...");
+if(!window.EVENT){
+  console.warn("Season engine waiting EVENT...");
   return;
 }
 
-const SEASON = {
+/* ===========================================
+   CONFIG
+=========================================== */
 
-DURATION: 30*24*60*60*1000, // 30 gün
+const STORAGE_KEY="tc_season";
 
-current:null,
+const SEASON_DURATION = 30*86400000;
 
-/* ======================================
-   GET ACTIVE SEASON
-====================================== */
+const LEVEL_XP = 100;
 
-async load(){
+/* rewards */
+const FREE_REWARDS = {
+  5:5,
+  10:10,
+  20:20,
+  30:40
+};
 
-  const {data}=await db
-    .from("seasons")
-    .select("*")
-    .eq("active",true)
-    .maybeSingle();
+const PREMIUM_REWARDS = {
+  5:10,
+  10:25,
+  20:50,
+  30:100
+};
 
-  if(!data){
-    await this.create();
-    return this.load();
-  }
+/* ===========================================
+   ENGINE
+=========================================== */
 
-  this.current=data;
+const SEASON={
 
-  this.checkEnd();
-},
+  data:null,
 
-/* ======================================
-   CREATE NEW SEASON
-====================================== */
+  /* ===================================== */
+  init(){
+    this.load();
+    this.ensure();
+    this.bindEvents();
 
-async create(){
+    setInterval(()=>{
+      this.checkReset();
+    },60000);
 
-  const now=Date.now();
+    console.log("🎮 Season Engine Ready");
+  },
 
-  await db.from("seasons").insert({
-    season_number:1,
-    start_date:new Date(now),
-    end_date:new Date(now+this.DURATION),
-    active:true
-  });
+  load(){
+    try{
+      this.data=
+        JSON.parse(localStorage.getItem(STORAGE_KEY))
+        || null;
+    }catch{
+      this.data=null;
+    }
+  },
 
-  console.log("🌍 First season created");
-},
+  save(){
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(this.data)
+    );
+  },
 
-/* ======================================
-   CHECK SEASON END
-====================================== */
+  /* ===================================== */
+  CREATE SEASON
+  ===================================== */
 
-async checkEnd(){
+  ensure(){
 
-  const now=Date.now();
-  const end=new Date(this.current.end_date).getTime();
+    if(this.data) return;
 
-  if(now<end) return;
+    this.data={
+      start:Date.now(),
+      players:{}
+    };
 
-  await this.finishSeason();
-  await this.startNext();
-},
+    this.save();
+  },
 
-/* ======================================
-   FINISH SEASON
-====================================== */
+  /* ===================================== */
+  PLAYER DATA
+  ===================================== */
 
-async finishSeason(){
+  player(){
 
-  console.log("🏁 Season Finished");
+    const id=GAME.user.id;
 
-  const {data:players}=await db
-    .from("users")
-    .select("id,elo");
+    if(!this.data.players[id]){
+      this.data.players[id]={
+        xp:0,
+        level:1,
+        claimed:{}
+      };
+    }
 
-  for(const p of players){
+    return this.data.players[id];
+  },
 
-    await db.from("season_players").insert({
-      user_id:p.id,
-      season:this.current.season_number,
-      final_elo:p.elo
+  /* ===================================== */
+  ADD XP
+  ===================================== */
+
+  addXP(amount){
+
+    const p=this.player();
+
+    p.xp+=amount;
+
+    while(p.xp>=LEVEL_XP){
+      p.xp-=LEVEL_XP;
+      p.level++;
+      this.reward(p.level);
+    }
+
+    this.save();
+  },
+
+  /* ===================================== */
+  REWARD SYSTEM
+  ===================================== */
+
+  reward(level){
+
+    const p=this.player();
+
+    if(FREE_REWARDS[level] &&
+       !p.claimed["free_"+level]){
+
+      GAME.user.yton+=FREE_REWARDS[level];
+
+      p.claimed["free_"+level]=true;
+
+      NOTIFY.push(
+        "🎁 Sezon ödülü +"+
+        FREE_REWARDS[level]+" YTON"
+      );
+    }
+
+    if(GAME.user.premium &&
+       PREMIUM_REWARDS[level] &&
+       !p.claimed["premium_"+level]){
+
+      GAME.user.yton+=PREMIUM_REWARDS[level];
+
+      p.claimed["premium_"+level]=true;
+
+      NOTIFY.push(
+        "⭐ Premium sezon ödülü +"+
+        PREMIUM_REWARDS[level]+" YTON"
+      );
+    }
+  },
+
+  /* ===================================== */
+  RESET
+  ===================================== */
+
+  checkReset(){
+
+    if(Date.now()-this.data.start < SEASON_DURATION)
+      return;
+
+    this.finishSeason();
+  },
+
+  finishSeason(){
+
+    Object.keys(this.data.players).forEach(id=>{
+
+      EVENT.emit("season:finished",{
+        player:id,
+        level:this.data.players[id].level
+      });
+
     });
 
-    /* SOFT RESET */
-    const newElo=Math.round(1000+(p.elo-1000)*0.4);
+    this.data={
+      start:Date.now(),
+      players:{}
+    };
 
-    await db.from("users")
-      .update({
-        elo:newElo,
-        season_badge:this.getBadge(p.elo)
-      })
-      .eq("id",p.id);
+    this.save();
+
+    console.log("🔄 New Season Started");
+  },
+
+  /* ===================================== */
+  EVENTS
+  ===================================== */
+
+  bindEvents(){
+
+    EVENT.on("pvp:win",()=>{
+      this.addXP(15);
+    });
+
+    EVENT.on("mission:completed",()=>{
+      this.addXP(5);
+    });
+
+    EVENT.on("daily:claimed",()=>{
+      this.addXP(10);
+    });
+
   }
-
-  await db.from("seasons")
-    .update({active:false})
-    .eq("id",this.current.id);
-},
-
-/* ======================================
-   START NEXT SEASON
-====================================== */
-
-async startNext(){
-
-  const now=Date.now();
-
-  await db.from("seasons").insert({
-    season_number:this.current.season_number+1,
-    start_date:new Date(now),
-    end_date:new Date(now+this.DURATION),
-    active:true
-  });
-
-  console.log("🚀 New season started");
-
-  EVENT.emit("season:new");
-},
-
-/* ======================================
-   BADGE SYSTEM
-====================================== */
-
-getBadge(elo){
-
-  if(elo>1600) return "💎 Diamond";
-  if(elo>1400) return "🥇 Gold";
-  if(elo>1200) return "🥈 Silver";
-  return "🥉 Bronze";
-}
 
 };
 
 window.SEASON=SEASON;
 
+/* ===========================================
+   AUTO START
+=========================================== */
 
-/* AUTO START */
-
-document.addEventListener("DOMContentLoaded",()=>{
-  setTimeout(()=>SEASON.load(),2000);
+EVENT.on("game:ready",()=>{
+  SEASON.init();
 });
-
-console.log("📅 Season Engine Ready");
 
 })();
