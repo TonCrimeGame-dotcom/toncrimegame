@@ -6,26 +6,33 @@
 <title>TonCrime</title>
 
 <style>
-body{
+*{
     margin:0;
-    font-family:Arial, sans-serif;
-    background:url("background.jpg") no-repeat center center fixed;
-    background-size:cover;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    background:url("background.jpg") no-repeat center center/cover;
+    height:100vh;
     color:white;
+    overflow:hidden;
 }
 
 /* TOP BAR */
 .topbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:15px 20px;
+    height:70px;
     background:rgba(0,0,0,0.85);
-    border-bottom:1px solid #FFD700;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 15px;
+    border-bottom:2px solid #f5b942;
 }
 
 .logo{
-    height:50px;
+    height:40px;
 }
 
 .stats{
@@ -36,201 +43,157 @@ body{
 
 .stat-box{
     background:#111;
-    padding:6px 12px;
-    border-radius:8px;
+    padding:5px 10px;
+    border-radius:20px;
     font-size:14px;
-    border:1px solid #333;
-}
-
-.coin{
     display:flex;
     align-items:center;
-    gap:6px;
+    gap:5px;
 }
 
-.coin img{
-    width:28px;
+.stat-box img{
+    height:18px;
 }
 
-/* SLIDER */
-.slider-wrapper{
+/* XP BAR */
+.xp-container{
+    position:absolute;
+    top:70px;
+    width:100%;
+    padding:5px 15px;
+}
+
+.xp-bar{
+    height:10px;
+    background:#333;
+    border-radius:10px;
     overflow:hidden;
-    padding:40px 0 100px 0;
 }
 
+.xp-fill{
+    height:100%;
+    width:30%;
+    background:linear-gradient(90deg,#f5b942,#ff9900);
+}
+
+/* CARDS */
 .slider{
+    position:absolute;
+    top:110px;
+    bottom:0;
+    width:100%;
     display:flex;
-    gap:25px;
     overflow-x:auto;
     scroll-snap-type:x mandatory;
-    padding:0 40px;
+    padding:20px;
+    gap:20px;
 }
 
-.slide{
-    min-width:320px;
-    height:420px;
+.card{
+    min-width:75%;
+    height:65%;
     border-radius:20px;
     background-size:cover;
     background-position:center;
-    scroll-snap-align:center;
-    flex-shrink:0;
     position:relative;
-    box-shadow:0 0 20px rgba(0,0,0,0.8);
-    transition:0.4s;
-    display:flex;
-    align-items:flex-end;
-    padding:20px;
-    font-size:22px;
-    font-weight:bold;
-    cursor:pointer;
+    scroll-snap-align:center;
+    box-shadow:0 0 25px rgba(0,0,0,0.8);
+    transition:0.3s;
 }
 
-.slide::before{
+.card:hover{
+    transform:scale(1.03);
+}
+
+.card::after{
     content:"";
     position:absolute;
     bottom:0;
     left:0;
     width:100%;
-    height:150px;
-    background:linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-    border-radius:0 0 20px 20px;
+    height:40%;
+    background:linear-gradient(to top,rgba(0,0,0,0.9),transparent);
+    border-radius:20px;
 }
 
-.slide span{
+.card-title{
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    font-size:22px;
+    font-weight:bold;
     z-index:2;
+    text-shadow:0 0 10px #f5b942;
 }
 
-.slide:hover{
-    transform:scale(1.05);
-    box-shadow:0 0 25px #FFD700;
-}
-
-/* ALT BAR */
-.bottombar{
-    position:fixed;
-    bottom:0;
-    width:100%;
-    display:flex;
-    justify-content:space-around;
-    padding:15px;
-    background:rgba(0,0,0,0.9);
-    border-top:1px solid #FFD700;
-}
-
-.bottom-btn{
-    cursor:pointer;
-}
-
-.bottom-btn:hover{
-    color:#FFD700;
-}
-
-::-webkit-scrollbar{
-    height:6px;
-}
-::-webkit-scrollbar-thumb{
-    background:#FFD700;
+/* SCROLLBAR HIDE */
+.slider::-webkit-scrollbar{
+    display:none;
 }
 </style>
 </head>
 
 <body>
 
+<!-- TOP -->
 <div class="topbar">
-
-    <div>
-        <div><strong>Oyuncu</strong></div>
-        <div>Level <span id="level">1</span></div>
-    </div>
-
     <img src="logo.png" class="logo">
-
     <div class="stats">
-        <div class="stat-box">XP: <span id="xp">0</span>/100</div>
-        <div class="stat-box">⚡ <span id="energy">100</span></div>
-        <div class="coin">
+        <div class="stat-box">⚡ <span id="energy">45</span></div>
+        <div class="stat-box">
             <img src="yton.png">
-            <span id="yton">0</span>
+            <span id="yton">250</span>
         </div>
-    </div>
-
-</div>
-
-<div class="slider-wrapper">
-    <div class="slider">
-
-        <div class="slide" style="background-image:url('background.jpg')" onclick="earnXP()">
-            <span>Görevler</span>
-        </div>
-
-        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
-            <span>Genel Ev</span>
-        </div>
-
-        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
-            <span>Gece Kulübü</span>
-        </div>
-
-        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
-            <span>Coffee Shop</span>
-        </div>
-
-        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
-            <span>Silah Kaçakçısı</span>
-        </div>
-
-        <div class="slide" style="background-image:url('background.jpg')" onclick="earnXP()">
-            <span>PvP Arena</span>
-        </div>
-
     </div>
 </div>
 
-<div class="bottombar">
-    <div class="bottom-btn">Envanter</div>
-    <div class="bottom-btn">Liderlik</div>
-    <div class="bottom-btn">Mağaza</div>
-    <div class="bottom-btn">Bölgeler</div>
+<!-- XP -->
+<div class="xp-container">
+    <div class="xp-bar">
+        <div class="xp-fill" id="xpFill"></div>
+    </div>
+</div>
+
+<!-- SLIDER -->
+<div class="slider">
+
+    <div class="card" style="background-image:url('missions.jpg')">
+        <div class="card-title">GÖREVLER</div>
+    </div>
+
+    <div class="card" style="background-image:url('pvp.jpg')">
+        <div class="card-title">PVP ARENA</div>
+    </div>
+
+    <div class="card" style="background-image:url('nightclub.jpg')">
+        <div class="card-title">GECE KULÜBÜ</div>
+    </div>
+
+    <div class="card" style="background-image:url('xxx.jpg')">
+        <div class="card-title">GENEL EV</div>
+    </div>
+
+    <div class="card" style="background-image:url('coffeeshop.jpg')">
+        <div class="card-title">COFFEE SHOP</div>
+    </div>
+
+    <div class="card" style="background-image:url('weapons.jpg')">
+        <div class="card-title">SİLAH TÜCCARI</div>
+    </div>
+
 </div>
 
 <script>
-let xp = 0;
-let level = 1;
-let yton = 0;
-let energy = 100;
+let xp = 30;
+let xpFill = document.getElementById("xpFill");
+xpFill.style.width = xp + "%";
 
-function updateUI(){
-    document.getElementById("xp").innerText = xp;
-    document.getElementById("level").innerText = level;
-    document.getElementById("yton").innerText = yton;
-    document.getElementById("energy").innerText = energy;
-}
-
-function earnXP(){
-    if(energy <= 0) return alert("Enerji yok!");
-
-    xp += 10;
-    energy -= 5;
-
-    if(xp >= 100){
-        xp = 0;
-        level++;
-        alert("Level Atladın!");
-    }
-
-    updateUI();
-}
-
-function earnMoney(){
-    if(energy <= 0) return alert("Enerji yok!");
-
-    yton += 50;
-    energy -= 10;
-
-    updateUI();
-}
-
-updateUI();
+/* DEMO XP artışı */
+setInterval(()=>{
+    xp += 1;
+    if(xp > 100) xp = 0;
+    xpFill.style.width = xp + "%";
+},2000);
 </script>
 
 </body>
