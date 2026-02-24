@@ -25,7 +25,7 @@ body{
 }
 
 .logo{
-    height:45px;
+    height:50px;
 }
 
 .stats{
@@ -39,6 +39,7 @@ body{
     padding:6px 12px;
     border-radius:8px;
     font-size:14px;
+    border:1px solid #333;
 }
 
 .coin{
@@ -48,13 +49,13 @@ body{
 }
 
 .coin img{
-    width:24px;
+    width:28px;
 }
 
 /* SLIDER */
 .slider-wrapper{
     overflow:hidden;
-    padding:40px 0;
+    padding:40px 0 100px 0;
 }
 
 .slider{
@@ -69,18 +70,34 @@ body{
     min-width:320px;
     height:420px;
     border-radius:20px;
-    background:rgba(20,20,20,0.9);
+    background-size:cover;
+    background-position:center;
     scroll-snap-align:center;
     flex-shrink:0;
     position:relative;
     box-shadow:0 0 20px rgba(0,0,0,0.8);
     transition:0.4s;
     display:flex;
-    justify-content:center;
-    align-items:center;
+    align-items:flex-end;
+    padding:20px;
     font-size:22px;
     font-weight:bold;
     cursor:pointer;
+}
+
+.slide::before{
+    content:"";
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:150px;
+    background:linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    border-radius:0 0 20px 20px;
+}
+
+.slide span{
+    z-index:2;
 }
 
 .slide:hover{
@@ -142,13 +159,29 @@ body{
 <div class="slider-wrapper">
     <div class="slider">
 
-        <div class="slide" onclick="earnXP()">Görevler</div>
-        <div class="slide" onclick="earnMoney()">Genel Ev</div>
-        <div class="slide" onclick="earnMoney()">Gece Kulübü</div>
-        <div class="slide" onclick="earnMoney()">Coffee Shop</div>
-        <div class="slide" onclick="earnMoney()">Silah Kaçakçısı</div>
-        <div class="slide" onclick="earnXP()">PvP Arena</div>
-        <div class="slide" onclick="earnXP()">Clan</div>
+        <div class="slide" style="background-image:url('background.jpg')" onclick="earnXP()">
+            <span>Görevler</span>
+        </div>
+
+        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
+            <span>Genel Ev</span>
+        </div>
+
+        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
+            <span>Gece Kulübü</span>
+        </div>
+
+        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
+            <span>Coffee Shop</span>
+        </div>
+
+        <div class="slide" style="background-image:url('background.jpg')" onclick="earnMoney()">
+            <span>Silah Kaçakçısı</span>
+        </div>
+
+        <div class="slide" style="background-image:url('background.jpg')" onclick="earnXP()">
+            <span>PvP Arena</span>
+        </div>
 
     </div>
 </div>
