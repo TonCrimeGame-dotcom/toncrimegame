@@ -1,206 +1,228 @@
 /* ===================================================
-   TONCRIME CHAT ENGINE
-   Persistent Realtime Chat System
-   =================================================== */
+   TONCRIME SOCIAL CHAT ENGINE
+=================================================== */
 
-(function(){
+GAME.chat = {
+  location:null,
+  mode:"location", // location | clan
+  subscribed:false
+};
 
-if(!window.EVENT){
-  console.warn("Chat waiting EVENT...");
-  return;
-}
+/* ===================================================
+   LOCATION ENTER
+=================================================== */
 
-const CHAT={
-
-channel:null,
-room:null,
-
-/* ===========================================
-   INIT
-=========================================== */
-
-init(){
-
-  EVENT.on("page:enter",room=>{
-    this.join(room);
-  });
-
-  console.log("💬 Chat Engine Ready");
-},
-
-/* ===========================================
-   JOIN ROOM
-=========================================== */
-
-async join(room){
+async function enterBuilding(location){
 
   if(!GAME.user) return;
 
-  this.room=room;
+  GAME.chat.location = location;
+  GAME.chat.mode="location";
 
-  if(this.channel)
-    await this.channel.unsubscribe();
+  await updateLocation(location);
 
-  this.loadHistory();
-
-  this.channel=db.channel("chat-"+room);
-
-  this.channel.on(
-    "postgres_changes",
-    {
-      event:"INSERT",
-      schema:"public",
-      table:"chat_messages",
-      filter:`room=eq.${room}`
-    },
-    payload=>{
-      this.renderMessage(payload.new);
-    }
+  await sendSystemMessage(
+    GAME.user.nickname+" içeri girdi"
   );
 
-  await this.channel.subscribe();
-},
+  loadRoomUsers();
+  loadChatHistory();
+}
 
-/* ===========================================
-   LOAD HISTORY
-=========================================== */
+/* ===================================================
+   SAFE AREA (CLAN CHAT)
+=================================================== */
 
-async loadHistory(){
+async function enterClanChat(){
 
-  const {data}=await db
-    .from("chat_messages")
-    .select("*")
-    .eq("room",this.room)
-    .order("id",{ascending:false})
-    .limit(30);
+  GAME.chat.mode="clan";
+  GAME.chat.location=null;
 
-  const box=document.getElementById("chatMessages");
-  if(!box) return;
+  await updateLocation("safe_zone");
 
-  box.innerHTML="";
+  loadClanChat();
+}
 
-  data.reverse().forEach(m=>{
-    this.renderMessage(m);
-  });
-},
-
-/* ===========================================
+/* ===================================================
    SEND MESSAGE
-=========================================== */
+=================================================== */
 
-async send(){
+async function sendChat(){
 
   const input=document.getElementById("chatInput");
   if(!input) return;
 
-  const msg=input.value.trim();
-  if(!msg) return;
+  const text=input.value.trim();
+  if(!text) return;
 
-  input.value="";
-
-  await db.from("chat_messages").insert({
-    room:this.room,
+  const payload={
     user_id:GAME.user.id,
     nickname:GAME.user.nickname,
-    message:msg
+    message:text
+  };
+
+  if(GAME.chat.mode==="location"){
+    payload.location=GAME.chat.location;
+  }else{
+    payload.clan_id=GAME.user.clan_id;
+  }
+
+  await db.from("city_chat").insert(payload);
+
+  input.value="";
+}
+
+/* ===================================================
+   SYSTEM MESSAGE
+=================================================== */
+
+async function sendSystemMessage(msg){
+
+  await db.from("city_chat").insert({
+    user_id:"system",
+    nickname:"SYSTEM",
+    location:GAME.chat.location,
+    message:msg,
+    system:true
   });
-},
+}
 
-/* ===========================================
-   RENDER MESSAGE
-=========================================== */
+/* ===================================================
+   LOAD CHAT
+=================================================== */
 
-renderMessage(m){
+async function loadChatHistory(){
 
-  const box=document.getElementById("chatMessages");
+  let query=db
+    .from("city_chat")
+    .select("*")
+    .order("created_at",{ascending:false})
+    .limit(30);
+
+  if(GAME.chat.mode==="location"){
+    query=query.eq("location",GAME.chat.location);
+  }else{
+    query=query.eq("clan_id",GAME.user.clan_id);
+  }
+
+  const {data}=await query;
+
+  renderChat(data.reverse());
+}
+
+/* ===================================================
+   RENDER CHAT
+=================================================== */
+
+function renderChat(messages){
+
+  const box=document.getElementById("chatBox");
   if(!box) return;
 
-  const line=document.createElement("div");
+  box.innerHTML="";
 
-  line.className="chatLine";
+  messages.forEach(m=>{
 
-  line.innerHTML=
-    `<b>${m.nickname}</b>: ${m.message}`;
+    const color=m.system?"#888":"#fff";
 
-  box.appendChild(line);
+    box.innerHTML+=`
+      <div style="color:${color}">
+        <b>${m.nickname}:</b> ${m.message}
+      </div>`;
+  });
+
   box.scrollTop=box.scrollHeight;
 }
 
-};
+/* ===================================================
+   LOAD USERS IN BUILDING
+=================================================== */
 
-window.CHAT=CHAT;
+async function loadRoomUsers(){
 
-/* ===========================================
-   CHAT UI AUTO CREATE
-=========================================== */
+  if(GAME.chat.mode!=="location") return;
 
-(function(){
+  const {data}=await db
+    .from("player_presence")
+    .select("user_id,nickname")
+    .eq("location",GAME.chat.location)
+    .eq("online",true);
 
-const style=document.createElement("style");
+  const list=document.getElementById("roomUsers");
+  if(!list) return;
 
-style.innerHTML=`
+  list.innerHTML="";
 
-.chatBox{
-background:#111;
-border:1px solid #222;
-height:260px;
-display:flex;
-flex-direction:column;
+  data.forEach(u=>{
+
+    if(u.user_id===GAME.user.id) return;
+
+    list.innerHTML+=`
+      <div class="roomUser"
+           onclick="locationAttack('${u.user_id}')">
+        ⚔ ${u.nickname}
+      </div>`;
+  });
 }
 
-#chatMessages{
-flex:1;
-overflow-y:auto;
-padding:8px;
-font-size:13px;
+/* ===================================================
+   LOCATION PVP ATTACK
+   (NO WEAPON INFO)
+=================================================== */
+
+function locationAttack(targetId){
+
+  startPvpAttack({
+    target:targetId,
+    hiddenStats:true
+  });
+
 }
 
-.chatInput{
-display:flex;
+/* ===================================================
+   REALTIME SUBSCRIBE
+=================================================== */
+
+function subscribeChat(){
+
+  if(GAME.chat.subscribed) return;
+
+  GAME.chat.subscribed=true;
+
+  db.channel("chat-live")
+    .on(
+      "postgres_changes",
+      {
+        event:"INSERT",
+        schema:"public",
+        table:"city_chat"
+      },
+      payload=>{
+        const msg=payload.new;
+
+        if(
+          GAME.chat.mode==="location" &&
+          msg.location===GAME.chat.location
+        ){
+          loadChatHistory();
+        }
+
+        if(
+          GAME.chat.mode==="clan" &&
+          msg.clan_id===GAME.user.clan_id
+        ){
+          loadChatHistory();
+        }
+      }
+    )
+    .subscribe();
 }
 
-.chatInput input{
-flex:1;
-background:#1b1b1b;
-border:none;
-color:white;
-padding:8px;
-}
+/* ===================================================
+   AUTO INIT
+=================================================== */
 
-.chatInput button{
-background:gold;
-border:none;
-padding:8px 12px;
-cursor:pointer;
-}
-
-.chatLine{
-margin-bottom:4px;
-}
-
-`;
-
-document.head.appendChild(style);
-
-})();
-
-/* ===========================================
-   AUTO START
-=========================================== */
-
-EVENT.on("game:ready",()=>{
-  CHAT.init();
-});
-
-/* ===========================================
-   CORE REGISTER
-=========================================== */
-
-if(window.CORE){
-  CORE.register(
-    "Chat Engine",
-    ()=>!!window.CHAT
-  );
-}
-
-})();
+document.addEventListener(
+  "DOMContentLoaded",
+  subscribeChat
+);

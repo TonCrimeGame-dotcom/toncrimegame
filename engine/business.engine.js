@@ -1,248 +1,265 @@
 /* ===================================================
-   TONCRIME BUSINESS OWNER ENGINE v2
-   Player Production + Market System
-   =================================================== */
+   TONCRIME BUSINESS ENGINE
+   GLOBAL + PLAYER ECONOMY CORE
+=================================================== */
 
-(function(){
-
-if(!window.EVENT){
-  console.warn("Business engine waiting EVENT...");
-  return;
-}
-
-/* ===========================================
-   CONFIG
-=========================================== */
-
-const STORAGE_KEY="tc_business_v2";
-
-const DAILY_PRODUCTION = 100;
-const PRODUCTION_TIME = 86400000; // 24h
-
-const PRODUCTS = {
-
-  coffee_shop:[
-    "Espresso","Latte","Cold Brew","Turbo Shot",
-    "Black Energy","Night Coffee"
-  ],
-
-  night_club:[
-    "Vodka","Whiskey","Gin","Neon Shot",
-    "Dark Mix","Ultra Drink"
-  ]
-
+GAME.business = {
+  initialized:false
 };
 
-/* ===========================================
-   ENGINE
-=========================================== */
+/* ===================================================
+   BUILDING TYPES
+=================================================== */
 
-const BUSINESS={
+const BUILDINGS = {
+  COFFEE:"coffee",
+  NIGHTCLUB:"nightclub",
+  BROTHEL:"brothel",
+  WEAPON:"weapon"
+};
 
-  data:{},
+/* ===================================================
+   SERVER DAILY PRODUCTION
+   (coffee + nightclub only)
+=================================================== */
 
-  /* ===================================== */
-  init(){
-    this.load();
-    console.log("🏢 Business Engine Ready");
-  },
+async function serverProductionReset(){
 
-  load(){
-    try{
-      this.data=
-        JSON.parse(localStorage.getItem(STORAGE_KEY))
-        || {};
-    }catch{
-      this.data={};
-    }
-  },
+  const today =
+    new Date().toISOString().slice(0,10);
 
-  save(){
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(this.data)
-    );
-  },
+  const { data:markets } = await db
+    .from("server_market")
+    .select("*");
 
-  /* ===================================== */
-  BUY BUILDING
-  ===================================== */
+  for(const m of markets){
 
-  buy(building){
+    if(
+      m.building_type !== BUILDINGS.COFFEE &&
+      m.building_type !== BUILDINGS.NIGHTCLUB
+    ) continue;
 
-    const user=GAME.user;
+    if(m.last_reset === today) continue;
 
-    if(user.level<50 && !user.premium){
-      NOTIFY.push("Level 50 veya Premium gerekli");
-      return;
-    }
-
-    const key=user.id+"_"+building;
-
-    if(this.data[key]){
-      NOTIFY.push("Zaten bu işletmeye sahipsin");
-      return;
-    }
-
-    this.data[key]={
-      owner:user.id,
-      building,
-      product:null,
-      stock:0,
-      price:0,
-      lastProduction:0
-    };
-
-    this.save();
-
-    EVENT.emit("business:chooseProduct",{
-      building,
-      options:PRODUCTS[building]
-    });
-  },
-
-  /* ===================================== */
-  SELECT PRODUCT
-  ===================================== */
-
-  selectProduct(building,product){
-
-    const key=GAME.user.id+"_"+building;
-    const biz=this.data[key];
-
-    if(!biz) return;
-
-    biz.product=product;
-    biz.lastProduction=Date.now();
-    biz.price=ECONOMY.price(building);
-
-    this.save();
-
-    NOTIFY.push("Üretim başladı: "+product);
-  },
-
-  /* ===================================== */
-  DAILY PRODUCTION
-  ===================================== */
-
-  produce(){
-
-    const now=Date.now();
-
-    Object.values(this.data).forEach(biz=>{
-
-      if(!biz.product) return;
-
-      if(now-biz.lastProduction >= PRODUCTION_TIME){
-
-        biz.stock += DAILY_PRODUCTION;
-        biz.lastProduction = now;
-
-        EVENT.emit("business:produced",biz);
-
-      }
-
-    });
-
-    this.save();
-  },
-
-  /* ===================================== */
-  BUY FROM SERVER STOCK
-  ===================================== */
-
-  buyServer(building,amount){
-
-    const key=GAME.user.id+"_"+building;
-    const biz=this.data[key];
-    if(!biz) return;
-
-    const price = ECONOMY.price(building);
-
-    const cost = price*amount;
-
-    if(GAME.user.yton < cost){
-      NOTIFY.push("Yetersiz bakiye");
-      return;
-    }
-
-    GAME.user.yton -= cost;
-    biz.stock += amount;
-
-    EVENT.emit("money:spent",cost);
-
-    this.save();
-
-    NOTIFY.push(amount+" ürün stoklandı");
-  },
-
-  /* ===================================== */
-  SET SELL PRICE
-  ===================================== */
-
-  setPrice(building,price){
-
-    const key=GAME.user.id+"_"+building;
-    const biz=this.data[key];
-
-    if(!biz) return;
-
-    biz.price=price;
-    this.save();
-  },
-
-  /* ===================================== */
-  PLAYER BUY
-  ===================================== */
-
-  buyFromOwner(ownerId,building,amount){
-
-    const key=ownerId+"_"+building;
-    const biz=this.data[key];
-
-    if(!biz || biz.stock<amount){
-      NOTIFY.push("Stok yetersiz");
-      return;
-    }
-
-    const total=biz.price*amount;
-
-    if(GAME.user.yton < total){
-      NOTIFY.push("Yetersiz YTON");
-      return;
-    }
-
-    GAME.user.yton -= total;
-    biz.stock -= amount;
-
-    /* owner earns */
-    EVENT.emit("money:earned",total);
-
-    EVENT.emit("market:buy",{
-      building,
-      amount
-    });
-
-    this.save();
-
-    NOTIFY.push("Satın alındı");
+    await db.from("server_market")
+      .update({
+        stock:1000000,
+        last_reset:today
+      })
+      .eq("id",m.id);
   }
 
-};
+  console.log("Server production reset");
+}
 
-window.BUSINESS=BUSINESS;
+/* ===================================================
+   PLAYER BUSINESS ACCESS
+=================================================== */
 
-/* ===========================================
-   AUTO LOOP
-=========================================== */
+function canOwnBusiness(){
 
-setInterval(()=>{
-  if(window.BUSINESS)
-    BUSINESS.produce();
-},60000);
+  return GAME.canBusiness === true;
+}
 
-EVENT.on("game:ready",()=>{
-  BUSINESS.init();
-});
+/* ===================================================
+   BUY STOCK FROM SERVER
+=================================================== */
 
-})();
+async function buyServerStock(productId,qty){
+
+  if(!canOwnBusiness()) return;
+
+  const { data:product } = await db
+    .from("server_market")
+    .select("*")
+    .eq("id",productId)
+    .single();
+
+  if(!product) return;
+
+  if(product.stock < qty){
+    console.log("Server stock empty");
+    return;
+  }
+
+  const cost = product.price * qty;
+
+  const paid = await spendYton(cost);
+  if(!paid) return;
+
+  await db.from("server_market")
+    .update({
+      stock:product.stock - qty
+    })
+    .eq("id",productId);
+
+  /* add to player inventory */
+  await db.from("player_business_stock")
+    .insert({
+      owner_id:CONFIG.USER_ID,
+      product_id:productId,
+      quantity:qty,
+      sell_price:product.price
+    });
+
+  console.log("Stock purchased");
+}
+
+/* ===================================================
+   PLAYER SELL ITEM
+=================================================== */
+
+async function buyFromMarket(stockId,qty){
+
+  const { data:item } = await db
+    .from("player_business_stock")
+    .select("*")
+    .eq("id",stockId)
+    .single();
+
+  if(!item) return;
+
+  if(item.quantity < qty) return;
+
+  const cost = item.sell_price * qty;
+
+  const paid = await spendYton(cost);
+  if(!paid) return;
+
+  await db.from("player_business_stock")
+    .update({
+      quantity:item.quantity - qty
+    })
+    .eq("id",stockId);
+
+  /* seller earns */
+  await db.rpc("add_yton_to_user",{
+    uid:item.owner_id,
+    amount:cost
+  });
+
+  console.log("Market purchase complete");
+}
+
+/* ===================================================
+   ADDICTION SYSTEM
+   (coffee & nightclub only)
+=================================================== */
+
+function applyAddiction(product){
+
+  if(
+    product.building_type !== BUILDINGS.COFFEE &&
+    product.building_type !== BUILDINGS.NIGHTCLUB
+  ) return product.energy_gain;
+
+  const key =
+    "addiction_"+product.id;
+
+  let count =
+    Number(localStorage.getItem(key)||0);
+
+  count++;
+
+  localStorage.setItem(key,count);
+
+  const modifier =
+    Math.pow(0.98,count);
+
+  return Math.floor(
+    product.energy_gain * modifier
+  );
+}
+
+/* ===================================================
+   CONSUME PRODUCT
+=================================================== */
+
+async function consumeProduct(product){
+
+  let energyGain =
+    applyAddiction(product);
+
+  GAME.user.energy =
+    Math.min(
+      CONFIG.MAX_ENERGY,
+      GAME.user.energy + energyGain
+    );
+
+  await db.from("users")
+    .update({
+      energy:GAME.user.energy
+    })
+    .eq("id",CONFIG.USER_ID);
+
+  renderStats();
+}
+
+/* ===================================================
+   BROTHEL SERVICE (NO PRODUCTION)
+=================================================== */
+
+async function useBrothel(service){
+
+  const paid = await spendYton(service.price);
+  if(!paid) return;
+
+  GAME.user.energy =
+    Math.min(
+      CONFIG.MAX_ENERGY,
+      GAME.user.energy + service.energy
+    );
+
+  await db.from("users")
+    .update({
+      energy:GAME.user.energy
+    })
+    .eq("id",CONFIG.USER_ID);
+
+  renderStats();
+}
+
+/* ===================================================
+   WEAPON SHOP (SERVER ONLY)
+=================================================== */
+
+async function buyWeapon(weapon){
+
+  const paid = await spendYton(weapon.price);
+  if(!paid) return;
+
+  await addItem(weapon.id,1);
+
+  console.log("Weapon purchased");
+}
+
+/* ===================================================
+   BUSINESS LOOP
+=================================================== */
+
+async function businessLoop(){
+
+  await serverProductionReset();
+}
+
+/* ===================================================
+   INIT
+=================================================== */
+
+async function initBusiness(){
+
+  if(GAME.business.initialized) return;
+
+  GAME.business.initialized=true;
+
+  await serverProductionReset();
+
+  setInterval(businessLoop,60000);
+
+  console.log("Business Engine Ready");
+}
+
+document.addEventListener(
+  "DOMContentLoaded",
+  initBusiness
+);
