@@ -48,7 +48,7 @@ body{
   position:absolute;
   top:15px;
   right:15px;
-  width:200px;
+  width:210px;
   padding:10px;
   border-radius:18px;
   background:rgba(0,0,0,0.5);
@@ -194,6 +194,8 @@ body{
     <img src="yton.png" height="14">
     <span id="ytonText"></span>
   </div>
+
+  <div id="weaponText"></div>
 </div>
 
 <div class="slider-area">
@@ -241,15 +243,22 @@ body{
 
 <script>
 
+/* ================= CONFIG ================= */
+
+const MAX_ENERGY = 100;
+const MIN_WITHDRAW = 20;
+const WITHDRAW_LEVEL = 50;
+
 /* ================= PLAYER ================= */
 
 let player = JSON.parse(localStorage.getItem("player")) || {
   energy: 60,
-  maxEnergy: 100,
   xp: 0,
   xpMax: 1000,
   level: 1,
   yton: 1000,
+  weapon: "Tabanca",
+  weaponBonus: 10,
   lastEnergyTime: Date.now()
 };
 
@@ -268,15 +277,15 @@ function updateEnergy(){
     const gained = Math.floor(diff / fiveMin);
     player.energy += gained;
 
-    if(player.energy > player.maxEnergy)
-      player.energy = player.maxEnergy;
+    if(player.energy > MAX_ENERGY)
+      player.energy = MAX_ENERGY;
 
     player.lastEnergyTime = now;
     savePlayer();
   }
 }
 
-/* ================= XP SYSTEM ================= */
+/* ================= XP + LEVEL ================= */
 
 function addXP(amount){
   player.xp += amount;
@@ -310,16 +319,36 @@ function showLevelUp(){
   setTimeout(()=> div.remove(), 2000);
 }
 
+/* ================= WITHDRAW ================= */
+
+function canWithdraw(){
+  if(player.level < WITHDRAW_LEVEL)
+    return { ok:false, reason:"Level 50 gerekli" };
+
+  if(player.yton < MIN_WITHDRAW)
+    return { ok:false, reason:"Minimum 20 YTON gerekli" };
+
+  return { ok:true };
+}
+
+/* ================= WEAPON BONUS ================= */
+
+function calculateDamage(baseDamage){
+  const bonus = baseDamage * (player.weaponBonus / 100);
+  return Math.floor(baseDamage + bonus);
+}
+
 /* ================= HUD ================= */
 
 function updateHUD(){
+
   updateEnergy();
 
   document.getElementById("energyText").innerText =
-    "⚡ " + player.energy + "/" + player.maxEnergy;
+    "⚡ " + player.energy + "/" + MAX_ENERGY;
 
   document.getElementById("energyBar").style.width =
-    (player.energy/player.maxEnergy*100)+"%";
+    (player.energy/MAX_ENERGY*100)+"%";
 
   document.getElementById("xpText").innerText =
     "XP " + player.xp + "/" + player.xpMax + " (Lv " + player.level + ")";
@@ -327,7 +356,11 @@ function updateHUD(){
   document.getElementById("xpBar").style.width =
     (player.xp/player.xpMax*100)+"%";
 
-  document.getElementById("ytonText").innerText = player.yton;
+  document.getElementById("ytonText").innerText =
+    player.yton;
+
+  document.getElementById("weaponText").innerText =
+    player.weapon + " (+" + player.weaponBonus + "%)";
 }
 
 /* ================= SLIDE SWIPE ================= */
@@ -364,156 +397,6 @@ track.addEventListener("touchend",e=>{
 let chatData=JSON.parse(localStorage.getItem("chat"))||[];
 
 function toggleChat(){
-<script>
-
-/* ================= PLAYER ================= */
-
-const MAX_ENERGY = 100;
-const MIN_WITHDRAW = 20;
-const WITHDRAW_LEVEL = 50;
-
-let player = JSON.parse(localStorage.getItem("player")) || {
-  energy: 60,
-  xp: 0,
-  xpMax: 1000,
-  level: 1,
-  yton: 1000,
-  weapon: "Tabanca",
-  weaponBonus: 10, // %10
-  lastEnergyTime: Date.now()
-};
-
-function savePlayer(){
-  localStorage.setItem("player", JSON.stringify(player));
-}
-
-/* ================= ENERGY TIMER (SABİT MAX) ================= */
-
-function updateEnergy(){
-  const now = Date.now();
-  const fiveMin = 5 * 60 * 1000;
-  const diff = now - player.lastEnergyTime;
-
-  if(diff >= fiveMin){
-    const gained = Math.floor(diff / fiveMin);
-    player.energy += gained;
-
-    if(player.energy > MAX_ENERGY)
-      player.energy = MAX_ENERGY;
-
-    player.lastEnergyTime = now;
-    savePlayer();
-  }
-}
-
-/* ================= XP + LEVEL ================= */
-
-function addXP(amount){
-
-  player.xp += amount;
-
-  while(player.xp >= player.xpMax){
-    player.xp -= player.xpMax;
-    player.level++;
-    player.xpMax = Math.floor(player.xpMax * 1.25);
-    showLevelUp();
-  }
-
-  savePlayer();
-  updateHUD();
-}
-
-function showLevelUp(){
-  const div = document.createElement("div");
-  div.innerText = "LEVEL UP! (Lv " + player.level + ")";
-  div.style.position = "absolute";
-  div.style.top = "50%";
-  div.style.left = "50%";
-  div.style.transform = "translate(-50%,-50%)";
-  div.style.padding = "15px 25px";
-  div.style.background = "gold";
-  div.style.color = "black";
-  div.style.fontWeight = "bold";
-  div.style.borderRadius = "15px";
-  div.style.zIndex = "999";
-  div.style.boxShadow = "0 0 20px gold";
-  document.querySelector(".app").appendChild(div);
-  setTimeout(()=> div.remove(), 2000);
-}
-
-/* ================= WITHDRAW SYSTEM ================= */
-
-function canWithdraw(){
-
-  if(player.level < WITHDRAW_LEVEL){
-    return {
-      ok:false,
-      reason:"Level 50 gerekli"
-    };
-  }
-
-  if(player.yton < MIN_WITHDRAW){
-    return {
-      ok:false,
-      reason:"Minimum 20 YTON gerekli"
-    };
-  }
-
-  return { ok:true };
-}
-
-function attemptWithdraw(){
-
-  const check = canWithdraw();
-
-  if(!check.ok){
-    alert("Çekim kapalı: " + check.reason);
-    return;
-  }
-
-  alert("Çekim Başlatıldı ✔");
-}
-
-/* ================= WEAPON BONUS ================= */
-
-function calculateDamage(baseDamage){
-
-  // Silah bonusu %
-  const bonus = baseDamage * (player.weaponBonus / 100);
-  return Math.floor(baseDamage + bonus);
-}
-
-/* PvP örnek kullanım
-let damage = calculateDamage(100);
-*/
-
-/* ================= HUD ================= */
-
-function updateHUD(){
-
-  updateEnergy();
-
-  document.getElementById("energyText").innerText =
-    "⚡ " + player.energy + "/" + MAX_ENERGY;
-
-  document.getElementById("energyBar").style.width =
-    (player.energy / MAX_ENERGY * 100)+"%";
-
-  document.getElementById("xpText").innerText =
-    "XP " + player.xp + "/" + player.xpMax + " (Lv " + player.level + ")";
-
-  document.getElementById("xpBar").style.width =
-    (player.xp / player.xpMax * 100)+"%";
-
-  document.getElementById("ytonText").innerText =
-    player.yton;
-}
-
-/* ================= CHAT ================= */
-
-let chatData=JSON.parse(localStorage.getItem("chat"))||[];
-
-function toggleChat(){
   document.getElementById("chatBox").classList.toggle("open");
 }
 
@@ -536,8 +419,11 @@ function loadChat(){
   });
 }
 
-/* ================= INIT ================= */
+function go(page){
+  window.location.href = page;
+}
 
+/* INIT */
 document.addEventListener("DOMContentLoaded",()=>{
   updateHUD();
   loadChat();
