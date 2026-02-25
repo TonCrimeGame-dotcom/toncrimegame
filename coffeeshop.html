@@ -17,24 +17,22 @@ overflow:hidden;
 font-family:Arial;
 }
 
-/* TELEGRAM ORANI */
 .app{
 width:390px;
 height:690px;
 position:relative;
 overflow:hidden;
-perspective:1400px;
+perspective:2000px;
 background:black;
 }
 
-/* SAHNE */
+/* ARKA PLAN */
 .scene{
 position:absolute;
 width:100%;
 height:100%;
 background-size:cover;
 background-position:center;
-transition:opacity .5s ease;
 }
 
 /* GERİ */
@@ -47,11 +45,11 @@ color:white;
 padding:8px 15px;
 border-radius:8px;
 cursor:pointer;
-z-index:20;
+z-index:50;
 display:none;
 }
 
-/* KİTAP */
+/* KİTAP KONTEYNER */
 .book{
 position:absolute;
 width:260px;
@@ -61,66 +59,56 @@ top:55%;
 transform:translate(-50%,-50%);
 transform-style:preserve-3d;
 cursor:pointer;
-z-index:15;
+z-index:20;
 }
 
-.book-inner{
-width:100%;
-height:100%;
-position:relative;
-transform-style:preserve-3d;
-transition:transform 1.2s cubic-bezier(.22,.61,.36,1);
-}
-
-.book.open .book-inner{
-transform:rotateY(-150deg);
-}
-
-/* ÖN KAPAK */
-.book-front{
+/* KAPAK */
+.cover{
 position:absolute;
 width:100%;
 height:100%;
-backface-visibility:hidden;
+transform-origin:left;
+transition:transform 1.2s cubic-bezier(.22,.61,.36,1);
 border-radius:12px;
 overflow:hidden;
+z-index:30;
 }
 
-.book-front img{
+.cover img{
 width:100%;
 height:100%;
 object-fit:cover;
 }
 
-/* ARKA SAYFA */
-.book-back{
+/* AÇIK HAL */
+.book.open .cover{
+transform:rotateY(-150deg);
+}
+
+/* İÇ SAYFA */
+.inner{
 position:absolute;
 width:100%;
 height:100%;
-background:black;
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-transform:rotateY(180deg);
+background:url('coffeeshop_indoor_menu.jpg') center/cover no-repeat;
 border-radius:12px;
-font-size:22px;
+z-index:10;
 }
 
-/* DUMAN */
-.smoke{
+/* HAFİF GÖLGE */
+.shadow{
 position:absolute;
-width:200%;
-height:200%;
-background:radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05), transparent 60%);
-animation:smokeMove 15s linear infinite;
-pointer-events:none;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.2);
+border-radius:12px;
+z-index:15;
+opacity:0;
+transition:opacity .8s ease;
 }
 
-@keyframes smokeMove{
-0%{transform:translate(-10%,-10%);}
-50%{transform:translate(10%,10%);}
-100%{transform:translate(-10%,-10%);}
+.book.open .shadow{
+opacity:1;
 }
 </style>
 </head>
@@ -129,23 +117,20 @@ pointer-events:none;
 
 <div class="app">
 
-<div id="scene" class="scene"
-style="background-image:url('coffeeshop_indoor.jpg')"></div>
-
-<div class="smoke"></div>
+<div class="scene" style="background-image:url('coffeeshop_indoor.jpg')"></div>
 
 <div id="backBtn" class="backBtn">GERİ</div>
 
-<!-- KİTAP -->
 <div id="book" class="book">
-  <div class="book-inner">
-      <div class="book-front">
-          <img src="coffeeshop_indoor_menu.jpg">
-      </div>
-      <div class="book-back">
-          MENÜ İÇ SAYFA
-      </div>
-  </div>
+
+<div class="inner"></div>
+
+<div class="shadow"></div>
+
+<div class="cover">
+<img src="coffeeshop_indoor_menu.jpg">
+</div>
+
 </div>
 
 </div>
@@ -155,26 +140,21 @@ style="background-image:url('coffeeshop_indoor.jpg')"></div>
 const book = document.getElementById("book");
 const backBtn = document.getElementById("backBtn");
 
-let isOpen = false;
+let isOpen=false;
 
-/* KİTAP TIKLANINCA */
-
-book.onclick = function(){
-
+book.onclick=function(){
 if(!isOpen){
 book.classList.add("open");
 backBtn.style.display="block";
-isOpen = true;
+isOpen=true;
 }
-};
+}
 
-/* GERİ BUTONU */
-
-backBtn.onclick = function(){
+backBtn.onclick=function(){
 book.classList.remove("open");
 backBtn.style.display="none";
-isOpen = false;
-};
+isOpen=false;
+}
 
 </script>
 
