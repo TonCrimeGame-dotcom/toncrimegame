@@ -18,7 +18,7 @@ overflow:hidden;
 font-family:Arial;
 }
 
-/* TELEGRAM 9:16 SABİT SAHNE */
+/* TELEGRAM 9:16 */
 
 .app{
 width:390px;
@@ -26,6 +26,7 @@ height:690px;
 position:relative;
 overflow:hidden;
 background:black;
+perspective:1200px;
 }
 
 /* SAHNE */
@@ -36,19 +37,47 @@ width:100%;
 height:100%;
 background-size:cover;
 background-position:center;
-transition:opacity 0.5s ease, transform 0.5s ease;
+transition:opacity 0.5s ease, transform 0.6s ease;
 }
 
-/* ANİMASYON SINIFLARI */
+/* FADE + ZOOM */
 
 .fadeOut{
 opacity:0;
-transform:scale(1.05);
+transform:scale(1.1);
 }
 
 .fadeIn{
 opacity:1;
 transform:scale(1);
+}
+
+/* KAMERA ZOOM EFEKT */
+
+.zoomIn{
+animation:zoomIn 0.8s ease forwards;
+}
+
+@keyframes zoomIn{
+0%{transform:scale(1);}
+100%{transform:scale(1.15);}
+}
+
+/* DUMAN KATMANI */
+
+.smoke{
+position:absolute;
+width:200%;
+height:200%;
+background:radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05), transparent 60%);
+animation:smokeMove 12s linear infinite;
+pointer-events:none;
+}
+
+@keyframes smokeMove{
+0%{transform:translate(-10%,-10%);}
+50%{transform:translate(10%,10%);}
+100%{transform:translate(-10%,-10%);}
 }
 
 /* BUTONLAR */
@@ -64,6 +93,7 @@ padding:12px 25px;
 border-radius:10px;
 cursor:pointer;
 font-weight:bold;
+z-index:10;
 }
 
 .backBtn{
@@ -76,6 +106,33 @@ padding:8px 15px;
 cursor:pointer;
 border-radius:8px;
 display:none;
+z-index:10;
+}
+
+/* 3D KİTAP */
+
+.book{
+position:absolute;
+width:250px;
+height:350px;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%) rotateY(0deg);
+transform-style:preserve-3d;
+transition:transform 1s ease;
+display:none;
+z-index:9;
+}
+
+.book.open{
+transform:translate(-50%,-50%) rotateY(-160deg);
+}
+
+.book img{
+width:100%;
+height:100%;
+backface-visibility:hidden;
+border-radius:10px;
 }
 
 </style>
@@ -88,9 +145,16 @@ display:none;
 <div id="scene" class="scene fadeIn"
 style="background-image:url('coffeeshop.jpg')"></div>
 
+<div class="smoke"></div>
+
 <div id="enterBtn" class="btn">İÇERİ GİR</div>
 <div id="menuBtn" class="btn" style="display:none;">MENÜ</div>
 <div id="backBtn" class="backBtn">GERİ</div>
+
+<!-- 3D MENÜ KİTAP -->
+<div id="book" class="book">
+<img src="coffeeshop_indoor_menu.jpg">
+</div>
 
 </div>
 
@@ -100,12 +164,13 @@ const scene = document.getElementById("scene");
 const enterBtn = document.getElementById("enterBtn");
 const menuBtn = document.getElementById("menuBtn");
 const backBtn = document.getElementById("backBtn");
+const book = document.getElementById("book");
 
 let state="card";
 
-/* SAHNE GEÇİŞ MOTORU */
+/* SAHNE GEÇİŞ */
 
-function changeScene(image){
+function changeScene(image, zoom=false){
 
 scene.classList.add("fadeOut");
 
@@ -113,6 +178,12 @@ setTimeout(()=>{
 scene.style.backgroundImage = "url('"+image+"')";
 scene.classList.remove("fadeOut");
 scene.classList.add("fadeIn");
+
+if(zoom){
+scene.classList.add("zoomIn");
+setTimeout(()=>scene.classList.remove("zoomIn"),800);
+}
+
 },400);
 
 }
@@ -120,17 +191,20 @@ scene.classList.add("fadeIn");
 /* İÇERİ GİR */
 
 enterBtn.onclick=function(){
-changeScene("coffeeshop_indoor.jpg");
+changeScene("coffeeshop_indoor.jpg", true);
 enterBtn.style.display="none";
 menuBtn.style.display="block";
 backBtn.style.display="block";
 state="indoor";
 };
 
-/* MENÜ AÇ */
+/* MENÜ */
 
 menuBtn.onclick=function(){
-changeScene("coffeeshop_indoor_menu.jpg");
+book.style.display="block";
+setTimeout(()=>{
+book.classList.add("open");
+},100);
 state="menu";
 };
 
@@ -139,7 +213,10 @@ state="menu";
 backBtn.onclick=function(){
 
 if(state==="menu"){
-changeScene("coffeeshop_indoor.jpg");
+book.classList.remove("open");
+setTimeout(()=>{
+book.style.display="none";
+},800);
 state="indoor";
 return;
 }
