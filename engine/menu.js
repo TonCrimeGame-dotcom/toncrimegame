@@ -1,52 +1,79 @@
-/* ================= GLOBAL MENU ================= */
+/* ================= SLIDE MENU ================= */
 
 function buildMenu(){
 
 document.body.insertAdjacentHTML("afterbegin",`
 
-<div class="sidebar" id="sidebar">
-<h3 style="color:gold">Menü</h3>
+<div class="menu-container">
 
-<p onclick="go('index.html')">🏠 Ana Sayfa</p>
-<p onclick="go('missions.html')">🎯 Görevler</p>
-<p onclick="go('coffeeshop.html')">☕ Coffee Shop</p>
-<p onclick="go('nightclub.html')">🎵 Gece Kulübü</p>
-<p onclick="go('mekan.html')">🏢 Mekan</p>
-<p onclick="go('weapons.html')">🔫 Silah Kaçakçısı</p>
-<p onclick="go('hospital.html')">🏥 Hastane</p>
-<p onclick="go('pvp.html')">⚔ PvP Arena</p>
+<div class="menu-slider" id="menuSlider">
+
+<div class="menu-card" onclick="go('missions.html')">
+<img src="missions.jpg">
+<span>Görevler</span>
+</div>
+
+<div class="menu-card" onclick="go('pvp.html')">
+<img src="pvp.jpg">
+<span>PvP Arena</span>
+</div>
+
+<div class="menu-card" onclick="go('nightclub.html')">
+<img src="nightclub.jpg">
+<span>Gece Kulübü</span>
+</div>
+
+<div class="menu-card" onclick="go('coffeeshop.html')">
+<img src="coffeeshop.jpg">
+<span>Coffee Shop</span>
+</div>
+
+<div class="menu-card" onclick="go('xxx.html')">
+<img src="xxx.jpg">
+<span>Genel Ev</span>
+</div>
+
+<div class="menu-card" onclick="go('weapons.html')">
+<img src="weapons.jpg">
+<span>Silah Tüccarı</span>
+</div>
 
 </div>
 
-<div class="overlay" id="overlay"></div>
+<div class="menu-arrow left" onclick="slideMenu(-1)">‹</div>
+<div class="menu-arrow right" onclick="slideMenu(1)">›</div>
+
+</div>
 
 `);
 
 }
 
-/* MENU ACTIONS */
+/* SLIDE FUNCTION */
 
-function openMenu(){
- document.getElementById("sidebar").classList.add("open");
- document.getElementById("overlay").classList.add("show");
-}
+let menuIndex = 0;
 
-function closeMenu(){
- document.getElementById("sidebar").classList.remove("open");
- document.getElementById("overlay").classList.remove("show");
+function slideMenu(dir){
+
+const slider = document.getElementById("menuSlider");
+const total = slider.children.length;
+
+menuIndex += dir;
+
+if(menuIndex < 0) menuIndex = 0;
+if(menuIndex > total-1) menuIndex = total-1;
+
+slider.style.transform =
+"translateX(-" + (menuIndex * 220) + "px)";
+
 }
 
 function go(page){
- window.location.href=page;
+ window.location.href = page;
 }
 
-/* AUTO INIT */
+/* INIT */
 
 document.addEventListener("DOMContentLoaded",()=>{
-
  buildMenu();
-
- document.getElementById("overlay")
-   .addEventListener("click",closeMenu);
-
 });
