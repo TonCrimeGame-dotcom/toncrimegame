@@ -3,152 +3,127 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TonCrime Nightclub</title>
+<title>Nightclub 3D Book</title>
 
 <style>
 body{
-    margin:0;
-    background:black;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    overflow:hidden;
-    font-family:Arial;
+  margin:0;
+  background:black;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  overflow:hidden;
+  font-family:Arial;
 }
 
 .app{
-    width:390px;
-    height:690px;
-    position:relative;
-    overflow:hidden;
+  width:390px;
+  height:690px;
+  position:relative;
+  overflow:hidden;
 }
 
 /* BACKGROUND */
-
 .bg{
-    position:absolute;
-    width:100%;
-    height:100%;
-    object-fit:cover;
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
-/* CLOSED BOOK (MASA ÜSTÜ) */
-
-.book-closed{
-    position:absolute;
-    width:300px;
-    top:65%;
-    left:50%;
-    transform:translate(-50%,-50%) rotateX(12deg) scale(0.95);
-    cursor:pointer;
-    transition:0.6s;
-    box-shadow:
-      0 35px 45px rgba(0,0,0,0.7),
-      0 15px 25px rgba(0,0,0,0.6);
+/* 3D SCENE */
+.scene{
+  position:absolute;
+  top:63%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:330px;
+  height:420px;
+  perspective:1200px;
 }
 
-/* OPEN BOOK */
-
-.book-open{
-    position:absolute;
-    width:320px;
-    top:60%;
-    left:50%;
-    transform:translate(-50%,-50%) rotateX(12deg) scale(0.8);
-    opacity:0;
-    transition:0.6s;
-    box-shadow:
-      0 40px 60px rgba(0,0,0,0.8),
-      0 20px 30px rgba(0,0,0,0.7);
+/* BOOK */
+.book{
+  width:100%;
+  height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transform:rotateX(12deg);
+  transition:0.8s;
 }
 
-.book-open.active{
-    opacity:1;
-    transform:translate(-50%,-50%) rotateX(0deg) scale(1);
+/* PAGE BASE */
+.page{
+  position:absolute;
+  width:50%;
+  height:100%;
+  top:0;
+  background:#141414;
+  border:1px solid rgba(255,215,0,0.4);
+  box-shadow:0 20px 40px rgba(0,0,0,0.6);
+  padding:20px;
+  box-sizing:border-box;
+  backface-visibility:hidden;
 }
 
-.hidden{ display:none; }
-
-/* MENU OVERLAY */
-
-.menu{
-    position:absolute;
-    top:200px;
-    left:75px;
-    width:240px;
-    color:gold;
-    font-weight:bold;
-    opacity:0;
-    transition:0.4s;
+/* LEFT */
+.left{
+  left:0;
 }
 
-.menu.active{
-    opacity:1;
+/* RIGHT */
+.right{
+  right:0;
+  transform-origin:left;
+  transition:1s;
 }
 
+/* FLIP */
+.book.flipped .right{
+  transform:rotateY(-180deg);
+}
+
+/* ITEMS */
 .item{
-    display:flex;
-    justify-content:space-between;
-    margin:12px 0;
-    cursor:pointer;
-    transition:0.2s;
+  display:flex;
+  justify-content:space-between;
+  margin:12px 0;
+  color:gold;
+  cursor:pointer;
+  font-size:13px;
+  transition:0.2s;
 }
 
 .item:hover{
-    transform:scale(1.05);
+  transform:scale(1.05);
 }
 
 /* NAV */
-
 .nav{
-    position:absolute;
-    bottom:25px;
-    width:100%;
-    display:flex;
-    justify-content:space-between;
-    padding:0 50px;
+  position:absolute;
+  bottom:-60px;
+  width:100%;
+  display:flex;
+  justify-content:space-between;
 }
 
 .nav button{
-    background:gold;
-    border:none;
-    padding:6px 14px;
-    font-weight:bold;
-    border-radius:6px;
-    cursor:pointer;
+  background:gold;
+  border:none;
+  padding:5px 12px;
+  font-weight:bold;
+  cursor:pointer;
+  border-radius:6px;
 }
 
 /* STATUS */
-
 .status{
-    position:absolute;
-    top:10px;
-    left:10px;
-    color:white;
-    font-size:12px;
-}
-
-/* BUY EFFECT */
-
-.buy{
-    position:absolute;
-    top:45%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    color:gold;
-    font-size:18px;
-    opacity:0;
-}
-
-.buy.show{
-    animation:buyAnim 1s forwards;
-}
-
-@keyframes buyAnim{
-    0%{opacity:0; transform:translate(-50%,-50%) scale(0.6);}
-    50%{opacity:1; transform:translate(-50%,-60%) scale(1.2);}
-    100%{opacity:0; transform:translate(-50%,-70%) scale(1);}
+  position:absolute;
+  top:10px;
+  left:10px;
+  color:white;
+  font-size:12px;
 }
 </style>
 </head>
@@ -158,18 +133,21 @@ body{
 
 <img src="nightclub_indoor.jpg" class="bg">
 
-<img src="nightclub_book_closed.png" class="book-closed" id="closed">
-<img src="nightclub_book_open.png" class="book-open" id="open">
+<div class="scene">
+  <div class="book" id="book">
 
-<div class="menu" id="menu"></div>
+    <div class="page left" id="leftPage"></div>
+    <div class="page right" id="rightPage"></div>
 
-<div class="nav hidden" id="nav">
-<button onclick="prevPage()">◀</button>
-<button onclick="nextPage()">▶</button>
+  </div>
+
+  <div class="nav">
+    <button onclick="prev()">◀</button>
+    <button onclick="next()">▶</button>
+  </div>
 </div>
 
 <div class="status" id="status"></div>
-<div class="buy" id="buyEffect"></div>
 
 </div>
 
@@ -184,73 +162,84 @@ let player={
   lastType:null
 };
 
-/* PRODUCTS */
+/* PRODUCTS (16 total) */
 
-const pages=[
-  [
-    {name:"Rakı",energy:15,type:"drink"},
-    {name:"Vodka",energy:20,type:"drink"},
-    {name:"Whiskey",energy:25,type:"drink"},
-    {name:"Beer",energy:10,type:"drink"}
-  ],
-  [
-    {name:"Champagne",energy:30,type:"drink"},
-    {name:"Tequila",energy:22,type:"drink"},
-    {name:"Gin",energy:18,type:"drink"},
-    {name:"Rum",energy:20,type:"drink"}
-  ],
-  [
-    {name:"Patates",energy:8,type:"food"},
-    {name:"Çerez",energy:6,type:"food"},
-    {name:"Meyve Tabağı",energy:12,type:"food"}
-  ]
+const products=[
+  {name:"Rakı",energy:15,type:"drink"},
+  {name:"Vodka",energy:20,type:"drink"},
+  {name:"Whiskey",energy:25,type:"drink"},
+  {name:"Beer",energy:10,type:"drink"},
+  {name:"Champagne",energy:30,type:"drink"},
+  {name:"Tequila",energy:22,type:"drink"},
+  {name:"Gin",energy:18,type:"drink"},
+  {name:"Rum",energy:20,type:"drink"},
+
+  {name:"Cognac",energy:28,type:"drink"},
+  {name:"Wine",energy:15,type:"drink"},
+  {name:"Absinthe",energy:35,type:"drink"},
+  {name:"Energy Shot",energy:40,type:"drink"},
+
+  {name:"Patates",energy:8,type:"food"},
+  {name:"Çerez",energy:6,type:"food"},
+  {name:"Meyve Tabağı",energy:12,type:"food"},
+  {name:"Special Mix",energy:15,type:"food"}
 ];
 
-let currentPage=0;
+let pageIndex=0;
+const perPage=8;
 
-/* OPEN */
-
-const closed=document.getElementById("closed");
-const open=document.getElementById("open");
-const menu=document.getElementById("menu");
-const nav=document.getElementById("nav");
+const leftPage=document.getElementById("leftPage");
+const rightPage=document.getElementById("rightPage");
+const book=document.getElementById("book");
 const status=document.getElementById("status");
-const buyEffect=document.getElementById("buyEffect");
-
-closed.onclick=()=>{
-  closed.classList.add("hidden");
-  open.classList.add("active");
-  menu.classList.add("active");
-  nav.classList.remove("hidden");
-  render();
-};
 
 /* RENDER */
 
 function render(){
-  menu.innerHTML="";
-  pages[currentPage].forEach(item=>{
+
+  leftPage.innerHTML="";
+  rightPage.innerHTML="";
+
+  let start=pageIndex*perPage;
+  let slice=products.slice(start,start+perPage);
+
+  slice.forEach((item,i)=>{
     const div=document.createElement("div");
     div.className="item";
     div.innerHTML=`<span>${item.name}</span><span>${item.energy}⚡</span>`;
     div.onclick=()=>buy(item);
-    menu.appendChild(div);
+
+    if(i<4){
+      leftPage.appendChild(div);
+    }else{
+      rightPage.appendChild(div);
+    }
   });
 }
 
-/* NAV */
+render();
 
-function nextPage(){
-  if(currentPage<pages.length-1){
-    currentPage++;
-    render();
+/* NAVIGATION */
+
+function next(){
+  if(pageIndex < Math.floor(products.length/perPage)-1){
+    book.classList.add("flipped");
+    setTimeout(()=>{
+      pageIndex++;
+      render();
+      book.classList.remove("flipped");
+    },600);
   }
 }
 
-function prevPage(){
-  if(currentPage>0){
-    currentPage--;
-    render();
+function prev(){
+  if(pageIndex>0){
+    book.classList.add("flipped");
+    setTimeout(()=>{
+      pageIndex--;
+      render();
+      book.classList.remove("flipped");
+    },600);
   }
 }
 
@@ -271,10 +260,6 @@ function buy(item){
   }
 
   player.lastType=item.type;
-
-  buyEffect.innerText=item.name+" Alındı!";
-  buyEffect.classList.add("show");
-  setTimeout(()=>buyEffect.classList.remove("show"),1000);
 
   update();
 }
