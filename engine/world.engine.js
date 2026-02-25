@@ -1,153 +1,104 @@
 /* ===================================================
    TONCRIME WORLD ENGINE
-   Realtime Player Presence System
+   Persistent City System
    =================================================== */
 
 (function(){
 
-if(!window.EVENT){
-  console.warn("World waiting EVENT...");
+if(!window.db || !window.EVENT){
+  console.warn("World engine waiting...");
   return;
 }
 
-const WORLD={
+const WORLD = {
 
-channel:null,
-location:null,
-players:{},
+  size:1000,
+  position:{x:500,y:500},
 
-/* ===========================================
-   INIT
-=========================================== */
+  /* ===========================================
+     LOAD PLAYER POSITION
+  =========================================== */
 
-init(){
+  async load(){
 
-  console.log("🌍 World Engine Ready");
+    if(!GAME.user) return;
 
-  EVENT.on("page:enter",loc=>{
-    this.enter(loc);
-  });
+    const {data,error}=await db
+      .from("users")
+      .select("pos_x,pos_y")
+      .eq("id",GAME.user.id)
+      .single();
 
-},
+    if(error) return;
 
-/* ===========================================
-   ENTER LOCATION
-=========================================== */
+    this.position.x=data.pos_x;
+    this.position.y=data.pos_y;
 
-async enter(location){
+    EVENT.emit("world:position",this.position);
+  },
 
-  if(!GAME.user) return;
+  /* ===========================================
+     MOVE PLAYER
+  =========================================== */
 
-  this.location=location;
+  async move(dx,dy){
 
-  /* leave old */
-  if(this.channel){
-    await this.channel.unsubscribe();
+    let nx=this.position.x+dx;
+    let ny=this.position.y+dy;
+
+    nx=Math.max(0,Math.min(this.size,nx));
+    ny=Math.max(0,Math.min(this.size,ny));
+
+    this.position={x:nx,y:ny};
+
+    await db.from("users")
+      .update({
+        pos_x:nx,
+        pos_y:ny
+      })
+      .eq("id",GAME.user.id);
+
+    EVENT.emit("world:move",this.position);
+  },
+
+  /* ===========================================
+     RANDOM WALK (idle movement)
+  =========================================== */
+
+  randomStep(){
+
+    const dx=Math.floor(Math.random()*21)-10;
+    const dy=Math.floor(Math.random()*21)-10;
+
+    this.move(dx,dy);
   }
-
-  const room="world-"+location;
-
-  this.channel=db.channel(room,{
-    config:{
-      presence:{key:GAME.user.id}
-    }
-  });
-
-  /* JOIN */
-  this.channel.on(
-    "presence",
-    {event:"sync"},
-    ()=>{
-      const state=this.channel.presenceState();
-      this.players=state;
-      this.renderPlayers();
-    }
-  );
-
-  this.channel.on(
-    "presence",
-    {event:"join"},
-    ({key,newPresences})=>{
-
-      EVENT.emit(
-        "crimefeed:add",
-        `👤 ${newPresences[0].nickname} mekana girdi`
-      );
-    }
-  );
-
-  this.channel.on(
-    "presence",
-    {event:"leave"},
-    ({key,leftPresences})=>{
-
-      EVENT.emit(
-        "crimefeed:add",
-        `🚪 ${leftPresences[0].nickname} mekandan çıktı`
-      );
-    }
-  );
-
-  await this.channel.subscribe();
-
-  await this.channel.track({
-    id:GAME.user.id,
-    nickname:GAME.user.nickname,
-    level:GAME.user.level
-  });
-
-},
-
-/* ===========================================
-   PLAYER LIST UI
-=========================================== */
-
-renderPlayers(){
-
-  const box=document.getElementById("onlinePlayers");
-  if(!box) return;
-
-  let html="<h4>Online Oyuncular</h4>";
-
-  Object.values(this.players).forEach(arr=>{
-    arr.forEach(p=>{
-
-      if(p.id===GAME.user.id) return;
-
-      html+=`
-      <div class="playerRow">
-        ${p.nickname}
-        <button onclick="PVP_TARGET.attack('${p.id}')">
-        ⚔
-        </button>
-      </div>`;
-    });
-  });
-
-  box.innerHTML=html;
-}
 
 };
 
 window.WORLD=WORLD;
 
+
 /* ===========================================
    AUTO START
 =========================================== */
 
-EVENT.on("game:ready",()=>{
-  WORLD.init();
-});
+setTimeout(()=>{
+  WORLD.load();
+},1500);
+
 
 /* ===========================================
-   CORE REGISTER
+   WORLD LOOP (simulate city life)
 =========================================== */
 
-if(window.CORE){
-  CORE.register(
-    "World Engine",
-    ()=>!!window.WORLD
-  );
-}
+setInterval(()=>{
+
+  if(!GAME.user) return;
+
+  WORLD.randomStep();
+
+},30000);
+
+console.log("🗺️ World Engine Ready");
 
 })();

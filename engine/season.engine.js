@@ -1,178 +1,148 @@
 /* ===================================================
    TONCRIME SEASON ENGINE
-   Weekly + Monthly Live Seasons
-   =================================================== */
+=================================================== */
 
-(function(){
+GAME.season = {
+  durationDays:30,
+  checking:false
+};
 
-if(!window.EVENT){
-  console.warn("Season waiting EVENT...");
-  return;
+/* ================= GET CURRENT SEASON ================= */
+
+async function getSeason(){
+
+  const { data } = await db
+    .from("seasons")
+    .select("*")
+    .eq("active",true)
+    .single();
+
+  return data;
 }
 
-/* ===========================================
-   CONFIG
-=========================================== */
+/* ================= CREATE NEW SEASON ================= */
 
-const STORAGE_KEY="tc_season";
+async function createSeason(){
 
-/* ===========================================
-   ENGINE
-=========================================== */
+  const start = new Date();
+  const end = new Date(
+    start.getTime() +
+    GAME.season.durationDays * 86400000
+  );
 
-const SEASON={
+  await db.from("seasons").insert({
+    start_date:start,
+    end_date:end,
+    active:true
+  });
 
-data:null,
+  console.log("New season created");
+}
 
-/* =========================================== */
+/* ================= SNAPSHOT LEADERBOARD ================= */
 
-init(){
+async function snapshotLeaderboard(seasonId){
 
-  this.load();
-  this.checkReset();
-  this.bindEvents();
+  const { data:players } = await db
+    .from("users")
+    .select("id,nickname,rank_score,league")
+    .order("rank_score",{ascending:false})
+    .limit(100);
 
-  console.log("🏁 Season Engine Ready");
-},
+  for(const p of players){
 
-/* =========================================== */
+    await db.from("season_results").insert({
+      season_id:seasonId,
+      user_id:p.id,
+      rank_score:p.rank_score,
+      league:p.league
+    });
 
-load(){
+    await grantSeasonBadge(p);
+  }
+}
 
-  const saved=
-    localStorage.getItem(STORAGE_KEY);
+/* ================= BADGE REWARD ================= */
 
-  if(saved){
-    this.data=JSON.parse(saved);
+async function grantSeasonBadge(player){
+
+  let badge="participant";
+
+  if(player.league==="Diamond")
+    badge="diamond";
+  else if(player.league==="Master")
+    badge="master";
+
+  await db.from("badges").insert({
+    user_id:player.id,
+    badge,
+    created_at:new Date()
+  });
+}
+
+/* ================= SOFT RESET ================= */
+
+async function softResetRanks(){
+
+  const { data:players } = await db
+    .from("users")
+    .select("id,rank_score");
+
+  for(const p of players){
+
+    const newScore =
+      Math.floor(p.rank_score * 0.75);
+
+    await db.from("users")
+      .update({
+        rank_score:newScore
+      })
+      .eq("id",p.id);
+  }
+}
+
+/* ================= END SEASON ================= */
+
+async function endSeason(season){
+
+  console.log("Season ending...");
+
+  await snapshotLeaderboard(season.id);
+
+  await softResetRanks();
+
+  await db.from("seasons")
+    .update({active:false})
+    .eq("id",season.id);
+
+  await createSeason();
+}
+
+/* ================= CHECK LOOP ================= */
+
+async function seasonCheckLoop(){
+
+  if(GAME.season.checking) return;
+  GAME.season.checking=true;
+
+  let season = await getSeason();
+
+  if(!season){
+    await createSeason();
+    GAME.season.checking=false;
     return;
   }
 
-  this.data={
-    weeklyStart:Date.now(),
-    monthlyStart:Date.now(),
-    points:0,
-    level:1
-  };
+  const now = Date.now();
+  const end = new Date(season.end_date).getTime();
 
-  this.save();
-},
-
-save(){
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(this.data)
-  );
-},
-
-/* ===========================================
-   ADD POINTS
-=========================================== */
-
-add(points){
-
-  this.data.points+=points;
-
-  const needed=this.data.level*100;
-
-  if(this.data.points>=needed){
-    this.data.points-=needed;
-    this.data.level++;
-
-    EVENT.emit(
-      "notify",
-      "🏁 Season Level Up!"
-    );
+  if(now >= end){
+    await endSeason(season);
   }
 
-  this.save();
-},
-
-/* ===========================================
-   RESET CONTROL
-=========================================== */
-
-checkReset(){
-
-  const now=Date.now();
-
-  const WEEK=7*24*60*60*1000;
-  const MONTH=30*24*60*60*1000;
-
-  if(now-this.data.weeklyStart>WEEK){
-    this.weeklyReset();
-  }
-
-  if(now-this.data.monthlyStart>MONTH){
-    this.monthlyReset();
-  }
-},
-
-weeklyReset(){
-
-  EVENT.emit(
-    "crimefeed:add",
-    "🏁 Haftalık lig sıfırlandı"
-  );
-
-  this.data.weeklyStart=Date.now();
-  this.save();
-},
-
-monthlyReset(){
-
-  EVENT.emit(
-    "crimefeed:add",
-    "👑 Yeni sezon başladı!"
-  );
-
-  this.data.monthlyStart=Date.now();
-  this.data.level=1;
-  this.data.points=0;
-
-  this.save();
-},
-
-/* ===========================================
-   EVENTS
-=========================================== */
-
-bindEvents(){
-
-  EVENT.on("pvp:win",()=>{
-    this.add(20);
-  });
-
-  EVENT.on("mission:completed",()=>{
-    this.add(5);
-  });
-
-  EVENT.on("daily:claimed",()=>{
-    this.add(10);
-  });
-
+  GAME.season.checking=false;
 }
 
-};
+/* ================= AUTO LOOP ================= */
 
-window.SEASON=SEASON;
-
-/* ===========================================
-   AUTO START
-=========================================== */
-
-EVENT.on("game:ready",()=>{
-  SEASON.init();
-});
-
-/* ===========================================
-   CORE REGISTER
-=========================================== */
-
-if(window.CORE){
-  CORE.register(
-    "Season Engine",
-    ()=>!!window.SEASON
-  );
-}
-
-})();
+setInterval(seasonCheckLoop,60000);

@@ -1,185 +1,216 @@
 /* ===================================================
    TONCRIME RESOLVE ENGINE
-   Match Result Authority
-   =================================================== */
+   SERVER AUTHORITY LOGIC
+=================================================== */
 
-(function(){
+GAME.resolve = {
+  running:false
+};
 
-const RESOLVE_TIMEOUT = 60; // saniye
+/* ================= VERIFY HASH ================= */
 
+async function verifyResult(result){
 
-/* ===================================================
-   HASH VERIFY
-   =================================================== */
+  const expected =
+    await createScoreHash(
+      JSON.stringify(result.answers)
+    );
 
-function verifyHash(answer,time,hash){
-
-  const raw = answer + "|" + time;
-
-  let h=0;
-  for(let i=0;i<raw.length;i++){
-    h=((h<<5)-h)+raw.charCodeAt(i);
-    h|=0;
-  }
-
-  return h.toString() === hash;
+  return expected === result.hash;
 }
 
+/* ================= CALCULATE PERFORMANCE ================= */
 
-/* ===================================================
-   FETCH MATCH ANSWERS
-   =================================================== */
+function calculatePerformance(result){
 
-async function getAnswers(matchId){
+  let totalTime = 0;
+  let correct = 0;
 
-  const { data, error } = await db
-    .from("pvp_answers")
-    .select("*")
-    .eq("match_id",matchId);
+  result.answers.forEach(a=>{
+    totalTime += a.time;
+    if(a.correct) correct++;
+  });
 
-  if(error){
-    console.error(error);
-    return [];
-  }
-
-  return data || [];
+  return {
+    totalTime,
+    correct
+  };
 }
 
+/* ================= DETERMINE WINNER ================= */
 
-/* ===================================================
-   DECIDE WINNER
-   =================================================== */
+function determineWinner(p1,p2){
 
-function decideWinner(a,b){
-
-  /* hash kontrol */
-  if(!verifyHash(a.answer,a.time,a.hash)) return b.user_id;
-  if(!verifyHash(b.answer,b.time,b.hash)) return a.user_id;
-
-  /* doğru cevap kontrol */
-  if(a.answer !== b.answer)
-    return null; // soru motoru doğruyu kontrol eder
-
-  /* süre kazanan */
-  if(a.time < b.time) return a.user_id;
-  if(b.time < a.time) return b.user_id;
-
-  return null; // beraberlik
-}
-
-
-/* ===================================================
-   UPDATE MATCH RESULT
-   =================================================== */
-
-async function finalize(matchId,winner){
-
-  const payload = {
-    status:"finished",
-    winner_id:winner,
-    finished_at:new Date().toISOString()
+  if(!p2) return {
+    winner:p1.player_id,
+    solo:true
   };
 
-  const { error } = await db
+  if(p1.correct !== p2.correct){
+    return {
+      winner:
+        p1.correct > p2.correct
+        ? p1.player_id
+        : p2.player_id
+    };
+  }
+
+  return {
+    winner:
+      p1.totalTime < p2.totalTime
+      ? p1.player_id
+      : p2.player_id
+  };
+}
+
+/* ================= CREATE HISTORY ================= */
+
+async function createHistory(match,winner,p1,p2){
+
+  const users = await db
+    .from("users")
+    .select("id,nickname")
+    .in("id",[match.player1,match.player2]);
+
+  const map = {};
+  users.data.forEach(u=>map[u.id]=u.nickname);
+
+  const build = async(player,enemy)=>{
+
+    if(!player) return;
+
+    await db.from("pvp_history").insert({
+      user_id:player.player_id,
+      match_id:match.id,
+      opponent_name: enemy
+        ? map[enemy.player_id]
+        : "Solo Run",
+      result:
+        player.player_id===winner
+        ? "win"
+        : "lose",
+      time_you:player.totalTime,
+      time_enemy:enemy?enemy.totalTime:null,
+      difference:enemy
+        ? enemy.totalTime-player.totalTime
+        : 0,
+      created_at:new Date()
+    });
+  };
+
+  await build(p1,p2);
+  await build(p2,p1);
+}
+
+/* ================= REWARD SYSTEM ================= */
+
+async function giveRewards(match,winner){
+
+  if(!winner) return;
+
+  const prize =
+    match.entry_fee * 2;
+
+  await addYton(prize);
+
+  await applyMatchResult({
+    playerId:winner,
+    opponentScore:1000,
+    win:true
+  });
+}
+
+/* ================= RESOLVE MATCH ================= */
+
+async function resolveMatch(match){
+
+  const { data:results } = await db
+    .from("pvp_results")
+    .select("*")
+    .eq("match_id",match.id);
+
+  if(!results.length) return;
+
+  let p1 = results.find(r=>r.player_id===match.player1);
+  let p2 = results.find(r=>r.player_id===match.player2);
+
+  /* solo allow */
+  if(match.status==="solo" && p1){
+
+    const valid = await verifyResult(p1);
+    if(!valid) return;
+
+    const perf = calculatePerformance(p1);
+    Object.assign(p1,perf);
+
+    await createHistory(match,p1.player_id,p1,null);
+
+    await db.from("pvp_matches")
+      .update({
+        status:"finished",
+        winner:p1.player_id,
+        resolved_at:new Date()
+      })
+      .eq("id",match.id);
+
+    return;
+  }
+
+  if(!p1 || !p2) return;
+
+  const v1 = await verifyResult(p1);
+  const v2 = await verifyResult(p2);
+
+  if(!v1 || !v2){
+    console.warn("Hash failed");
+    return;
+  }
+
+  Object.assign(p1,calculatePerformance(p1));
+  Object.assign(p2,calculatePerformance(p2));
+
+  const outcome =
+    determineWinner(p1,p2);
+
+  await createHistory(
+    match,
+    outcome.winner,
+    p1,
+    p2
+  );
+
+  await giveRewards(match,outcome.winner);
+
+  await db.from("pvp_matches")
+    .update({
+      status:"finished",
+      winner:outcome.winner,
+      resolved_at:new Date()
+    })
+    .eq("id",match.id);
+
+  console.log("Match resolved:",match.id);
+}
+
+/* ================= RESOLVE LOOP ================= */
+
+async function resolveLoop(){
+
+  if(GAME.resolve.running) return;
+  GAME.resolve.running=true;
+
+  const { data:matches } = await db
     .from("pvp_matches")
-    .update(payload)
-    .eq("id",matchId);
+    .select("*")
+    .in("status",["active","solo"]);
 
-  if(error){
-    console.error("Finalize error:",error);
-    return;
+  for(const m of matches){
+    await resolveMatch(m);
   }
 
-  console.log("🏆 Match finished:",winner);
-
-  EVENT.emit("pvp:resolved",{matchId,winner});
+  GAME.resolve.running=false;
 }
 
+/* ================= AUTO LOOP ================= */
 
-/* ===================================================
-   SOLO TIMEOUT CHECK
-   =================================================== */
-
-async function soloResolve(match){
-
-  const created =
-    new Date(match.created_at).getTime();
-
-  const now = Date.now();
-
-  if((now-created)/1000 < RESOLVE_TIMEOUT)
-    return false;
-
-  console.log("⌛ Solo timeout resolve");
-
-  await finalize(match.id,match.player1_id);
-  return true;
-}
-
-
-/* ===================================================
-   MAIN RESOLVE
-   =================================================== */
-
-async function resolve(match){
-
-  const answers = await getAnswers(match.id);
-
-  /* SOLO */
-  if(answers.length === 1){
-    await soloResolve(match);
-    return;
-  }
-
-  if(answers.length < 2) return;
-
-  const winner =
-    decideWinner(answers[0],answers[1]);
-
-  await finalize(match.id,winner);
-}
-
-
-/* ===================================================
-   REALTIME LISTENER
-   =================================================== */
-
-function subscribeResolve(){
-
-  db.channel("resolve-engine")
-    .on(
-      "postgres_changes",
-      {
-        event:"INSERT",
-        schema:"public",
-        table:"pvp_answers"
-      },
-      async payload => {
-
-        const matchId = payload.new.match_id;
-
-        const { data } = await db
-          .from("pvp_matches")
-          .select("*")
-          .eq("id",matchId)
-          .single();
-
-        if(!data) return;
-        if(data.status==="finished") return;
-
-        resolve(data);
-      }
-    )
-    .subscribe();
-
-  console.log("🧠 Resolve Engine Live");
-}
-
-
-/* ===================================================
-   INIT
-   =================================================== */
-
-EVENT.on("engine:ready",subscribeResolve);
-
-})();
+setInterval(resolveLoop,8000);
