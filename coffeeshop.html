@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TonCrime - CoffeeShop</title>
+<title>TonCrime CoffeeShop</title>
 
 <style>
-
 body{
 margin:0;
 background:black;
@@ -18,59 +17,103 @@ overflow:hidden;
 font-family:Arial;
 }
 
-/* TELEGRAM 9:16 */
-
+/* TELEGRAM ORANI */
 .app{
 width:390px;
 height:690px;
 position:relative;
 overflow:hidden;
+perspective:1400px;
 background:black;
-perspective:1200px;
 }
 
 /* SAHNE */
-
 .scene{
 position:absolute;
 width:100%;
 height:100%;
 background-size:cover;
 background-position:center;
-transition:opacity 0.5s ease, transform 0.6s ease;
+transition:opacity .5s ease;
 }
 
-/* FADE + ZOOM */
-
-.fadeOut{
-opacity:0;
-transform:scale(1.1);
+/* GERİ */
+.backBtn{
+position:absolute;
+top:20px;
+left:20px;
+background:red;
+color:white;
+padding:8px 15px;
+border-radius:8px;
+cursor:pointer;
+z-index:20;
+display:none;
 }
 
-.fadeIn{
-opacity:1;
-transform:scale(1);
+/* KİTAP */
+.book{
+position:absolute;
+width:260px;
+height:380px;
+left:50%;
+top:55%;
+transform:translate(-50%,-50%);
+transform-style:preserve-3d;
+cursor:pointer;
+z-index:15;
 }
 
-/* KAMERA ZOOM EFEKT */
-
-.zoomIn{
-animation:zoomIn 0.8s ease forwards;
+.book-inner{
+width:100%;
+height:100%;
+position:relative;
+transform-style:preserve-3d;
+transition:transform 1.2s cubic-bezier(.22,.61,.36,1);
 }
 
-@keyframes zoomIn{
-0%{transform:scale(1);}
-100%{transform:scale(1.15);}
+.book.open .book-inner{
+transform:rotateY(-150deg);
 }
 
-/* DUMAN KATMANI */
+/* ÖN KAPAK */
+.book-front{
+position:absolute;
+width:100%;
+height:100%;
+backface-visibility:hidden;
+border-radius:12px;
+overflow:hidden;
+}
 
+.book-front img{
+width:100%;
+height:100%;
+object-fit:cover;
+}
+
+/* ARKA SAYFA */
+.book-back{
+position:absolute;
+width:100%;
+height:100%;
+background:black;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+transform:rotateY(180deg);
+border-radius:12px;
+font-size:22px;
+}
+
+/* DUMAN */
 .smoke{
 position:absolute;
 width:200%;
 height:200%;
 background:radial-gradient(circle at 30% 50%, rgba(255,255,255,0.05), transparent 60%);
-animation:smokeMove 12s linear infinite;
+animation:smokeMove 15s linear infinite;
 pointer-events:none;
 }
 
@@ -79,62 +122,6 @@ pointer-events:none;
 50%{transform:translate(10%,10%);}
 100%{transform:translate(-10%,-10%);}
 }
-
-/* BUTONLAR */
-
-.btn{
-position:absolute;
-bottom:40px;
-left:50%;
-transform:translateX(-50%);
-background:gold;
-color:black;
-padding:12px 25px;
-border-radius:10px;
-cursor:pointer;
-font-weight:bold;
-z-index:10;
-}
-
-.backBtn{
-position:absolute;
-top:20px;
-left:20px;
-background:red;
-color:white;
-padding:8px 15px;
-cursor:pointer;
-border-radius:8px;
-display:none;
-z-index:10;
-}
-
-/* 3D KİTAP */
-
-.book{
-position:absolute;
-width:250px;
-height:350px;
-left:50%;
-top:50%;
-transform:translate(-50%,-50%) rotateY(0deg);
-transform-style:preserve-3d;
-transition:transform 1s ease;
-display:none;
-z-index:9;
-}
-
-.book.open{
-transform:translate(-50%,-50%) rotateY(-160deg);
-}
-
-.book img{
-width:100%;
-height:100%;
-backface-visibility:hidden;
-border-radius:10px;
-}
-
 </style>
 </head>
 
@@ -142,93 +129,51 @@ border-radius:10px;
 
 <div class="app">
 
-<div id="scene" class="scene fadeIn"
-style="background-image:url('coffeeshop.jpg')"></div>
+<div id="scene" class="scene"
+style="background-image:url('coffeeshop_indoor.jpg')"></div>
 
 <div class="smoke"></div>
 
-<div id="enterBtn" class="btn">İÇERİ GİR</div>
-<div id="menuBtn" class="btn" style="display:none;">MENÜ</div>
 <div id="backBtn" class="backBtn">GERİ</div>
 
-<!-- 3D MENÜ KİTAP -->
+<!-- KİTAP -->
 <div id="book" class="book">
-<img src="coffeeshop_indoor_menu.jpg">
+  <div class="book-inner">
+      <div class="book-front">
+          <img src="coffeeshop_indoor_menu.jpg">
+      </div>
+      <div class="book-back">
+          MENÜ İÇ SAYFA
+      </div>
+  </div>
 </div>
 
 </div>
 
 <script>
 
-const scene = document.getElementById("scene");
-const enterBtn = document.getElementById("enterBtn");
-const menuBtn = document.getElementById("menuBtn");
-const backBtn = document.getElementById("backBtn");
 const book = document.getElementById("book");
+const backBtn = document.getElementById("backBtn");
 
-let state="card";
+let isOpen = false;
 
-/* SAHNE GEÇİŞ */
+/* KİTAP TIKLANINCA */
 
-function changeScene(image, zoom=false){
+book.onclick = function(){
 
-scene.classList.add("fadeOut");
-
-setTimeout(()=>{
-scene.style.backgroundImage = "url('"+image+"')";
-scene.classList.remove("fadeOut");
-scene.classList.add("fadeIn");
-
-if(zoom){
-scene.classList.add("zoomIn");
-setTimeout(()=>scene.classList.remove("zoomIn"),800);
-}
-
-},400);
-
-}
-
-/* İÇERİ GİR */
-
-enterBtn.onclick=function(){
-changeScene("coffeeshop_indoor.jpg", true);
-enterBtn.style.display="none";
-menuBtn.style.display="block";
-backBtn.style.display="block";
-state="indoor";
-};
-
-/* MENÜ */
-
-menuBtn.onclick=function(){
-book.style.display="block";
-setTimeout(()=>{
+if(!isOpen){
 book.classList.add("open");
-},100);
-state="menu";
+backBtn.style.display="block";
+isOpen = true;
+}
 };
 
-/* GERİ */
+/* GERİ BUTONU */
 
-backBtn.onclick=function(){
-
-if(state==="menu"){
+backBtn.onclick = function(){
 book.classList.remove("open");
-setTimeout(()=>{
-book.style.display="none";
-},800);
-state="indoor";
-return;
-}
-
-if(state==="indoor"){
-changeScene("coffeeshop.jpg");
-menuBtn.style.display="none";
-enterBtn.style.display="block";
 backBtn.style.display="none";
-state="card";
-}
-
+isOpen = false;
 };
 
 </script>
