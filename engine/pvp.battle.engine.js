@@ -1,115 +1,178 @@
 /* ===================================================
    TONCRIME PVP BATTLE ENGINE
-   =================================================== */
+=================================================== */
 
-(function(){
-
-const PVP_BATTLE={};
-
-let battle=null;
-
-/* ================= START ================= */
-
-PVP_BATTLE.start=function(match,question){
-
-battle={
-match,
-question,
-start:Date.now(),
-answered:false
+GAME.battle = {
+  active:false,
+  matchId:null,
+  questions:[],
+  index:0,
+  startTime:0,
+  results:[]
 };
 
-renderBattle();
-};
+/* ===================================================
+   START MATCH
+=================================================== */
 
-/* ================= UI ================= */
+function startBattle(matchId){
 
-function renderBattle(){
+  GAME.battle.matchId = matchId;
+  GAME.battle.questions =
+    generateMatchQuestions(matchId,5);
 
-const root=document.getElementById("tc-content");
+  GAME.battle.index = 0;
+  GAME.battle.results = [];
+  GAME.battle.active = true;
 
-root.innerHTML=`
-<div class="card">
-<h2>⚔ PvP Savaşı</h2>
-
-<h3>${battle.question.q}</h3>
-
-<div id="timer">10.0</div>
-
-<div id="answers">
-${battle.question.a.map((x,i)=>
-`<button onclick="PVP_BATTLE.answer(${i})">${x}</button>`
-).join("")}
-</div>
-
-</div>
-`;
-
-startTimer();
+  nextQuestion();
 }
 
-/* ================= TIMER ================= */
+/* ===================================================
+   LOAD NEXT QUESTION
+=================================================== */
 
-function startTimer(){
+function nextQuestion(){
 
-const timer=document.getElementById("timer");
+  if(!GAME.battle.active) return;
 
-const int=setInterval(()=>{
+  if(GAME.battle.index >=
+     GAME.battle.questions.length){
 
-let t=10-(Date.now()-battle.start)/1000;
+    finishBattle();
+    return;
+  }
 
-timer.innerText=t.toFixed(1);
+  const q =
+    GAME.battle.questions[GAME.battle.index];
 
-if(t<=0){
-clearInterval(int);
-finish(-1);
+  GAME.battle.startTime =
+    performance.now();
+
+  renderQuestion(q);
 }
 
-},50);
+/* ===================================================
+   RENDER QUESTION (UI hook)
+=================================================== */
 
+function renderQuestion(q){
+
+  const area =
+    document.getElementById("pvpQuestion");
+
+  if(!area) return;
+
+  let html = `<h2>${q.q}</h2>`;
+
+  q.answers.forEach((a,i)=>{
+    html += `
+      <button onclick="answerQuestion(${i})">
+        ${a}
+      </button>
+    `;
+  });
+
+  area.innerHTML = html;
 }
 
-/* ================= ANSWER ================= */
+/* ===================================================
+   ANSWER
+=================================================== */
 
-PVP_BATTLE.answer=function(index){
+function answerQuestion(index){
 
-if(battle.answered) return;
+  if(!GAME.battle.active) return;
 
-battle.answered=true;
+  const q =
+    GAME.battle.questions[GAME.battle.index];
 
-const time=(Date.now()-battle.start);
+  const end = performance.now();
+  const time =
+    Math.floor(end - GAME.battle.startTime);
 
-finish(index,time);
-};
+  const correct =
+    validateAnswer(q,index);
 
-/* ================= FINISH ================= */
+  GAME.battle.results.push({
+    question:q.id,
+    answer:index,
+    correct,
+    time
+  });
 
-async function finish(answer,time=99999){
+  GAME.battle.index++;
 
-const scoreHash=btoa(answer+"-"+time);
+  setTimeout(nextQuestion,300);
+}
 
-await fetch(
-CONFIG.SUPABASE_URL+
-"/functions/v1/resolve-pvp",
-{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-user:CONFIG.USER_ID,
-match:battle.match.id,
-answer,
-time,
-hash:scoreHash
-})
-});
+/* ===================================================
+   SCORE + HASH
+=================================================== */
 
-EVENT.emit("notify","⚔ Sonuç hesaplanıyor...");
-};
+async function finishBattle(){
 
-/* ================= EXPORT ================= */
+  GAME.battle.active=false;
 
-window.PVP_BATTLE=PVP_BATTLE;
+  const scoreData =
+    calculateScore(GAME.battle.results);
 
-})();
+  const payload = {
+    match_id:GAME.battle.matchId,
+    user_id:CONFIG.USER_ID,
+    results:GAME.battle.results,
+    score:scoreData.score,
+    total_time:scoreData.totalTime
+  };
+
+  payload.hash =
+    await createBattleHash(payload);
+
+  sendBattleResult(payload);
+}
+
+/* ===================================================
+   HASH (ANTI CHEAT BASE)
+=================================================== */
+
+async function createBattleHash(data){
+
+  const text =
+    JSON.stringify(data.results)
+    + data.total_time
+    + CONFIG.USER_ID;
+
+  const enc =
+    new TextEncoder().encode(text);
+
+  const buffer =
+    await crypto.subtle.digest("SHA-256",enc);
+
+  const hashArray =
+    Array.from(new Uint8Array(buffer));
+
+  return hashArray
+    .map(b=>b.toString(16).padStart(2,"0"))
+    .join("");
+}
+
+/* ===================================================
+   SEND RESULT
+=================================================== */
+
+async function sendBattleResult(payload){
+
+  await fetch(
+    CONFIG.SUPABASE_URL+
+    "/functions/v1/resolve-pvp",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify(payload)
+    }
+  );
+
+  console.log("Battle sent");
+}

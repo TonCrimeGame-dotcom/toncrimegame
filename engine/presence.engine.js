@@ -1,158 +1,142 @@
 /* ===================================================
-   TONCRIME PRESENCE ENGINE v2
-   Building Presence + Online Players System
-   =================================================== */
+   TONCRIME PRESENCE ENGINE
+=================================================== */
 
-(function(){
-
-if(!window.EVENT){
-  console.warn("Presence waiting EVENT...");
-  return;
-}
-
-/* ===========================================
-   STORAGE
-=========================================== */
-
-const STORAGE_KEY="tc_presence_rooms";
-
-/* ===========================================
-   ENGINE
-=========================================== */
-
-const PRESENCE={
-
-  rooms:{},
-  currentRoom:null,
-
-  /* ===================================== */
-  init(){
-    this.load();
-    console.log("🌐 Presence Engine Ready");
-  },
-
-  /* ===================================== */
-  load(){
-    try{
-      this.rooms=
-        JSON.parse(localStorage.getItem(STORAGE_KEY))
-        || {};
-    }catch{
-      this.rooms={};
-    }
-  },
-
-  save(){
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(this.rooms)
-    );
-  },
-
-  /* ===================================== */
-  ENTER ROOM
-  ===================================== */
-
-  enter(room){
-
-    if(!window.GAME || !GAME.user) return;
-
-    this.leave();
-
-    if(!this.rooms[room])
-      this.rooms[room]=[];
-
-    const player={
-      id:GAME.user.id,
-      name:GAME.user.name,
-      time:Date.now()
-    };
-
-    this.rooms[room].push(player);
-    this.currentRoom=room;
-
-    this.save();
-
-    EVENT.emit("presence:enter",{
-      room,
-      player
-    });
-
-    this.broadcast(room);
-
-  },
-
-  /* ===================================== */
-  LEAVE ROOM
-  ===================================== */
-
-  leave(){
-
-    if(!this.currentRoom) return;
-
-    const room=this.currentRoom;
-
-    if(!this.rooms[room]) return;
-
-    this.rooms[room]=
-      this.rooms[room].filter(
-        p=>p.id!==GAME.user.id
-      );
-
-    EVENT.emit("presence:leave",{
-      room,
-      player:GAME.user.id
-    });
-
-    this.currentRoom=null;
-
-    this.save();
-  },
-
-  /* ===================================== */
-  BROADCAST ROOM STATE
-  ===================================== */
-
-  broadcast(room){
-
-    EVENT.emit("presence:update",{
-      room,
-      players:this.rooms[room]||[]
-    });
-
-  },
-
-  /* ===================================== */
-  GET ONLINE PLAYERS
-  ===================================== */
-
-  players(room){
-    return this.rooms[room]||[];
-  }
-
+GAME.presence = {
+  heartbeat:null,
+  subscribed:false
 };
 
-window.PRESENCE=PRESENCE;
+const PRESENCE_INTERVAL = 30000; //30s
+const OFFLINE_LIMIT = 120000; //2min
 
-/* ===========================================
-   AUTO EVENTS
-=========================================== */
+/* ===================================================
+   SET ONLINE
+=================================================== */
 
-EVENT.on("room:enter",(room)=>{
-  PRESENCE.enter(room);
-});
+async function setOnline(location="city"){
 
-EVENT.on("room:leave",()=>{
-  PRESENCE.leave();
-});
+  if(!GAME.user) return;
 
-EVENT.on("game:ready",()=>{
-  PRESENCE.init();
-});
+  await db.from("player_presence")
+    .upsert({
+      user_id:GAME.user.id,
+      nickname:GAME.user.nickname,
+      location:location,
+      last_seen:new Date(),
+      online:true
+    });
 
-/* leave on close */
-window.addEventListener("beforeunload",()=>{
-  PRESENCE.leave();
-});
+}
 
-})();
+/* ===================================================
+   HEARTBEAT
+=================================================== */
+
+async function heartbeat(){
+
+  if(!GAME.user) return;
+
+  await db.from("player_presence")
+    .update({
+      last_seen:new Date(),
+      online:true
+    })
+    .eq("user_id",GAME.user.id);
+}
+
+/* ===================================================
+   AUTO OFFLINE CLEAN
+=================================================== */
+
+async function cleanupOffline(){
+
+  const limit =
+    new Date(Date.now()-OFFLINE_LIMIT);
+
+  await db.from("player_presence")
+    .update({online:false})
+    .lt("last_seen",limit);
+}
+
+/* ===================================================
+   ONLINE COUNT
+=================================================== */
+
+async function updateOnlineCount(){
+
+  const { count } = await db
+    .from("player_presence")
+    .select("*",{count:"exact",head:true})
+    .eq("online",true);
+
+  const el=document.getElementById("onlineCount");
+  if(el) el.innerText = count+" online";
+}
+
+/* ===================================================
+   REALTIME SUBSCRIBE
+=================================================== */
+
+function subscribePresence(){
+
+  if(GAME.presence.subscribed) return;
+
+  GAME.presence.subscribed=true;
+
+  db.channel("presence-live")
+    .on(
+      "postgres_changes",
+      {
+        event:"UPDATE",
+        schema:"public",
+        table:"player_presence"
+      },
+      ()=>{
+        updateOnlineCount();
+      }
+    )
+    .subscribe();
+}
+
+/* ===================================================
+   LOCATION CHANGE
+=================================================== */
+
+async function updateLocation(loc){
+
+  if(!GAME.user) return;
+
+  await db.from("player_presence")
+    .update({location:loc})
+    .eq("user_id",GAME.user.id);
+}
+
+/* ===================================================
+   INIT
+=================================================== */
+
+async function initPresence(){
+
+  if(!GAME.user) return;
+
+  await setOnline("city");
+
+  GAME.presence.heartbeat =
+    setInterval(heartbeat,PRESENCE_INTERVAL);
+
+  setInterval(cleanupOffline,60000);
+
+  subscribePresence();
+
+  updateOnlineCount();
+
+  console.log("Presence Engine Ready");
+}
+
+document.addEventListener(
+  "DOMContentLoaded",
+  ()=>{
+    setTimeout(initPresence,2000);
+  }
+);
