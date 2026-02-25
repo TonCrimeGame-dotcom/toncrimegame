@@ -5,150 +5,148 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
 <link rel="stylesheet" href="global.css">
-
-<style>
-
-/* LOGO */
-.logo{
-  position:absolute;
-  top:15px;
-  left:15px;
-  height:60px;
-  z-index:20;
-}
-
-/* SLIDE MENU */
-.menu-wrapper{
-  position:absolute;
-  bottom:120px;
-  width:100%;
-  overflow:hidden;
-}
-
-.menu-slider{
-  display:flex;
-  gap:20px;
-  padding-left:20px;
-}
-
-.menu-card{
-  min-width:150px;
-  text-align:center;
-  cursor:pointer;
-}
-
-.menu-card img{
-  width:150px;
-  height:210px;
-  border-radius:20px;
-  border:2px solid gold;
-  object-fit:cover;
-}
-
-.menu-card span{
-  display:block;
-  margin-top:6px;
-  color:gold;
-  font-weight:bold;
-}
-
-/* CHAT */
-.chat{
-  position:absolute;
-  bottom:0;
-  width:100%;
-  background:rgba(0,0,0,0.6);
-  display:flex;
-  padding:6px;
-}
-
-.chat input{
-  flex:1;
-  padding:8px;
-  border:none;
-  outline:none;
-}
-
-.chat button{
-  padding:8px 12px;
-  border:none;
-  background:gold;
-  cursor:pointer;
-}
-
-</style>
 </head>
 <body>
 
 <div class="app">
 
-<img src="background.jpg" class="bg">
-<img src="logo.png" class="logo">
+  <!-- BACKGROUND -->
+  <img src="background.jpg" class="bg">
 
-<!-- HUD -->
-<div class="hud">
+  <!-- LOGO -->
+  <img src="logo.png" class="logo">
 
-  <div id="energyText">⚡ 60/100</div>
-  <div class="bar">
-    <div class="fill" id="energyBar" style="width:60%"></div>
+  <!-- ================= HUD ================= -->
+  <div class="hud">
+
+    <div id="energyText">⚡ 60/100</div>
+    <div class="bar">
+      <div class="fill" id="energyBar" style="width:60%"></div>
+    </div>
+
+    <div id="xpText">XP 0/1000 (Lv 1)</div>
+    <div class="bar">
+      <div class="fill" id="xpBar" style="width:0%"></div>
+    </div>
+
+    <div class="yton-row">
+      <img src="yton.png">
+      <span id="ytonText">1000</span>
+    </div>
+
   </div>
 
-  <div id="xpText">XP 0/1000 (Lv 1)</div>
-  <div class="bar">
-    <div class="fill" id="xpBar" style="width:0%"></div>
+  <!-- ================= SLIDE MENU ================= -->
+  <div class="menu-wrapper">
+    <div class="menu-slider">
+
+      <div class="menu-card" onclick="go('missions.html')">
+        <img src="missions.jpg">
+        <span>Görevler</span>
+      </div>
+
+      <div class="menu-card" onclick="go('pvp.html')">
+        <img src="pvp.jpg">
+        <span>PvP</span>
+      </div>
+
+      <div class="menu-card" onclick="go('nightclub.html')">
+        <img src="nightclub.jpg">
+        <span>Gece Kulübü</span>
+      </div>
+
+      <div class="menu-card" onclick="go('coffeeshop.html')">
+        <img src="coffeeshop.jpg">
+        <span>CoffeeShop</span>
+      </div>
+
+      <div class="menu-card" onclick="go('xxx.html')">
+        <img src="xxx.jpg">
+        <span>Genel Ev</span>
+      </div>
+
+      <div class="menu-card" onclick="go('weapons.html')">
+        <img src="weapons.jpg">
+        <span>Silah Tüccarı</span>
+      </div>
+
+    </div>
   </div>
 
-  <div class="yton-row">
-    <img src="yton.png">
-    <span id="ytonText">1000</span>
+  <!-- ================= CHAT ================= -->
+  <div class="chat">
+    <input type="text" id="chatInput" placeholder="Mesaj...">
+    <button onclick="sendMessage()">Gönder</button>
   </div>
 
 </div>
 
-<!-- SLIDE MENU -->
-<div class="menu-wrapper">
-  <div class="menu-slider">
+<script>
 
-    <div class="menu-card">
-      <img src="missions.jpg">
-      <span>Görevler</span>
-    </div>
+/* ================= PLAYER STORAGE ================= */
 
-    <div class="menu-card">
-      <img src="pvp.jpg">
-      <span>PvP</span>
-    </div>
+let player = JSON.parse(localStorage.getItem("player")) || {
+  energy: 60,
+  maxEnergy: 100,
+  xp: 0,
+  xpMax: 1000,
+  level: 1,
+  yton: 1000
+};
 
-    <div class="menu-card">
-      <img src="nightclub.jpg">
-      <span>Gece Kulübü</span>
-    </div>
+function savePlayer(){
+  localStorage.setItem("player", JSON.stringify(player));
+}
 
-    <div class="menu-card">
-      <img src="coffeeshop.jpg">
-      <span>CoffeeShop</span>
-    </div>
+function updateHUD(){
 
-    <div class="menu-card">
-      <img src="xxx.jpg">
-      <span>Genel Ev</span>
-    </div>
+  document.getElementById("energyText").textContent =
+    "⚡ " + player.energy + "/" + player.maxEnergy;
 
-    <div class="menu-card">
-      <img src="weapons.jpg">
-      <span>Silah Tüccarı</span>
-    </div>
+  document.getElementById("energyBar").style.width =
+    (player.energy / player.maxEnergy * 100) + "%";
 
-  </div>
-</div>
+  document.getElementById("xpText").textContent =
+    "XP " + player.xp + "/" + player.xpMax + " (Lv " + player.level + ")";
 
-<!-- CHAT -->
-<div class="chat">
-  <input type="text" placeholder="Mesaj...">
-  <button>Gönder</button>
-</div>
+  document.getElementById("xpBar").style.width =
+    (player.xp / player.xpMax * 100) + "%";
 
-</div>
+  document.getElementById("ytonText").textContent =
+    player.yton;
+}
+
+/* ================= CHAT ================= */
+
+let chatData = JSON.parse(localStorage.getItem("chat")) || [];
+
+function saveChat(){
+  localStorage.setItem("chat", JSON.stringify(chatData));
+}
+
+function sendMessage(){
+  const input = document.getElementById("chatInput");
+  const msg = input.value.trim();
+  if(!msg) return;
+
+  chatData.push(msg);
+  saveChat();
+  input.value="";
+}
+
+/* ================= NAV ================= */
+
+function go(page){
+  window.location.href = page;
+}
+
+/* ================= INIT ================= */
+
+document.addEventListener("DOMContentLoaded",()=>{
+  updateHUD();
+});
+
+</script>
 
 </body>
 </html>
