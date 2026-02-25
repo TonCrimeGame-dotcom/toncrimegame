@@ -3,168 +3,204 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TonCrime CoffeeShop</title>
+<title>TonCrime NightClub</title>
 
 <style>
 body{
-margin:0;
-background:#000;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-overflow:hidden;
-font-family:Arial;
+    margin:0;
+    background:black;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    font-family:Arial;
 }
 
-/* TELEGRAM DİKEY ORAN */
+/* TELEGRAM BOYUT */
 .app{
-width:390px;
-height:690px;
-position:relative;
-overflow:hidden;
-perspective:2500px;
-background:black;
+    width:390px;
+    height:690px;
+    position:relative;
+    perspective:1500px;
+    overflow:hidden;
 }
 
-/* SABİT ARKA PLAN */
+/* ARKAPLAN */
 .bg{
-position:absolute;
-width:100%;
-height:100%;
-background:url('coffeeshop_indoor.jpg') center/cover no-repeat;
-}
-
-/* GERİ BUTONU */
-.backBtn{
-position:absolute;
-top:15px;
-left:15px;
-background:red;
-color:white;
-padding:6px 14px;
-border-radius:8px;
-cursor:pointer;
-z-index:50;
-display:none;
+    position:absolute;
+    width:100%;
+    height:100%;
+    object-fit:cover;
 }
 
 /* KİTAP ALANI */
-.book{
-position:absolute;
-width:260px;
-height:360px;
-left:50%;
-top:60%;
-transform:translate(-50%,-50%);
-transform-style:preserve-3d;
-cursor:pointer;
+.book-container{
+    position:absolute;
+    width:320px;
+    height:480px;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    transform-style:preserve-3d;
+    transition:transform 1s;
 }
 
-/* KAPAK */
-.cover{
-position:absolute;
-width:100%;
-height:100%;
-transform-origin:left;
-transition:transform 1.3s cubic-bezier(.22,.61,.36,1);
-backface-visibility:hidden;
-z-index:30;
+/* SAYFA */
+.page{
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:rgba(20,20,20,0.95);
+    border:2px solid gold;
+    border-radius:10px;
+    backface-visibility:hidden;
+    padding:20px;
+    box-sizing:border-box;
+    color:gold;
 }
 
-.cover img{
-width:100%;
-height:100%;
-object-fit:contain;
+.page.back{
+    transform:rotateY(180deg);
 }
 
-/* İÇ SAYFALAR */
-.pages{
-position:absolute;
-width:100%;
-height:100%;
-opacity:0;
-transition:opacity .8s ease;
-z-index:10;
+/* SAYFA FLIP */
+.book-container.open{
+    transform:translate(-50%,-50%) rotateY(180deg);
 }
 
-.pages img{
-width:100%;
-height:100%;
-object-fit:contain;
+/* ÜRÜNLER */
+.item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin:20px 0;
+    padding:10px;
+    border-bottom:1px solid rgba(255,215,0,0.4);
+    cursor:pointer;
+    transition:0.3s;
 }
 
-/* AÇILMA EFEKTİ */
-.book.open .cover{
-transform:rotateY(-165deg);
+.item:hover{
+    background:rgba(255,215,0,0.1);
+    transform:scale(1.03);
 }
 
-.book.open .pages{
-opacity:1;
+/* COIN */
+.coin{
+    width:22px;
+    height:22px;
+    margin-right:5px;
+    animation:glow 1.5s infinite alternate;
 }
 
-/* HAFİF GÖLGE DERİNLİK */
-.book::after{
-content:"";
-position:absolute;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.25);
-border-radius:12px;
-z-index:5;
-opacity:0;
-transition:opacity .6s ease;
+@keyframes glow{
+    from{ filter:drop-shadow(0 0 2px gold); }
+    to{ filter:drop-shadow(0 0 10px gold); }
 }
 
-.book.open::after{
-opacity:1;
+/* OKLAR */
+.nav{
+    position:absolute;
+    bottom:30px;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    padding:0 40px;
+}
+
+.nav button{
+    background:gold;
+    border:none;
+    padding:10px 20px;
+    font-weight:bold;
+    cursor:pointer;
+    border-radius:5px;
 }
 </style>
 </head>
-
 <body>
 
 <div class="app">
 
-<div class="bg"></div>
+<img src="coffeeshop_indoor.jpg" class="bg">
 
-<div id="backBtn" class="backBtn">GERİ</div>
+<div class="book-container" id="book">
 
-<div id="book" class="book">
+    <div class="page front" id="pageContent"></div>
 
-    <!-- İÇ SAYFA -->
-    <div class="pages">
-        <img src="book_open.png">
+    <div class="page back">
+        <h2 style="text-align:center;">VIP MENU</h2>
     </div>
 
-    <!-- KAPALI KAPAK -->
-    <div class="cover">
-        <img src="book_closed.png">
-    </div>
+</div>
 
+<div class="nav">
+    <button onclick="prevPage()">◀</button>
+    <button onclick="nextPage()">▶</button>
 </div>
 
 </div>
 
 <script>
 
+/* DİNAMİK MENÜ VERİSİ */
+const pages = [
+[
+ {name:"Champagne",price:200},
+ {name:"Whiskey",price:300},
+ {name:"Cognac",price:400}
+],
+[
+ {name:"Cocaine",price:500},
+ {name:"Ecstasy",price:300},
+ {name:"Liquid G",price:200}
+]
+];
+
+let currentPage = 0;
 const book = document.getElementById("book");
-const backBtn = document.getElementById("backBtn");
-let isOpen = false;
+const pageContent = document.getElementById("pageContent");
 
-book.onclick = function(){
-    if(!isOpen){
+function renderPage(){
+    pageContent.innerHTML = "<h2>VIP MENU</h2>";
+    pages[currentPage].forEach(item=>{
+        pageContent.innerHTML += `
+        <div class="item" onclick="buyItem('${item.name}',${item.price})">
+            <div>${item.name}</div>
+            <div>
+                <img src="yton.png" class="coin">
+                ${item.price} YTON
+            </div>
+        </div>`;
+    });
+}
+
+function nextPage(){
+    if(currentPage < pages.length-1){
+        currentPage++;
         book.classList.add("open");
-        backBtn.style.display = "block";
-        isOpen = true;
+        setTimeout(()=>{
+            renderPage();
+        },500);
     }
-};
+}
 
-backBtn.onclick = function(){
-    book.classList.remove("open");
-    backBtn.style.display = "none";
-    isOpen = false;
-};
+function prevPage(){
+    if(currentPage > 0){
+        currentPage--;
+        book.classList.remove("open");
+        setTimeout(()=>{
+            renderPage();
+        },500);
+    }
+}
+
+function buyItem(name,price){
+    alert(name+" satın alındı! - "+price+" YTON");
+}
+
+renderPage();
 
 </script>
 
