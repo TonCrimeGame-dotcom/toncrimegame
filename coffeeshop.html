@@ -2,166 +2,154 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TonCrime - Coffee Shop</title>
-
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="game-core.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TonCrime - CoffeeShop</title>
 
 <style>
 body{
-  margin:0;
-  background:#071a0f;
-  color:white;
-  font-family:Arial;
+margin:0;
+background:url("background.jpg") center/cover no-repeat fixed;
+font-family:Arial;
+color:white;
 }
 
-/* TOPBAR */
-.topbar{
-  background:#0c2e19;
-  padding:18px 40px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+.scene{
+position:relative;
+height:100vh;
+background-size:cover;
+background-position:center;
+transition:0.4s;
 }
 
-.right-stats{
-  width:420px;
+.overlayBtn{
+position:absolute;
+bottom:30px;
+left:50%;
+transform:translateX(-50%);
+background:gold;
+color:black;
+padding:12px 25px;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
 }
 
-.bar{
-  width:100%;
-  height:8px;
-  background:#222;
-  border-radius:5px;
-  overflow:hidden;
-  margin-bottom:6px;
+.backBtn{
+position:absolute;
+top:20px;
+left:20px;
+background:red;
+padding:8px 15px;
+cursor:pointer;
+border-radius:6px;
+display:none;
 }
 
-.fill{
-  height:100%;
+.product{
+position:absolute;
+background:rgba(0,0,0,0.7);
+padding:10px;
+border-radius:8px;
+cursor:pointer;
 }
 
-.xp{ background:#00ff88; }
-.energy{ background:#00ffaa; }
-
-/* SHOP GRID */
-.main{
-  padding:40px;
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-  gap:20px;
+.hidden{
+display:none;
 }
-
-.card{
-  background:#0f2b1c;
-  padding:15px;
-  border-radius:10px;
-  border:1px solid #145c34;
-}
-
-button{
-  width:100%;
-  padding:10px;
-  margin-top:8px;
-  background:#00ff88;
-  border:none;
-  border-radius:6px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:hover{opacity:0.85;}
 </style>
 </head>
+
 <body>
 
-<div class="topbar">
-  <div><b>Coffee Shop</b></div>
+<div id="scene" class="scene" style="background-image:url('coffeeshop.jpg')">
 
-  <div class="right-stats">
-    <div id="stats"></div>
+<div id="enterBtn" class="overlayBtn">İÇERİ GİR</div>
 
-    <div class="bar">
-      <div id="xpBar" class="fill xp"></div>
-    </div>
+<div id="menuBtn" class="overlayBtn hidden" style="bottom:80px;">MENÜ</div>
 
-    <div class="bar">
-      <div id="energyBar" class="fill energy"></div>
-    </div>
-  </div>
+<div id="backBtn" class="backBtn">GERİ</div>
+
 </div>
-
-<div class="main" id="shop"></div>
 
 <script>
 
-/* ===== SHOP PRODUCTS ===== */
-function generateProducts(){
-  let arr=[];
-  for(let i=1;i<=20;i++){
-    let price=Math.floor(Math.random()*101)+100; //100-200
-    let energy=Math.floor((price-100)/100*50)+30; //30-80
-    arr.push({
-      name:"Ürün "+i,
-      price:price,
-      energy:energy
-    });
-  }
-  return arr;
-}
+const scene = document.getElementById("scene");
+const enterBtn = document.getElementById("enterBtn");
+const menuBtn = document.getElementById("menuBtn");
+const backBtn = document.getElementById("backBtn");
 
-/* ===== BUY ===== */
-async function buy(product){
+let state = "card";
 
-  let user=await loadUser();
-  if(!user) return;
+/* ================= ENTER ================= */
 
-  if(user.yton<product.price){
-    alert("Yetersiz Yton");
+enterBtn.onclick = function(){
+
+  scene.style.backgroundImage = "url('coffeeshop_indoor.jpg')";
+  enterBtn.classList.add("hidden");
+  menuBtn.classList.remove("hidden");
+  backBtn.style.display="block";
+  state="indoor";
+};
+
+/* ================= MENU ================= */
+
+menuBtn.onclick = function(){
+
+  scene.style.backgroundImage = "url('coffeeshop_indoor_menu.jpg')";
+  state="menu";
+
+  createProducts();
+};
+
+/* ================= BACK ================= */
+
+backBtn.onclick = function(){
+
+  if(state==="menu"){
+    scene.style.backgroundImage = "url('coffeeshop_indoor.jpg')";
+    removeProducts();
+    state="indoor";
     return;
   }
 
-  await updateUser({
-    yton:-product.price,
-    energy:product.energy
+  if(state==="indoor"){
+    scene.style.backgroundImage = "url('coffeeshop.jpg')";
+    menuBtn.classList.add("hidden");
+    enterBtn.classList.remove("hidden");
+    backBtn.style.display="none";
+    state="card";
+  }
+};
+
+/* ================= PRODUCTS ================= */
+
+function createProducts(){
+
+  const products = [
+    {name:"Ürün A", price:120},
+    {name:"Ürün B", price:180},
+    {name:"Ürün C", price:200}
+  ];
+
+  products.forEach((p,i)=>{
+
+    const div = document.createElement("div");
+    div.className="product";
+    div.style.top = (200 + i*60)+"px";
+    div.style.left = "50px";
+    div.innerText = p.name+" - "+p.price+" YTON";
+
+    div.onclick=function(){
+      alert(p.name+" satın alındı");
+    };
+
+    scene.appendChild(div);
   });
-
-  alert("Satın alındı! +" + product.energy + " enerji");
-
-  render();
 }
 
-/* ===== RENDER PAGE ===== */
-async function render(){
-
-  let user=await loadUser();
-  if(!user) return;
-
-  user=await regenEnergy(user);
-
-  renderStats(user);
-
-  let products=generateProducts();
-  let html="";
-
-  products.forEach(p=>{
-    html+=`
-    <div class="card">
-      <b>${p.name}</b><br>
-      Fiyat: ${p.price} Yton<br>
-      Enerji: +${p.energy}
-      <button onclick='buy(${JSON.stringify(p)})'>
-        Satın Al
-      </button>
-    </div>
-    `;
-  });
-
-  document.getElementById("shop").innerHTML=html;
+function removeProducts(){
+  document.querySelectorAll(".product").forEach(p=>p.remove());
 }
-
-render();
-setInterval(render,3000);
 
 </script>
 
