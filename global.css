@@ -1,0 +1,104 @@
+/* =========================
+   TONCRIME GLOBAL HUD CSS
+========================= */
+
+body{
+  margin:0;
+  background:black;
+  font-family:Georgia, serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.app{
+  width:390px;
+  height:690px;
+  position:relative;
+  overflow:hidden;
+  border-radius:20px;
+}
+
+.bg{
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* =========================
+   MODERN USER PANEL
+========================= */
+
+.hud{
+  position:absolute;
+  top:15px;
+  right:15px;
+  width:230px;
+  padding:16px;
+  border-radius:20px;
+  backdrop-filter:blur(10px);
+  background:rgba(0,0,0,0.45);
+  color:white;
+  font-size:13px;
+}
+
+/* TEXT SPACING */
+.hud div{
+  margin-bottom:4px;
+}
+
+/* =========================
+   BAR STYLE
+========================= */
+
+.bar{
+  height:8px;
+  background:rgba(255,255,255,0.15);
+  border-radius:12px;
+  margin:6px 0 12px 0;
+  overflow:hidden;
+}
+
+.fill{
+  height:100%;
+  width:0%;
+  border-radius:12px;
+  transition:0.3s;
+}
+
+/* ENERJI BAR */
+#energyBar{
+  background:linear-gradient(90deg,#00ff88,#00ffaa);
+}
+
+/* XP BAR */
+#xpBar{
+  background:linear-gradient(90deg,#ffaa00,#ff5500);
+}
+
+/* =========================
+   YTON SATIR
+========================= */
+
+.yton-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:6px;
+}
+
+.yton-row img{
+  height:16px;
+}
+
+/* =========================
+   RESPONSIVE FIX
+========================= */
+
+@media(max-width:420px){
+  .app{
+    border-radius:0;
+  }
+}
