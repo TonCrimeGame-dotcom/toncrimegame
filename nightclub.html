@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TonCrime NightClub</title>
+<title>TonCrime VIP NightClub</title>
 
 <style>
 body{
@@ -17,24 +17,42 @@ body{
     font-family:Arial;
 }
 
-/* TELEGRAM BOYUT */
+/* TELEGRAM */
 .app{
     width:390px;
     height:690px;
     position:relative;
-    perspective:1600px;
+    perspective:2000px;
     overflow:hidden;
 }
 
-/* ARKA PLAN */
+/* BACKGROUND */
 .bg{
     position:absolute;
     width:100%;
     height:100%;
     object-fit:cover;
+    animation:neonPulse 3s infinite alternate;
 }
 
-/* KİTAP */
+@keyframes neonPulse{
+    from{ filter:brightness(1); }
+    to{ filter:brightness(1.15); }
+}
+
+/* CAMERA EFFECT */
+.camera{
+    position:absolute;
+    width:100%;
+    height:100%;
+    transition:transform 1s ease;
+}
+
+.camera.zoom{
+    transform:scale(1.08);
+}
+
+/* BOOK WRAPPER */
 .book-wrapper{
     position:absolute;
     width:320px;
@@ -43,41 +61,32 @@ body{
     top:50%;
     transform:translate(-50%,-50%);
     transform-style:preserve-3d;
-    transition:transform 1s;
-    cursor:pointer;
+    transition:transform 1s ease;
 }
 
-.book{
-    position:relative;
-    width:100%;
-    height:100%;
-    transform-style:preserve-3d;
+.book-wrapper.open{
+    transform:translate(-50%,-50%) rotateY(180deg);
 }
 
-/* SAYFALAR */
+/* PAGE */
 .page{
     position:absolute;
     width:100%;
     height:100%;
-    background:rgba(10,10,10,0.95);
+    background:linear-gradient(145deg,#111,#000);
     border:2px solid gold;
     border-radius:12px;
     backface-visibility:hidden;
-    padding:20px;
+    padding:25px;
     box-sizing:border-box;
     color:gold;
+    box-shadow:0 0 30px rgba(255,215,0,0.3);
 }
 
 .page.back{
     transform:rotateY(180deg);
 }
 
-/* AÇILMA */
-.book-wrapper.open{
-    transform:translate(-50%,-50%) rotateY(180deg);
-}
-
-/* BAŞLIK */
 .title{
     text-align:center;
     font-size:20px;
@@ -85,39 +94,55 @@ body{
     letter-spacing:2px;
 }
 
-/* ÜRÜN */
+/* ITEM */
 .item{
     display:flex;
     justify-content:space-between;
     align-items:center;
     margin:18px 0;
-    padding:10px;
+    padding:12px;
     border-bottom:1px solid rgba(255,215,0,0.4);
     cursor:pointer;
     transition:0.3s;
+    position:relative;
+    overflow:hidden;
+}
+
+.item::after{
+    content:"";
+    position:absolute;
+    top:0;
+    left:-100%;
+    width:100%;
+    height:100%;
+    background:linear-gradient(120deg,transparent,rgba(255,215,0,0.3),transparent);
+    transition:0.5s;
+}
+
+.item:hover::after{
+    left:100%;
 }
 
 .item:hover{
-    background:rgba(255,215,0,0.1);
     transform:scale(1.05);
 }
 
 /* COIN */
 .coin{
-    width:20px;
+    width:22px;
     margin-right:5px;
-    animation:glow 1.5s infinite alternate;
+    animation:glow 1.2s infinite alternate;
 }
 
 @keyframes glow{
     from{filter:drop-shadow(0 0 3px gold);}
-    to{filter:drop-shadow(0 0 12px gold);}
+    to{filter:drop-shadow(0 0 15px gold);}
 }
 
 /* NAV */
 .nav{
     position:absolute;
-    bottom:30px;
+    bottom:25px;
     width:100%;
     display:flex;
     justify-content:space-between;
@@ -131,38 +156,62 @@ body{
     font-weight:bold;
     cursor:pointer;
     border-radius:6px;
+    transition:0.2s;
+}
+
+.nav button:hover{
+    transform:scale(1.1);
+}
+
+/* BUY EFFECT */
+.buy-effect{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:gold;
+    font-size:24px;
+    opacity:0;
+    pointer-events:none;
+}
+
+.buy-effect.show{
+    animation:buyAnim 1s forwards;
+}
+
+@keyframes buyAnim{
+    0%{opacity:0; transform:translate(-50%,-50%) scale(0.5);}
+    50%{opacity:1; transform:translate(-50%,-60%) scale(1.2);}
+    100%{opacity:0; transform:translate(-50%,-70%) scale(1);}
 }
 </style>
 </head>
 <body>
 
 <div class="app">
+<div class="camera" id="camera">
 
 <img src="nightclub_indoor.jpg" class="bg">
 
-<div class="book-wrapper" id="bookWrapper" onclick="toggleBook()">
-    <div class="book">
-
-        <div class="page front" id="pageContent">
-        </div>
-
-        <div class="page back">
-            <div class="title">VIP NIGHT MENU</div>
-        </div>
-
+<div class="book-wrapper" id="bookWrapper">
+    <div class="page front" id="pageContent"></div>
+    <div class="page back">
+        <div class="title">VIP NIGHT MENU</div>
     </div>
 </div>
 
+<div class="buy-effect" id="buyEffect">+ VIP</div>
+
 <div class="nav">
-    <button onclick="prevPage(event)">◀</button>
-    <button onclick="nextPage(event)">▶</button>
+    <button onclick="prevPage()">◀</button>
+    <button onclick="nextPage()">▶</button>
 </div>
 
+</div>
 </div>
 
 <script>
 
-/* NIGHT CLUB MENÜ VERİSİ */
 const pages = [
 [
  {name:"Champagne",price:200},
@@ -180,13 +229,15 @@ let currentPage = 0;
 let isOpen = false;
 
 const wrapper = document.getElementById("bookWrapper");
+const camera = document.getElementById("camera");
 const pageContent = document.getElementById("pageContent");
+const buyEffect = document.getElementById("buyEffect");
 
 function renderPage(){
     pageContent.innerHTML = "<div class='title'>VIP NIGHT MENU</div>";
     pages[currentPage].forEach(item=>{
         pageContent.innerHTML += `
-        <div class="item" onclick="buyItem(event,'${item.name}',${item.price})">
+        <div class="item" onclick="buyItem('${item.name}',${item.price}')">
             <div>${item.name}</div>
             <div>
                 <img src="yton.png" class="coin">
@@ -196,30 +247,41 @@ function renderPage(){
     });
 }
 
-function toggleBook(){
-    isOpen = !isOpen;
+wrapper.addEventListener("click",()=>{
+    isOpen=!isOpen;
     wrapper.classList.toggle("open");
-}
+    camera.classList.toggle("zoom");
+    playFlip();
+});
 
-function nextPage(e){
-    e.stopPropagation();
+function nextPage(){
     if(currentPage < pages.length-1){
         currentPage++;
         renderPage();
+        playFlip();
     }
 }
 
-function prevPage(e){
-    e.stopPropagation();
+function prevPage(){
     if(currentPage > 0){
         currentPage--;
         renderPage();
+        playFlip();
     }
 }
 
-function buyItem(e,name,price){
-    e.stopPropagation();
-    alert(name+" satın alındı! - "+price+" YTON");
+function buyItem(name,price){
+    playCoin();
+    buyEffect.classList.add("show");
+    setTimeout(()=>buyEffect.classList.remove("show"),1000);
+}
+
+function playFlip(){
+    new Audio("flip.mp3").play();
+}
+
+function playCoin(){
+    new Audio("coin.mp3").play();
 }
 
 renderPage();
