@@ -1,11 +1,213 @@
-<script src="engine/book.engine.js"></script>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TonCrime CoffeeShop</title>
+
+<style>
+body{
+    margin:0;
+    background:black;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    overflow:hidden;
+    font-family:Arial;
+}
+
+/* TELEGRAM ORANI */
+.app{
+    width:390px;
+    height:690px;
+    position:relative;
+    perspective:2000px;
+    overflow:hidden;
+}
+
+/* BACKGROUND */
+.bg{
+    position:absolute;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+/* CAMERA EFFECT */
+.camera{
+    position:absolute;
+    width:100%;
+    height:100%;
+    transition:transform 0.8s ease;
+}
+.camera.zoom{
+    transform:scale(1.06);
+}
+
+/* BOOK WRAPPER */
+.book-wrapper{
+    position:absolute;
+    width:320px;
+    height:480px;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    transform-style:preserve-3d;
+    transition:transform 1s ease;
+    cursor:pointer;
+}
+
+.book-wrapper.open{
+    transform:translate(-50%,-50%) rotateY(180deg);
+}
+
+/* PAGES */
+.page{
+    position:absolute;
+    width:100%;
+    height:100%;
+    backface-visibility:hidden;
+}
+
+.page img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+}
+
+.page.back{
+    transform:rotateY(180deg);
+}
+
+/* MENU CONTENT */
+.menu{
+    position:absolute;
+    top:130px;
+    left:70px;
+    width:180px;
+    color:gold;
+    opacity:0;
+    transition:0.5s;
+}
+
+.menu.show{
+    opacity:1;
+}
+
+.item{
+    display:flex;
+    justify-content:space-between;
+    margin:18px 0;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.item:hover{
+    transform:scale(1.07);
+}
+
+.coin{
+    width:16px;
+    margin-right:4px;
+    animation:glow 1.2s infinite alternate;
+}
+
+@keyframes glow{
+    from{filter:drop-shadow(0 0 3px gold);}
+    to{filter:drop-shadow(0 0 12px gold);}
+}
+
+/* BUY EFFECT */
+.buy{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:gold;
+    font-size:22px;
+    opacity:0;
+    pointer-events:none;
+}
+
+.buy.show{
+    animation:buyAnim 1s forwards;
+}
+
+@keyframes buyAnim{
+    0%{opacity:0; transform:translate(-50%,-50%) scale(0.5);}
+    50%{opacity:1; transform:translate(-50%,-60%) scale(1.2);}
+    100%{opacity:0; transform:translate(-50%,-70%) scale(1);}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<div class="camera" id="camera">
+
+<img src="coffeeshop_indoor.jpg" class="bg">
+
+<div class="book-wrapper" id="book">
+
+    <div class="page front">
+        <img src="coffeeshop_book_closed.png">
+    </div>
+
+    <div class="page back">
+        <img src="coffeeshop_book_open.png">
+    </div>
+
+</div>
+
+<div class="menu" id="menu">
+
+<div class="item" onclick="buy('Espresso',50,event)">
+<span>Espresso</span>
+<span><img src="yton.png" class="coin">50</span>
+</div>
+
+<div class="item" onclick="buy('Americano',100,event)">
+<span>Americano</span>
+<span><img src="yton.png" class="coin">100</span>
+</div>
+
+<div class="item" onclick="buy('Dark Roast',200,event)">
+<span>Dark Roast</span>
+<span><img src="yton.png" class="coin">200</span>
+</div>
+
+</div>
+
+<div class="buy" id="buyEffect">+ SATIN ALINDI</div>
+
+</div>
+</div>
 
 <script>
-new BookEngine("bookWrapper",{
-    camera: document.getElementById("camera"),
-    imageElement: document.getElementById("bookImg"),
-    menuElement: document.getElementById("menuContent"),
-    openImg: "coffeeshop_book_open.png",
-    closedImg: "coffeeshop_book_closed.png"
+
+let open=false;
+const book=document.getElementById("book");
+const camera=document.getElementById("camera");
+const menu=document.getElementById("menu");
+const buyEffect=document.getElementById("buyEffect");
+
+book.addEventListener("click",()=>{
+    open=!open;
+    book.classList.toggle("open");
+    camera.classList.toggle("zoom");
+    menu.classList.toggle("show");
 });
+
+function buy(name,price,e){
+    e.stopPropagation();
+    buyEffect.innerText=name+" Alındı!";
+    buyEffect.classList.add("show");
+    setTimeout(()=>buyEffect.classList.remove("show"),1000);
+}
+
 </script>
+
+</body>
+</html>
