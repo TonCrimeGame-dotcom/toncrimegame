@@ -4,37 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
-
-<!-- GLOBAL CSS -->
 <link rel="stylesheet" href="global.css">
-
 </head>
 <body>
 
 <div class="app">
 
-  <!-- BACKGROUND -->
   <img src="background.jpg" class="bg">
-
-  <!-- LOGO -->
   <img src="logo.png" class="logo">
 
-  <!-- ===== USER HUD ===== -->
+  <!-- ===== USER PANEL ===== -->
   <div class="hud">
 
-    <!-- ENERJI -->
     <div id="energyText">⚡ 0/100</div>
     <div class="bar">
       <div class="fill" id="energyBar"></div>
     </div>
 
-    <!-- XP -->
     <div id="xpText">XP 0/1000 (Lv 1)</div>
     <div class="bar">
       <div class="fill" id="xpBar"></div>
     </div>
 
-    <!-- YTON -->
     <div class="yton-row">
       <img src="yton.png">
       <span id="ytonText">0</span>
@@ -91,13 +82,44 @@
 </div>
 
 
-<!-- ===== SCRIPTS ===== -->
-
 <script src="engine/player.engine.js"></script>
 
 <script>
 
-/* ===== MENU NAVIGATION ===== */
+/* ===== SAFE INIT ===== */
+document.addEventListener("DOMContentLoaded", () => {
+
+  if (typeof PlayerEngine !== "undefined") {
+
+    const player = PlayerEngine.getPlayer();
+
+    const xpMax = player.xpMax || 1000;
+    const maxEnergy = player.maxEnergy || 100;
+
+    // ENERGY
+    document.getElementById("energyText").textContent =
+      "⚡ " + player.energy + "/" + maxEnergy;
+
+    document.getElementById("energyBar").style.width =
+      (player.energy / maxEnergy * 100) + "%";
+
+    // XP
+    document.getElementById("xpText").textContent =
+      "XP " + player.xp + "/" + xpMax + " (Lv " + player.level + ")";
+
+    document.getElementById("xpBar").style.width =
+      (player.xp / xpMax * 100) + "%";
+
+    // YTON
+    document.getElementById("ytonText").textContent = player.yton;
+
+  }
+
+  loadChat();
+
+});
+
+/* ===== NAV ===== */
 function go(page){
   window.location.href = page;
 }
@@ -125,15 +147,18 @@ function sendMessage(){
   const msg=input.value.trim();
   if(!msg) return;
 
-  const fullMsg = PlayerEngine.getPlayer().username + ": " + msg;
+  const username =
+    (typeof PlayerEngine !== "undefined")
+      ? PlayerEngine.getPlayer().username
+      : "Player";
+
+  const fullMsg = username + ": " + msg;
 
   chatData.push(fullMsg);
   saveChat();
   loadChat();
   input.value="";
 }
-
-loadChat();
 
 </script>
 
