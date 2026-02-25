@@ -36,30 +36,36 @@ body{
 /* HUD */
 .hud{
   position:absolute;
-  top:10px;
+  top:15px;
   left:50%;
   transform:translateX(-50%);
   display:flex;
-  gap:20px;
+  gap:25px;
   color:gold;
   font-weight:bold;
+  font-size:18px;
   z-index:5;
 }
 
-/* BOOK CLOSED */
+/* CLOSED BOOK */
 .book-closed{
   position:absolute;
-  bottom:60px;
+  bottom:80px;
   left:50%;
   transform:translateX(-50%);
-  width:220px;
-  height:320px;
+  width:230px;
+  height:330px;
   background:url('/nightclub_book_closed.png') center/contain no-repeat;
   cursor:pointer;
-  transition:0.4s;
+  z-index:3;
+  transition:0.3s;
 }
 
-/* MODAL */
+.book-closed:hover{
+  transform:translateX(-50%) scale(1.05);
+}
+
+/* FULL SCREEN MODAL */
 .menu-modal{
   position:absolute;
   inset:0;
@@ -69,6 +75,7 @@ body{
   opacity:0;
   pointer-events:none;
   transition:0.4s;
+  z-index:10;
 }
 
 .menu-modal.active{
@@ -76,7 +83,7 @@ body{
   pointer-events:auto;
 }
 
-/* OPEN BOOK FULL */
+/* OPEN BOOK */
 .menu-book{
   width:360px;
   height:520px;
@@ -90,13 +97,13 @@ body{
   transform:scale(1);
 }
 
-/* OVERLAY INSIDE BOOK */
+/* OVERLAY */
 .overlay{
   position:absolute;
-  top:22%;
+  top:23%;
   left:6%;
   width:88%;
-  height:63%;
+  height:60%;
   display:flex;
 }
 
@@ -120,28 +127,30 @@ body{
   transform:scale(1.05);
 }
 
-/* EXIT */
+/* EXIT BUTTON */
 .exit{
   position:absolute;
-  bottom:10px;
-  right:15px;
+  bottom:15px;
+  right:20px;
   background:gold;
   color:black;
   padding:6px 12px;
   font-weight:bold;
   cursor:pointer;
-  border-radius:4px;
+  border-radius:5px;
 }
 
+/* RESULT TEXT */
 .result{
   position:absolute;
-  bottom:10px;
+  bottom:20px;
   left:50%;
   transform:translateX(-50%);
   color:white;
-  font-size:13px;
+  font-size:14px;
   width:90%;
   text-align:center;
+  z-index:20;
 }
 </style>
 </head>
@@ -156,10 +165,10 @@ body{
   ⭐ <span id="xp">0</span>
 </div>
 
-<div class="book-closed" id="closed"></div>
+<div class="book-closed" id="closedBook"></div>
 
 <!-- FULL SCREEN MENU -->
-<div class="menu-modal" id="modal">
+<div class="menu-modal" id="menuModal">
   <div class="menu-book">
       <div class="overlay">
           <div class="page" id="leftPage"></div>
@@ -216,6 +225,7 @@ foods.forEach(p=>right.appendChild(createItem(p)));
 function consume(p){
  energy+=p.energy;
  xp+=5;
+
  document.getElementById("energy").textContent=energy;
  document.getElementById("xp").textContent=xp;
 
@@ -223,15 +233,16 @@ function consume(p){
  if(p.type==="food") ate=true;
 }
 
-const closed=document.getElementById("closed");
-const modal=document.getElementById("modal");
+const closedBook=document.getElementById("closedBook");
+const menuModal=document.getElementById("menuModal");
 const bg=document.getElementById("bg");
 const exitBtn=document.getElementById("exitBtn");
 const result=document.getElementById("result");
 
-closed.onclick=()=>{
- modal.classList.add("active");
+closedBook.onclick=()=>{
+ menuModal.classList.add("active");
  bg.classList.add("blur");
+ closedBook.style.display="none";
 };
 
 exitBtn.onclick=()=>{
@@ -245,8 +256,9 @@ exitBtn.onclick=()=>{
  drank=false;
  ate=false;
 
- modal.classList.remove("active");
+ menuModal.classList.remove("active");
  bg.classList.remove("blur");
+ closedBook.style.display="block";
 };
 
 </script>
