@@ -22,7 +22,6 @@ body{
     width:390px;
     height:690px;
     position:relative;
-    perspective:2200px;
     overflow:hidden;
 }
 
@@ -34,68 +33,49 @@ body{
     object-fit:cover;
 }
 
-/* CAMERA */
-.camera{
+/* CLOSED BOOK */
+.book-closed{
     position:absolute;
-    width:100%;
-    height:100%;
-    transition:transform 0.8s ease;
-}
-.camera.zoom{
-    transform:scale(1.07);
-}
-
-/* BOOK */
-.book-wrapper{
-    position:absolute;
-    width:330px;
-    height:500px;
+    width:320px;
     left:50%;
     top:50%;
     transform:translate(-50%,-50%);
-    transform-style:preserve-3d;
-    transition:transform 1.2s ease;
     cursor:pointer;
+    transition:0.4s;
 }
 
-.book-wrapper.open{
-    transform:translate(-50%,-50%) rotateY(180deg);
-}
-
-.page{
+/* OPEN BOOK */
+.book-open{
     position:absolute;
-    width:100%;
-    height:100%;
-    backface-visibility:hidden;
-}
-
-.page img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-}
-
-.page.back{
-    transform:rotateY(180deg);
-}
-
-/* MENU CONTENT */
-.menu{
-    position:absolute;
-    top:140px;
-    left:65px;
-    width:200px;
-    color:gold;
+    width:330px;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%) scale(0.9);
     opacity:0;
     transition:0.6s;
 }
 
-.menu.show{
+/* OPEN STATE */
+.book-open.active{
     opacity:1;
+    transform:translate(-50%,-50%) scale(1);
 }
 
-.section{
-    margin-bottom:25px;
+.hidden{ display:none; }
+
+/* MENU CONTENT */
+.menu{
+    position:absolute;
+    top:130px;
+    left:65px;
+    width:220px;
+    color:gold;
+    opacity:0;
+    transition:0.4s;
+}
+
+.menu.active{
+    opacity:1;
 }
 
 .item{
@@ -107,7 +87,7 @@ body{
 }
 
 .item:hover{
-    transform:scale(1.08);
+    transform:scale(1.06);
 }
 
 .coin{
@@ -118,7 +98,35 @@ body{
 
 @keyframes glow{
     from{filter:drop-shadow(0 0 3px gold);}
-    to{filter:drop-shadow(0 0 14px gold);}
+    to{filter:drop-shadow(0 0 12px gold);}
+}
+
+/* NAV BUTTONS */
+.nav{
+    position:absolute;
+    bottom:20px;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    padding:0 40px;
+}
+
+.nav button{
+    background:gold;
+    border:none;
+    padding:6px 14px;
+    font-weight:bold;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+/* STATUS PANEL */
+.status{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    font-size:12px;
 }
 
 /* BUY EFFECT */
@@ -128,9 +136,8 @@ body{
     left:50%;
     transform:translate(-50%,-50%);
     color:gold;
-    font-size:22px;
+    font-size:20px;
     opacity:0;
-    pointer-events:none;
 }
 
 .buy.show{
@@ -148,75 +155,182 @@ body{
 
 <div class="app">
 
-<div class="camera" id="camera">
-
 <img src="nightclub_indoor.jpg" class="bg">
 
-<div class="book-wrapper" id="book">
+<img src="nightclub_book_closed.png" class="book-closed" id="bookClosed">
+<img src="nightclub_book_open.png" class="book-open" id="bookOpen">
 
-    <div class="page front">
-        <img src="nightclub_book_closed.png">
-    </div>
+<div class="menu" id="menu"></div>
 
-    <div class="page back">
-        <img src="nightclub_book_open.png">
-    </div>
-
+<div class="nav hidden" id="nav">
+<button onclick="prevPage()">◀</button>
+<button onclick="nextPage()">▶</button>
 </div>
 
-<div class="menu" id="menu">
+<div class="status" id="status"></div>
+<div class="buy" id="buyEffect"></div>
 
-<div class="section">
-<div class="item" onclick="buy('Champagne',200,event)">
-<span>Champagne</span>
-<span><img src="yton.png" class="coin">200</span>
-</div>
-
-<div class="item" onclick="buy('Whiskey',300,event)">
-<span>Whiskey</span>
-<span><img src="yton.png" class="coin">300</span>
-</div>
-
-<div class="item" onclick="buy('Cognac',400,event)">
-<span>Cognac</span>
-<span><img src="yton.png" class="coin">400</span>
-</div>
-</div>
-
-<div class="section">
-<div class="item" onclick="buy('VIP Bottle',800,event)">
-<span>VIP Bottle</span>
-<span><img src="yton.png" class="coin">800</span>
-</div>
-</div>
-
-</div>
-
-<div class="buy" id="buyEffect">SATIN ALINDI</div>
-
-</div>
 </div>
 
 <script>
 
-let open=false;
-const book=document.getElementById("book");
-const camera=document.getElementById("camera");
+/* =======================
+   PLAYER STATE
+======================= */
+
+let player={
+  energy:0,
+  risk:0,
+  charm:0,
+  partyMeter:0,
+  inventory:[],
+  lastDrink:false,
+  lastFood:false
+};
+
+/* =======================
+   ITEMS
+======================= */
+
+const pages=[
+  [
+    {name:"Rakı",energy:30,risk:45,type:"drink"},
+    {name:"Vodka",energy:25,risk:40,type:"drink"},
+    {name:"Whiskey",energy:28,risk:42,type:"drink"},
+    {name:"Tequila",energy:26,risk:38,type:"drink"},
+    {name:"Gin",energy:22,risk:35,type:"drink"},
+    {name:"Bira",energy:15,risk:20,type:"drink"}
+  ],
+  [
+    {name:"Champagne",energy:20,risk:25,type:"drink"},
+    {name:"Cognac",energy:32,risk:48,type:"drink"},
+    {name:"VIP Bottle",energy:50,risk:70,type:"drink"},
+    {name:"Energy Shot",energy:45,risk:60,type:"drink"}
+  ],
+  [
+    {name:"Patates",energy:15,risk:0,type:"food"},
+    {name:"Meyve Tabağı",energy:20,risk:0,type:"food"},
+    {name:"Çerez",energy:10,risk:0,type:"food"},
+    {name:"Nachos",energy:18,risk:0,type:"food"}
+  ]
+];
+
+let currentPage=0;
+
+/* =======================
+   BOOK OPEN
+======================= */
+
+const closed=document.getElementById("bookClosed");
+const openBook=document.getElementById("bookOpen");
 const menu=document.getElementById("menu");
+const nav=document.getElementById("nav");
+const status=document.getElementById("status");
 const buyEffect=document.getElementById("buyEffect");
 
-book.addEventListener("click",()=>{
-    open=!open;
-    book.classList.toggle("open");
-    camera.classList.toggle("zoom");
-    menu.classList.toggle("show");
+closed.addEventListener("click",()=>{
+  closed.classList.add("hidden");
+  openBook.classList.add("active");
+  menu.classList.add("active");
+  nav.classList.remove("hidden");
+  renderPage();
 });
 
-function buy(name,price,e){
-    e.stopPropagation();
-    buyEffect.innerText=name+" Alındı!";
-    buyEffect.classList.add("show");
-    setTimeout(()=>buyEffect.classList.remove("show"),1000);
+/* =======================
+   PAGE RENDER
+======================= */
+
+function renderPage(){
+  menu.innerHTML="";
+  pages[currentPage].forEach(item=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`
+      <span>${item.name}</span>
+      <span>${item.energy}⚡</span>
+    `;
+    div.onclick=()=>useItem(item);
+    menu.appendChild(div);
+  });
+}
+
+/* =======================
+   NAVIGATION
+======================= */
+
+function nextPage(){
+  if(currentPage<pages.length-1){
+    currentPage++;
+    renderPage();
+  }
+}
+
+function prevPage(){
+  if(currentPage>0){
+    currentPage--;
+    renderPage();
+  }
+}
+
+/* =======================
+   GAME LOGIC
+======================= */
+
+function useItem(item){
+
+  player.energy+=item.energy;
+  player.risk+=item.risk;
+  player.partyMeter+=10;
+
+  if(item.type==="drink") player.lastDrink=true;
+  if(item.type==="food") player.lastFood=true;
+
+  checkCombo();
+  checkRisk();
+  checkParty();
+
+  buyEffect.innerText=item.name+" Alındı!";
+  buyEffect.classList.add("show");
+  setTimeout(()=>buyEffect.classList.remove("show"),1000);
+
+  updateStatus();
+}
+
+function checkCombo(){
+  if(player.lastDrink && player.lastFood){
+    player.energy+=10;
+    player.charm+=30;
+    if(Math.random()<0.30){
+      player.inventory.push("nightclub_worker");
+    }
+    player.lastDrink=false;
+    player.lastFood=false;
+  }
+}
+
+function checkRisk(){
+  if(player.risk>45){
+    if(Math.random()<0.25){
+      alert("PvP saldırısına uğradın!");
+    }
+  }
+}
+
+function checkParty(){
+  if(player.partyMeter>=100){
+    player.partyMeter=0;
+    player.risk-=20;
+    alert("VIP PARTY EVENT!");
+  }
+}
+
+function updateStatus(){
+  status.innerHTML=`
+  ⚡ Energy: ${player.energy}<br>
+  ⚠ Risk: ${player.risk}<br>
+  🎉 Party: ${player.partyMeter}<br>
+  👩 Worker: ${player.inventory.length}
+  `;
 }
 
 </script>
