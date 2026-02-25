@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TonCrime NightClub</title>
+<title>TonCrime Nightclub</title>
 
 <style>
 body{
@@ -17,7 +17,6 @@ body{
     font-family:Arial;
 }
 
-/* TELEGRAM ORANI */
 .app{
     width:390px;
     height:690px;
@@ -26,6 +25,7 @@ body{
 }
 
 /* BACKGROUND */
+
 .bg{
     position:absolute;
     width:100%;
@@ -33,43 +33,52 @@ body{
     object-fit:cover;
 }
 
-/* CLOSED BOOK */
+/* CLOSED BOOK (MASA ÜSTÜ) */
+
 .book-closed{
     position:absolute;
-    width:320px;
+    width:300px;
+    top:65%;
     left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
+    transform:translate(-50%,-50%) rotateX(12deg) scale(0.95);
     cursor:pointer;
-    transition:0.4s;
+    transition:0.6s;
+    box-shadow:
+      0 35px 45px rgba(0,0,0,0.7),
+      0 15px 25px rgba(0,0,0,0.6);
 }
 
 /* OPEN BOOK */
+
 .book-open{
     position:absolute;
-    width:330px;
+    width:320px;
+    top:60%;
     left:50%;
-    top:50%;
-    transform:translate(-50%,-50%) scale(0.9);
+    transform:translate(-50%,-50%) rotateX(12deg) scale(0.8);
     opacity:0;
     transition:0.6s;
+    box-shadow:
+      0 40px 60px rgba(0,0,0,0.8),
+      0 20px 30px rgba(0,0,0,0.7);
 }
 
-/* OPEN STATE */
 .book-open.active{
     opacity:1;
-    transform:translate(-50%,-50%) scale(1);
+    transform:translate(-50%,-50%) rotateX(0deg) scale(1);
 }
 
 .hidden{ display:none; }
 
-/* MENU CONTENT */
+/* MENU OVERLAY */
+
 .menu{
     position:absolute;
-    top:130px;
-    left:65px;
-    width:220px;
+    top:200px;
+    left:75px;
+    width:240px;
     color:gold;
+    font-weight:bold;
     opacity:0;
     transition:0.4s;
 }
@@ -81,34 +90,24 @@ body{
 .item{
     display:flex;
     justify-content:space-between;
-    margin:14px 0;
+    margin:12px 0;
     cursor:pointer;
     transition:0.2s;
 }
 
 .item:hover{
-    transform:scale(1.06);
+    transform:scale(1.05);
 }
 
-.coin{
-    width:16px;
-    margin-right:4px;
-    animation:glow 1.2s infinite alternate;
-}
+/* NAV */
 
-@keyframes glow{
-    from{filter:drop-shadow(0 0 3px gold);}
-    to{filter:drop-shadow(0 0 12px gold);}
-}
-
-/* NAV BUTTONS */
 .nav{
     position:absolute;
-    bottom:20px;
+    bottom:25px;
     width:100%;
     display:flex;
     justify-content:space-between;
-    padding:0 40px;
+    padding:0 50px;
 }
 
 .nav button{
@@ -120,7 +119,8 @@ body{
     cursor:pointer;
 }
 
-/* STATUS PANEL */
+/* STATUS */
+
 .status{
     position:absolute;
     top:10px;
@@ -130,13 +130,14 @@ body{
 }
 
 /* BUY EFFECT */
+
 .buy{
     position:absolute;
-    top:50%;
+    top:45%;
     left:50%;
     transform:translate(-50%,-50%);
     color:gold;
-    font-size:20px;
+    font-size:18px;
     opacity:0;
 }
 
@@ -145,7 +146,7 @@ body{
 }
 
 @keyframes buyAnim{
-    0%{opacity:0; transform:translate(-50%,-50%) scale(0.5);}
+    0%{opacity:0; transform:translate(-50%,-50%) scale(0.6);}
     50%{opacity:1; transform:translate(-50%,-60%) scale(1.2);}
     100%{opacity:0; transform:translate(-50%,-70%) scale(1);}
 }
@@ -157,8 +158,8 @@ body{
 
 <img src="nightclub_indoor.jpg" class="bg">
 
-<img src="nightclub_book_closed.png" class="book-closed" id="bookClosed">
-<img src="nightclub_book_open.png" class="book-open" id="bookOpen">
+<img src="nightclub_book_closed.png" class="book-closed" id="closed">
+<img src="nightclub_book_open.png" class="book-open" id="open">
 
 <div class="menu" id="menu"></div>
 
@@ -174,162 +175,115 @@ body{
 
 <script>
 
-/* =======================
-   PLAYER STATE
-======================= */
+/* PLAYER */
 
 let player={
   energy:0,
   risk:0,
-  charm:0,
-  partyMeter:0,
-  inventory:[],
-  lastDrink:false,
-  lastFood:false
+  workers:0,
+  lastType:null
 };
 
-/* =======================
-   ITEMS
-======================= */
+/* PRODUCTS */
 
 const pages=[
   [
-    {name:"Rakı",energy:30,risk:45,type:"drink"},
-    {name:"Vodka",energy:25,risk:40,type:"drink"},
-    {name:"Whiskey",energy:28,risk:42,type:"drink"},
-    {name:"Tequila",energy:26,risk:38,type:"drink"},
-    {name:"Gin",energy:22,risk:35,type:"drink"},
-    {name:"Bira",energy:15,risk:20,type:"drink"}
+    {name:"Rakı",energy:15,type:"drink"},
+    {name:"Vodka",energy:20,type:"drink"},
+    {name:"Whiskey",energy:25,type:"drink"},
+    {name:"Beer",energy:10,type:"drink"}
   ],
   [
-    {name:"Champagne",energy:20,risk:25,type:"drink"},
-    {name:"Cognac",energy:32,risk:48,type:"drink"},
-    {name:"VIP Bottle",energy:50,risk:70,type:"drink"},
-    {name:"Energy Shot",energy:45,risk:60,type:"drink"}
+    {name:"Champagne",energy:30,type:"drink"},
+    {name:"Tequila",energy:22,type:"drink"},
+    {name:"Gin",energy:18,type:"drink"},
+    {name:"Rum",energy:20,type:"drink"}
   ],
   [
-    {name:"Patates",energy:15,risk:0,type:"food"},
-    {name:"Meyve Tabağı",energy:20,risk:0,type:"food"},
-    {name:"Çerez",energy:10,risk:0,type:"food"},
-    {name:"Nachos",energy:18,risk:0,type:"food"}
+    {name:"Patates",energy:8,type:"food"},
+    {name:"Çerez",energy:6,type:"food"},
+    {name:"Meyve Tabağı",energy:12,type:"food"}
   ]
 ];
 
 let currentPage=0;
 
-/* =======================
-   BOOK OPEN
-======================= */
+/* OPEN */
 
-const closed=document.getElementById("bookClosed");
-const openBook=document.getElementById("bookOpen");
+const closed=document.getElementById("closed");
+const open=document.getElementById("open");
 const menu=document.getElementById("menu");
 const nav=document.getElementById("nav");
 const status=document.getElementById("status");
 const buyEffect=document.getElementById("buyEffect");
 
-closed.addEventListener("click",()=>{
+closed.onclick=()=>{
   closed.classList.add("hidden");
-  openBook.classList.add("active");
+  open.classList.add("active");
   menu.classList.add("active");
   nav.classList.remove("hidden");
-  renderPage();
-});
+  render();
+};
 
-/* =======================
-   PAGE RENDER
-======================= */
+/* RENDER */
 
-function renderPage(){
+function render(){
   menu.innerHTML="";
   pages[currentPage].forEach(item=>{
     const div=document.createElement("div");
     div.className="item";
-    div.innerHTML=`
-      <span>${item.name}</span>
-      <span>${item.energy}⚡</span>
-    `;
-    div.onclick=()=>useItem(item);
+    div.innerHTML=`<span>${item.name}</span><span>${item.energy}⚡</span>`;
+    div.onclick=()=>buy(item);
     menu.appendChild(div);
   });
 }
 
-/* =======================
-   NAVIGATION
-======================= */
+/* NAV */
 
 function nextPage(){
   if(currentPage<pages.length-1){
     currentPage++;
-    renderPage();
+    render();
   }
 }
 
 function prevPage(){
   if(currentPage>0){
     currentPage--;
-    renderPage();
+    render();
   }
 }
 
-/* =======================
-   GAME LOGIC
-======================= */
+/* BUY LOGIC */
 
-function useItem(item){
+function buy(item){
 
   player.energy+=item.energy;
-  player.risk+=item.risk;
-  player.partyMeter+=10;
 
-  if(item.type==="drink") player.lastDrink=true;
-  if(item.type==="food") player.lastFood=true;
+  if(item.type==="drink"){
+    player.risk+=45;
+  }
 
-  checkCombo();
-  checkRisk();
-  checkParty();
+  if(item.type==="food" && player.lastType==="drink"){
+    if(Math.random()<0.30){
+      player.workers++;
+    }
+  }
+
+  player.lastType=item.type;
 
   buyEffect.innerText=item.name+" Alındı!";
   buyEffect.classList.add("show");
   setTimeout(()=>buyEffect.classList.remove("show"),1000);
 
-  updateStatus();
+  update();
 }
 
-function checkCombo(){
-  if(player.lastDrink && player.lastFood){
-    player.energy+=10;
-    player.charm+=30;
-    if(Math.random()<0.30){
-      player.inventory.push("nightclub_worker");
-    }
-    player.lastDrink=false;
-    player.lastFood=false;
-  }
-}
-
-function checkRisk(){
-  if(player.risk>45){
-    if(Math.random()<0.25){
-      alert("PvP saldırısına uğradın!");
-    }
-  }
-}
-
-function checkParty(){
-  if(player.partyMeter>=100){
-    player.partyMeter=0;
-    player.risk-=20;
-    alert("VIP PARTY EVENT!");
-  }
-}
-
-function updateStatus(){
+function update(){
   status.innerHTML=`
   ⚡ Energy: ${player.energy}<br>
   ⚠ Risk: ${player.risk}<br>
-  🎉 Party: ${player.partyMeter}<br>
-  👩 Worker: ${player.inventory.length}
+  👩 Worker: ${player.workers}
   `;
 }
 
