@@ -1,65 +1,160 @@
 /* ===================================================
    TONCRIME CLAN ENGINE
-   =================================================== */
+=================================================== */
 
-(function(){
-
-const CLAN={};
-
-/* ================= CREATE ================= */
-
-CLAN.create=async function(){
-
-const name=prompt("Clan adı:");
-if(!name) return;
-
-await db.from("clans").insert({
-name,
-owner:CONFIG.USER_ID
-});
-
-EVENT.emit("notify","Clan kuruldu");
+GAME.clan = {
+  data:null,
+  members:[]
 };
 
-/* ================= JOIN ================= */
+/* ===================================================
+   CREATE CLAN
+=================================================== */
 
-CLAN.join=async function(id){
+async function createClan(name){
 
-await db.from("clan_members").insert({
-clan_id:id,
-user_id:CONFIG.USER_ID
-});
+  if(GAME.user.clan_id){
+    alert("Zaten bir clandasın");
+    return;
+  }
 
-EVENT.emit("notify","Clan'a katıldın");
-};
+  const { data, error } =
+    await db.from("clans")
+    .insert({
+      name:name,
+      owner_id:GAME.user.id
+    })
+    .select()
+    .single();
 
-/* ================= LIST ================= */
+  if(error){
+    alert("Clan adı alınmış");
+    return;
+  }
 
-CLAN.open=async function(){
+  await db.from("clan_members").insert({
+    clan_id:data.id,
+    user_id:GAME.user.id,
+    nickname:GAME.user.nickname,
+    role:"leader"
+  });
 
-const root=document.getElementById("tc-content");
+  await db.from("users")
+    .update({clan_id:data.id})
+    .eq("id",GAME.user.id);
 
-const {data}=await db.from("clans").select("*");
+  loadClan();
+}
 
-root.innerHTML=`
-<h2>👥 Clanlar</h2>
+/* ===================================================
+   JOIN CLAN
+=================================================== */
 
-<button onclick="CLAN.create()">Clan Kur</button>
+async function joinClan(clanId){
 
-${data.map(c=>`
-<div class="card">
-<b>${c.name}</b>
-<button onclick="CLAN.join('${c.id}')">Katıl</button>
-</div>
-`).join("")}
-`;
+  if(GAME.user.clan_id) return;
 
-};
+  await db.from("clan_members")
+    .insert({
+      clan_id:clanId,
+      user_id:GAME.user.id,
+      nickname:GAME.user.nickname
+    });
 
-EVENT.on("page:enter",p=>{
-if(p==="clans") CLAN.open();
-});
+  await db.from("users")
+    .update({clan_id:clanId})
+    .eq("id",GAME.user.id);
 
-window.CLAN=CLAN;
+  loadClan();
+}
 
-})();
+/* ===================================================
+   LOAD CLAN
+=================================================== */
+
+async function loadClan(){
+
+  if(!GAME.user.clan_id) return;
+
+  const { data:clan } = await db
+    .from("clans")
+    .select("*")
+    .eq("id",GAME.user.clan_id)
+    .single();
+
+  GAME.clan.data = clan;
+
+  const { data:members } = await db
+    .from("clan_members")
+    .select("*")
+    .eq("clan_id",clan.id);
+
+  GAME.clan.members = members;
+
+  renderClanPanel();
+}
+
+/* ===================================================
+   RENDER CLAN UI
+=================================================== */
+
+function renderClanPanel(){
+
+  const el=document.getElementById("clanPanel");
+  if(!el || !GAME.clan.data) return;
+
+  let html=`
+    <h3>${GAME.clan.data.name}</h3>
+    Clan Bank: ${GAME.clan.data.bank.toFixed(2)} YTON
+    <hr>
+  `;
+
+  GAME.clan.members.forEach(m=>{
+    html+=`<div>${m.nickname} (${m.role})</div>`;
+  });
+
+  el.innerHTML=html;
+}
+
+/* ===================================================
+   CLAN BANK DEPOSIT
+=================================================== */
+
+async function depositClan(amount){
+
+  if(!GAME.clan.data) return;
+
+  const paid = await spendYton(amount);
+  if(!paid) return;
+
+  await db.from("clans")
+    .update({
+      bank:GAME.clan.data.bank + amount
+    })
+    .eq("id",GAME.clan.data.id);
+
+  loadClan();
+}
+
+/* ===================================================
+   CLAN SCORE (PVP HOOK)
+=================================================== */
+
+async function addClanScore(points){
+
+  if(!GAME.user.clan_id) return;
+
+  await db.rpc("increase_clan_score",{
+    cid:GAME.user.clan_id,
+    pts:points
+  });
+}
+
+/* ===================================================
+   AUTO LOAD
+=================================================== */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  ()=>setTimeout(loadClan,2000)
+);

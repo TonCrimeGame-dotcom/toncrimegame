@@ -1,110 +1,108 @@
 /* ===================================================
-   TONCRIME ELO RANK ENGINE
-   Competitive Ranking System
-   =================================================== */
+   TONCRIME ELO / RANK SYSTEM
+=================================================== */
 
-(function(){
-
-if(!window.EVENT){
-  console.warn("ELO waiting EVENT...");
-  return;
-}
-
-const ELO={
-
-K:32,
-
-/* ===========================================
-   INIT
-=========================================== */
-
-init(){
-
-  EVENT.on("pvp:win",()=>{
-    this.updateRank();
-  });
-
-  EVENT.on("pvp:lose",()=>{
-    this.updateRank();
-  });
-
-  console.log("🏆 ELO Engine Ready");
-},
-
-/* ===========================================
-   CALCULATE ELO
-=========================================== */
-
-calculate(playerElo,enemyElo,win){
-
-  const expected =
-    1/(1+Math.pow(10,(enemyElo-playerElo)/400));
-
-  const score = win ? 1 : 0;
-
-  return Math.round(
-    playerElo + this.K*(score-expected)
-  );
-},
-
-/* ===========================================
-   LEAGUE DETECT
-=========================================== */
-
-league(elo){
-
-  if(elo>=1600) return "🟨 Crime Lord";
-  if(elo>=1400) return "🟪 Boss";
-  if(elo>=1200) return "🟦 Soldier";
-  if(elo>=1000) return "🟩 Hustler";
-
-  return "🟫 Street Rat";
-},
-
-/* ===========================================
-   UPDATE UI + STATE
-=========================================== */
-
-updateRank(){
-
-  const user=GAME.user;
-
-  user.league=this.league(user.elo);
-
-  EVENT.emit("user:update",user);
-
-  EVENT.emit(
-    "notify",
-    "Lig: "+user.league
-  );
-
-  EVENT.emit(
-    "crimefeed:add",
-    `${user.nickname} ligi: ${user.league}`
-  );
-}
-
+GAME.rank = {
+  K_FACTOR: 32
 };
 
-window.ELO=ELO;
+/* ================= LEAGUES ================= */
 
-/* ===========================================
-   AUTO START
-=========================================== */
+const LEAGUES = [
+  { name:"Bronze", min:0 },
+  { name:"Silver", min:800 },
+  { name:"Gold", min:1200 },
+  { name:"Platinum", min:1600 },
+  { name:"Diamond", min:2000 },
+  { name:"Master", min:2500 }
+];
 
-EVENT.on("game:ready",()=>{
-  ELO.init();
-});
+/* ================= GET LEAGUE ================= */
 
-/* ===========================================
-   CORE REGISTER
-=========================================== */
+function getLeague(score){
 
-if(window.CORE){
-  CORE.register(
-    "ELO Engine",
-    ()=>!!window.ELO
+  let league = LEAGUES[0];
+
+  for(const l of LEAGUES){
+    if(score >= l.min)
+      league = l;
+  }
+
+  return league.name;
+}
+
+/* ================= EXPECTED WIN ================= */
+
+function expectedScore(player, opponent){
+
+  return 1 / (
+    1 + Math.pow(
+      10,
+      (opponent - player) / 400
+    )
   );
 }
 
-})();
+/* ================= CALCULATE ELO ================= */
+
+function calculateElo(playerScore, opponentScore, win){
+
+  const expected =
+    expectedScore(playerScore, opponentScore);
+
+  const result = win ? 1 : 0;
+
+  const newScore =
+    playerScore +
+    GAME.rank.K_FACTOR *
+    (result - expected);
+
+  return Math.round(newScore);
+}
+
+/* ================= APPLY RESULT ================= */
+
+async function applyMatchResult({
+  playerId,
+  opponentScore,
+  win
+}){
+
+  secureAction(); // anti cheat hook
+
+  const { data:user } = await db
+    .from("users")
+    .select("*")
+    .eq("id", playerId)
+    .single();
+
+  if(!user) return;
+
+  const current = user.rank_score || 1000;
+
+  const newScore =
+    calculateElo(
+      current,
+      opponentScore,
+      win
+    );
+
+  const newLeague =
+    getLeague(newScore);
+
+  await db.from("users")
+    .update({
+      rank_score:newScore,
+      league:newLeague
+    })
+    .eq("id",playerId);
+
+  GAME.user.rank_score = newScore;
+  GAME.user.league = newLeague;
+
+  console.log(
+    "Rank Updated:",
+    newScore,
+    newLeague
+  );
+}

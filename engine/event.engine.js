@@ -1,140 +1,147 @@
 /* ===================================================
-   TONCRIME EVENT ENGINE
-   Global Event Bus System
-   =================================================== */
+   TONCRIME GLOBAL EVENT ENGINE
+=================================================== */
 
-(function(){
-
-/* ===============================================
-   EVENT BUS CORE
-=============================================== */
-
-window.EVENT = {
-
-  events:{},
-
-  /* ---------- EMIT ---------- */
-
-  emit(name,data=null){
-
-    if(!this.events[name]) return;
-
-    this.events[name].forEach(cb=>{
-      try{
-        cb(data);
-      }catch(e){
-        console.error("Event error:",name,e);
-      }
-    });
-  },
-
-  /* ---------- LISTEN ---------- */
-
-  on(name,callback){
-
-    if(!this.events[name])
-      this.events[name]=[];
-
-    this.events[name].push(callback);
-  },
-
-  /* ---------- REMOVE ---------- */
-
-  off(name,callback){
-
-    if(!this.events[name]) return;
-
-    this.events[name] =
-      this.events[name].filter(cb=>cb!==callback);
-  }
-
+GAME.event = {
+  active:null,
+  checking:false
 };
 
-console.log("⚡ Event Engine Ready");
+/* ================= EVENT POOL ================= */
 
+const EVENTS = [
 
-/* ===================================================
-   DEFAULT GAME EVENTS
-   (OYUNUN OTOMATİK REFLEKSLERİ)
-   =================================================== */
+  {
+    id:"nightclub_frenzy",
+    name:"Gece Kulübü Çılgınlığı",
+    type:"economy",
+    building:"nightclub",
+    incomeMultiplier:1.2
+  },
 
+  {
+    id:"coffee_discount",
+    name:"Coffee İndirimi",
+    type:"economy",
+    building:"coffee",
+    priceMultiplier:0.8
+  },
 
-/* ---------- LEVEL UP ---------- */
+  {
+    id:"pvp_fury",
+    name:"PvP Fury",
+    type:"pvp",
+    xpMultiplier:2
+  },
 
-EVENT.on("LEVEL_UP",(lvl)=>{
+  {
+    id:"soft_addiction",
+    name:"Rahatlatıcı Gün",
+    type:"consumption",
+    addictionModifier:0.5
+  },
 
-  console.log("LEVEL UP:",lvl);
+  {
+    id:"weapon_sale",
+    name:"Silah İndirimi",
+    type:"economy",
+    building:"weapon",
+    priceMultiplier:0.85
+  }
 
-  if(window.UI)
-    UI.toast("🎉 Level "+lvl+" oldun!");
-});
+];
 
+/* ================= LOAD EVENT ================= */
 
-/* ---------- ENERGY EMPTY ---------- */
+async function loadEvent(){
 
-EVENT.on("ENERGY_EMPTY",()=>{
-
-  if(window.UI)
-    UI.toast("⚡ Enerjin bitti!");
-});
-
-
-/* ---------- MISSION SUCCESS ---------- */
-
-EVENT.on("MISSION_SUCCESS",(data)=>{
+  const { data } = await db
+    .from("global_events")
+    .select("*")
+    .eq("active",true)
+    .single();
 
   if(!data) return;
 
-  if(window.UI)
-    UI.toast(
-      `✅ Görev Başarılı +${data.xp} XP +${data.yton} Yton`
-    );
-});
+  GAME.event.active = data;
+}
 
+/* ================= CREATE EVENT ================= */
 
-/* ---------- MISSION FAIL ---------- */
+async function createEvent(){
 
-EVENT.on("MISSION_FAIL",()=>{
+  const random =
+    EVENTS[Math.floor(
+      Math.random()*EVENTS.length
+    )];
 
-  if(window.UI)
-    UI.toast("❌ Görev başarısız");
-});
+  const end =
+    new Date(Date.now()+86400000);
 
+  await db.from("global_events")
+    .insert({
+      event_id:random.id,
+      data:random,
+      end_time:end,
+      active:true
+    });
 
-/* ---------- PVP WIN ---------- */
+  console.log("New event:",random.name);
+}
 
-EVENT.on("PVP_WIN",(data)=>{
+/* ================= APPLY MULTIPLIERS ================= */
 
-  if(window.UI)
-    UI.toast(
-      `🏆 PvP Kazandın +${data.reward} Yton`
-    );
-});
+function getEventMultiplier(type,key,base){
 
+  if(!GAME.event.active) return base;
 
-/* ---------- DAILY REWARD ---------- */
+  const data = GAME.event.active.data;
 
-EVENT.on("DAILY_REWARD",(reward)=>{
+  if(data.type !== type) return base;
 
-  if(window.UI)
-    UI.toast(
-      `🎁 Günlük ödül: ${reward} Yton`
-    );
-});
+  if(data[key] === undefined)
+    return base;
 
+  return base * data[key];
+}
 
-/* ---------- USER UPDATED ---------- */
+/* ================= CHECK LOOP ================= */
 
-EVENT.on("USER_UPDATED",(user)=>{
+async function eventLoop(){
 
-  if(window.UI){
-    UI.updateStats(user);
-    UI.renderPlayerCard(user);
+  if(GAME.event.checking) return;
+  GAME.event.checking=true;
+
+  const { data:event } = await db
+    .from("global_events")
+    .select("*")
+    .eq("active",true)
+    .single();
+
+  if(!event){
+    await createEvent();
+    GAME.event.checking=false;
+    return;
   }
 
-  if(window.renderTopStats)
-    renderTopStats(user);
-});
+  const now = Date.now();
+  const end =
+    new Date(event.end_time).getTime();
 
+  if(now >= end){
 
-})();
+    await db.from("global_events")
+      .update({active:false})
+      .eq("id",event.id);
+
+    await createEvent();
+  }
+
+  GAME.event.active = event;
+  GAME.event.checking=false;
+}
+
+/* ================= AUTO START ================= */
+
+setTimeout(loadEvent,2000);
+setInterval(eventLoop,60000);
