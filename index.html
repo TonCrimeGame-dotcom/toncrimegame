@@ -16,7 +16,7 @@ body{
   height:100vh;
 }
 
-/* TELEGRAM FRAME */
+/* FRAME */
 .app{
   width:390px;
   height:690px;
@@ -26,7 +26,6 @@ body{
   box-shadow:0 0 40px rgba(0,0,0,0.8);
 }
 
-/* BACKGROUND */
 .bg{
   position:absolute;
   width:100%;
@@ -43,32 +42,45 @@ body{
   z-index:20;
 }
 
-/* HUD */
+/* HUD PANEL */
 .hud{
   position:absolute;
   top:12px;
   right:12px;
-  display:flex;
-  gap:10px;
-  background:rgba(0,0,0,0.7);
-  padding:6px 12px;
-  border-radius:20px;
+  width:180px;
+  background:rgba(0,0,0,0.8);
+  padding:8px;
+  border-radius:14px;
   border:1px solid gold;
   color:gold;
-  font-weight:bold;
-  font-size:14px;
+  font-size:12px;
   z-index:20;
-  align-items:center;
 }
 
-.hud img{
-  height:14px;
+.bar{
+  height:8px;
+  background:#333;
+  border-radius:10px;
+  margin:4px 0;
+  overflow:hidden;
 }
 
-/* SLIDE MENU */
+.fill{
+  height:100%;
+  background:lime;
+  width:0%;
+  transition:0.3s;
+}
+
+.weapon{
+  font-size:11px;
+  margin-top:4px;
+}
+
+/* MENU */
 .menu-wrapper{
   position:absolute;
-  bottom:80px;
+  bottom:90px;
   width:100%;
   overflow:hidden;
 }
@@ -91,11 +103,6 @@ body{
   border-radius:18px;
   border:2px solid gold;
   object-fit:cover;
-  transition:0.3s;
-}
-
-.menu-card img:hover{
-  transform:scale(1.05);
 }
 
 .menu-card span{
@@ -105,19 +112,45 @@ body{
   font-weight:bold;
 }
 
-/* ARROWS */
-.arrow{
+/* CHAT */
+.chat{
   position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:28px;
-  color:gold;
-  cursor:pointer;
-  z-index:10;
+  bottom:0;
+  left:0;
+  width:100%;
+  height:150px;
+  background:rgba(0,0,0,0.85);
+  border-top:2px solid gold;
+  display:flex;
+  flex-direction:column;
 }
 
-.arrow.left{ left:5px; }
-.arrow.right{ right:5px; }
+.chat-messages{
+  flex:1;
+  overflow:auto;
+  padding:5px;
+  color:white;
+  font-size:11px;
+}
+
+.chat-input{
+  display:flex;
+}
+
+.chat-input input{
+  flex:1;
+  padding:6px;
+  border:none;
+  background:#111;
+  color:white;
+}
+
+.chat-input button{
+  padding:6px 10px;
+  border:none;
+  background:gold;
+  cursor:pointer;
+}
 
 </style>
 </head>
@@ -128,64 +161,149 @@ body{
 <img src="background.jpg" class="bg">
 <img src="logo.png" class="logo">
 
+<!-- HUD MOTOR -->
 <div class="hud">
-  👤 Player01
-  ⚡ <span id="energy">50</span>
-  ⭐ <span id="xp">0</span>
-  <img src="yton.png"> <span id="yton">1000</span>
+  👤 <span id="username">Player01</span><br>
+
+  ⚡ Enerji
+  <div class="bar"><div class="fill" id="energyFill"></div></div>
+
+  ⭐ XP (Lv <span id="level">1</span>)
+  <div class="bar"><div class="fill" id="xpFill"></div></div>
+
+  💰 <img src="yton.png" height="12"> <span id="yton">1000</span>
+
+  <div class="weapon">
+    🔫 <span id="weaponName">Tabanca</span>
+    (+<span id="weaponBonus">10</span>%)
+  </div>
 </div>
 
+<!-- MENU -->
 <div class="menu-wrapper">
-  <div class="arrow left" onclick="slide(-1)">‹</div>
-  <div class="arrow right" onclick="slide(1)">›</div>
-
   <div class="menu-slider" id="slider">
-    <div class="menu-card" onclick="go('missions.html')">
-      <img src="missions.jpg">
-      <span>Görevler</span>
-    </div>
 
-    <div class="menu-card" onclick="go('pvp.html')">
-      <img src="pvp.jpg">
-      <span>PvP</span>
-    </div>
+    <div class="menu-card"><img src="missions.jpg"><span>Görevler</span></div>
+    <div class="menu-card"><img src="pvp.jpg"><span>PvP</span></div>
+    <div class="menu-card"><img src="nightclub.jpg"><span>Gece Kulübü</span></div>
+    <div class="menu-card"><img src="coffeeshop.jpg"><span>CoffeeShop</span></div>
+    <div class="menu-card"><img src="xxx.jpg"><span>Genel Ev</span></div>
+    <div class="menu-card"><img src="weapons.jpg"><span>Silah Tüccarı</span></div>
 
-    <div class="menu-card" onclick="go('nightclub.html')">
-      <img src="nightclub.jpg">
-      <span>Gece Kulübü</span>
-    </div>
+  </div>
+</div>
 
-    <div class="menu-card" onclick="go('coffeeshop.html')">
-      <img src="coffeeshop.jpg">
-      <span>CoffeeShop</span>
-    </div>
-
-    <div class="menu-card" onclick="go('xxx.html')">
-      <img src="xxx.jpg">
-      <span>Genel Ev</span>
-    </div>
-
-    <div class="menu-card" onclick="go('weapons.html')">
-      <img src="weapons.jpg">
-      <span>Silah Tüccarı</span>
-    </div>
+<!-- CHAT MOTOR -->
+<div class="chat">
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Mesaj...">
+    <button onclick="sendMessage()">Gönder</button>
   </div>
 </div>
 
 </div>
 
 <script>
-let position=0;
 
-function slide(dir){
-  const slider=document.getElementById("slider");
-  position += dir*180;
-  slider.style.transform="translateX("+(-position)+"px)";
+/* =========================
+   GLOBAL MOTOR
+========================= */
+
+let player = JSON.parse(localStorage.getItem("player")) || {
+  username:"Player01",
+  energy:50,
+  maxEnergy:100,
+  xp:0,
+  level:1,
+  yton:1000,
+  weapon:{
+    name:"Tabanca",
+    bonus:10
+  },
+  lastEnergyTime:Date.now()
+};
+
+function save(){
+  localStorage.setItem("player",JSON.stringify(player));
 }
 
-function go(page){
-  window.location.href=page;
+/* =========================
+   ENERJI AUTO REGEN
+========================= */
+
+function regenEnergy(){
+  const now = Date.now();
+  const diff = now - player.lastEnergyTime;
+
+  if(diff >= 300000){ // 5 dakika
+    if(player.energy < player.maxEnergy){
+      player.energy += 1;
+      player.lastEnergyTime = now;
+      save();
+    }
+  }
 }
+
+/* =========================
+   XP LEVEL SISTEMI
+========================= */
+
+function addXP(amount){
+  player.xp += amount;
+
+  if(player.xp >= 100){
+    player.level += 1;
+    player.xp = 0;
+  }
+  save();
+}
+
+/* =========================
+   UI UPDATE
+========================= */
+
+function updateUI(){
+  document.getElementById("username").textContent=player.username;
+  document.getElementById("yton").textContent=player.yton;
+  document.getElementById("level").textContent=player.level;
+  document.getElementById("weaponName").textContent=player.weapon.name;
+  document.getElementById("weaponBonus").textContent=player.weapon.bonus;
+
+  document.getElementById("energyFill").style.width=
+    (player.energy/player.maxEnergy*100)+"%";
+
+  document.getElementById("xpFill").style.width=
+    (player.xp/100*100)+"%";
+}
+
+/* =========================
+   CHAT MOTOR
+========================= */
+
+function sendMessage(){
+  const input=document.getElementById("chatInput");
+  const msg=input.value.trim();
+  if(!msg) return;
+
+  const div=document.createElement("div");
+  div.textContent=player.username+": "+msg;
+
+  document.getElementById("chatMessages").appendChild(div);
+  input.value="";
+}
+
+/* =========================
+   INIT
+========================= */
+
+setInterval(()=>{
+  regenEnergy();
+  updateUI();
+},1000);
+
+updateUI();
+
 </script>
 
 </body>
