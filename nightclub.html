@@ -12,10 +12,20 @@ body{
   font-family:Georgia, serif;
 }
 
+/* APP */
 .app{
+  width:900px;
+  height:700px;
+  margin:0 auto;
+  position:relative;
+  display:flex;
+  background:black;
+}
+
+/* GAME AREA */
+.game{
   width:390px;
   height:690px;
-  margin:0 auto;
   position:relative;
   overflow:hidden;
 }
@@ -28,21 +38,24 @@ body{
   object-fit:cover;
 }
 
-/* HUD */
+/* HUD TOP */
 .hud{
   position:absolute;
-  top:20px;
+  top:10px;
   left:50%;
   transform:translateX(-50%);
   display:flex;
-  gap:25px;
+  gap:20px;
+  background:rgba(0,0,0,0.6);
+  padding:6px 12px;
+  border-radius:8px;
+  border:1px solid gold;
   color:gold;
-  font-size:18px;
   font-weight:bold;
   z-index:10;
 }
 
-/* MENU PANEL */
+/* MENU */
 .menu{
   position:absolute;
   bottom:70px;
@@ -59,12 +72,8 @@ body{
   z-index:9;
 }
 
-/* COLUMN */
-.column{
-  flex:1;
-}
+.column{ flex:1; }
 
-/* ITEM */
 .item{
   display:flex;
   justify-content:space-between;
@@ -74,7 +83,6 @@ body{
   cursor:pointer;
   transition:0.2s;
 }
-
 .item:hover{
   transform:scale(1.05);
   color:white;
@@ -92,17 +100,68 @@ body{
   width:90%;
   z-index:10;
 }
+
+/* CHAT PANEL */
+.chat{
+  width:500px;
+  height:690px;
+  background:#111;
+  border-left:2px solid gold;
+  display:flex;
+  flex-direction:column;
+}
+
+.chat-header{
+  padding:10px;
+  background:#000;
+  color:gold;
+  font-weight:bold;
+  border-bottom:1px solid gold;
+}
+
+.chat-messages{
+  flex:1;
+  padding:10px;
+  overflow-y:auto;
+  color:white;
+  font-size:14px;
+}
+
+.chat-input{
+  display:flex;
+  border-top:1px solid gold;
+}
+
+.chat-input input{
+  flex:1;
+  padding:8px;
+  background:#222;
+  border:none;
+  color:white;
+}
+
+.chat-input button{
+  padding:8px 12px;
+  background:gold;
+  border:none;
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
 
 <div class="app">
 
+<!-- GAME -->
+<div class="game">
+
 <img src="/nightclub_indoor.jpg" class="bg">
 
 <div class="hud">
+  👤 <span id="username">Player01</span>
   ⚡ <span id="energy">0</span>
   ⭐ <span id="xp">0</span>
+  🪙 <span id="yton">1000</span>
 </div>
 
 <div class="menu">
@@ -114,29 +173,42 @@ body{
 
 </div>
 
+<!-- CHAT -->
+<div class="chat">
+  <div class="chat-header">Nightclub Chat</div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Mesaj yaz...">
+    <button onclick="sendMessage()">Gönder</button>
+  </div>
+</div>
+
+</div>
+
 <script>
 
 let energy=0;
 let xp=0;
+let yton=1000;
 let drank=false;
 let ate=false;
 
 const drinks=[
- {name:"Rakı",energy:15,type:"drink"},
- {name:"Vodka",energy:20,type:"drink"},
- {name:"Whiskey",energy:25,type:"drink"},
- {name:"Beer",energy:10,type:"drink"},
- {name:"Champagne",energy:30,type:"drink"},
- {name:"Tequila",energy:22,type:"drink"},
- {name:"Gin",energy:18,type:"drink"},
- {name:"Rum",energy:20,type:"drink"}
+ {name:"Rakı",energy:15,price:50,type:"drink"},
+ {name:"Vodka",energy:20,price:70,type:"drink"},
+ {name:"Whiskey",energy:25,price:100,type:"drink"},
+ {name:"Beer",energy:10,price:30,type:"drink"},
+ {name:"Champagne",energy:30,price:150,type:"drink"},
+ {name:"Tequila",energy:22,price:80,type:"drink"},
+ {name:"Gin",energy:18,price:60,type:"drink"},
+ {name:"Rum",energy:20,price:65,type:"drink"}
 ];
 
 const foods=[
- {name:"Patates",energy:8,type:"food"},
- {name:"Çerez",energy:5,type:"food"},
- {name:"Meyve",energy:10,type:"food"},
- {name:"Burger",energy:15,type:"food"}
+ {name:"Patates",energy:8,price:20,type:"food"},
+ {name:"Çerez",energy:5,price:15,type:"food"},
+ {name:"Meyve",energy:10,price:25,type:"food"},
+ {name:"Burger",energy:15,price:40,type:"food"}
 ];
 
 const left=document.getElementById("leftColumn");
@@ -146,7 +218,7 @@ const result=document.getElementById("result");
 function createItem(p){
  const div=document.createElement("div");
  div.className="item";
- div.innerHTML=`<span>${p.name}</span><span>${p.energy}⚡</span>`;
+ div.innerHTML=`<span>${p.name}</span><span>${p.energy}⚡ | ${p.price}🪙</span>`;
  div.onclick=()=>consume(p);
  return div;
 }
@@ -156,30 +228,46 @@ drinks.slice(4,8).forEach(p=>right.appendChild(createItem(p)));
 foods.forEach(p=>right.appendChild(createItem(p)));
 
 function consume(p){
+
+ if(yton < p.price){
+   result.textContent="Yetersiz YTON!";
+   return;
+ }
+
+ yton -= p.price;
  energy+=p.energy;
  xp+=5;
 
  document.getElementById("energy").textContent=energy;
  document.getElementById("xp").textContent=xp;
+ document.getElementById("yton").textContent=yton;
 
  if(p.type==="drink") drank=true;
  if(p.type==="food") ate=true;
 
- result.textContent=`${p.name} satın alındı! +${p.energy} enerji`;
+ result.textContent=`${p.name} satın alındı!`;
 
- checkScenario();
-}
-
-function checkScenario(){
  if(drank && !ate && Math.random()<0.45){
    result.textContent="⚠ Saldırıya uğradın!";
-   drank=false;
  }
  if(drank && ate && Math.random()<0.30){
    result.textContent="💃 Yeni çalışan kazandın!";
-   drank=false;
-   ate=false;
  }
+}
+
+/* CHAT */
+function sendMessage(){
+ const input=document.getElementById("chatInput");
+ const msg=input.value.trim();
+ if(msg==="") return;
+
+ const chat=document.getElementById("chatMessages");
+ const div=document.createElement("div");
+ div.textContent="Player01: "+msg;
+ chat.appendChild(div);
+ chat.scrollTop=chat.scrollHeight;
+
+ input.value="";
 }
 
 </script>
