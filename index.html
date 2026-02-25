@@ -5,195 +5,197 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
 
+<link rel="icon" type="image/png" href="logo.png">
+
 <style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial, Helvetica, sans-serif;
-}
 
 body{
-    background:url("background.jpg") no-repeat center center/cover;
-    height:100vh;
-    color:white;
-    overflow:hidden;
+margin:0;
+background:url("background.jpg") center/cover no-repeat fixed;
+font-family:Arial, sans-serif;
+color:white;
+overflow-x:hidden;
 }
 
 /* TOP BAR */
+
 .topbar{
-    height:70px;
-    background:rgba(0,0,0,0.85);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 15px;
-    border-bottom:2px solid #f5b942;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:15px 20px;
+background:rgba(0,0,0,0.8);
 }
 
 .logo{
-    height:40px;
+height:40px;
 }
 
 .stats{
-    display:flex;
-    gap:15px;
-    align-items:center;
+display:flex;
+gap:15px;
+align-items:center;
 }
 
-.stat-box{
-    background:#111;
-    padding:5px 10px;
-    border-radius:20px;
-    font-size:14px;
-    display:flex;
-    align-items:center;
-    gap:5px;
+.stat{
+background:rgba(255,255,255,0.1);
+padding:8px 15px;
+border-radius:20px;
+display:flex;
+align-items:center;
+gap:8px;
 }
 
-.stat-box img{
-    height:18px;
+.stat img{
+height:18px;
 }
 
 /* XP BAR */
-.xp-container{
-    position:absolute;
-    top:70px;
-    width:100%;
-    padding:5px 15px;
-}
 
-.xp-bar{
-    height:10px;
-    background:#333;
-    border-radius:10px;
-    overflow:hidden;
+.xp-container{
+height:8px;
+background:#222;
 }
 
 .xp-fill{
-    height:100%;
-    width:30%;
-    background:linear-gradient(90deg,#f5b942,#ff9900);
+height:100%;
+width:40%;
+background:gold;
+transition:0.3s;
 }
 
-/* CARDS */
-.slider{
-    position:absolute;
-    top:110px;
-    bottom:0;
-    width:100%;
-    display:flex;
-    overflow-x:auto;
-    scroll-snap-type:x mandatory;
-    padding:20px;
-    gap:20px;
+/* CARD SLIDER */
+
+.cards{
+display:flex;
+overflow-x:auto;
+gap:20px;
+padding:30px 20px;
+scroll-snap-type:x mandatory;
+}
+
+.cards::-webkit-scrollbar{
+display:none;
 }
 
 .card{
-    min-width:75%;
-    height:65%;
-    border-radius:20px;
-    background-size:cover;
-    background-position:center;
-    position:relative;
-    scroll-snap-align:center;
-    box-shadow:0 0 25px rgba(0,0,0,0.8);
-    transition:0.3s;
+flex:0 0 280px;
+aspect-ratio:9/16;
+border-radius:25px;
+overflow:hidden;
+position:relative;
+scroll-snap-align:center;
+cursor:pointer;
+transition:0.3s;
+}
+
+.card img{
+width:100%;
+height:100%;
+object-fit:cover;
 }
 
 .card:hover{
-    transform:scale(1.03);
+transform:scale(1.05);
 }
 
-.card::after{
-    content:"";
-    position:absolute;
-    bottom:0;
-    left:0;
-    width:100%;
-    height:40%;
-    background:linear-gradient(to top,rgba(0,0,0,0.9),transparent);
-    border-radius:20px;
+.card span{
+position:absolute;
+bottom:20px;
+left:20px;
+background:rgba(0,0,0,0.7);
+padding:10px 18px;
+border-radius:12px;
+font-size:18px;
 }
 
-.card-title{
-    position:absolute;
-    bottom:20px;
-    left:20px;
-    font-size:22px;
-    font-weight:bold;
-    z-index:2;
-    text-shadow:0 0 10px #f5b942;
+/* FOOTER */
+
+.footer{
+position:fixed;
+bottom:0;
+width:100%;
+background:rgba(0,0,0,0.85);
+display:flex;
+justify-content:space-around;
+padding:12px 0;
 }
 
-/* SCROLLBAR HIDE */
-.slider::-webkit-scrollbar{
-    display:none;
+.footer div{
+cursor:pointer;
 }
+
 </style>
 </head>
 
 <body>
 
-<!-- TOP -->
+<!-- TOP BAR -->
+
 <div class="topbar">
-    <img src="logo.png" class="logo">
-    <div class="stats">
-        <div class="stat-box">⚡ <span id="energy">45</span></div>
-        <div class="stat-box">
-            <img src="yton.png">
-            <span id="yton">250</span>
-        </div>
-    </div>
+<img src="logo.png" class="logo">
+
+<div class="stats">
+<div class="stat">⚡ 45</div>
+<div class="stat"><img src="yton.png"> 250</div>
+</div>
 </div>
 
-<!-- XP -->
 <div class="xp-container">
-    <div class="xp-bar">
-        <div class="xp-fill" id="xpFill"></div>
-    </div>
+<div class="xp-fill"></div>
 </div>
 
-<!-- SLIDER -->
-<div class="slider">
+<!-- CARD SLIDER -->
 
-    <div class="card" style="background-image:url('missions.jpg')">
-        <div class="card-title">GÖREVLER</div>
-    </div>
+<div class="cards">
 
-    <div class="card" style="background-image:url('pvp.jpg')">
-        <div class="card-title">PVP ARENA</div>
-    </div>
+<div class="card" onclick="goTo('missions.html')">
+<img src="missions.jpg">
+<span>Görevler</span>
+</div>
 
-    <div class="card" style="background-image:url('nightclub.jpg')">
-        <div class="card-title">GECE KULÜBÜ</div>
-    </div>
+<div class="card" onclick="goTo('pvp.html')">
+<img src="pvp.jpg">
+<span>PvP Arena</span>
+</div>
 
-    <div class="card" style="background-image:url('xxx.jpg')">
-        <div class="card-title">GENEL EV</div>
-    </div>
+<div class="card" onclick="goTo('nightclub.html')">
+<img src="nightclub.jpg">
+<span>Gece Kulübü</span>
+</div>
 
-    <div class="card" style="background-image:url('coffeeshop.jpg')">
-        <div class="card-title">COFFEE SHOP</div>
-    </div>
+<div class="card" onclick="goTo('xxx.html')">
+<img src="xxx.jpg">
+<span>Genel Ev</span>
+</div>
 
-    <div class="card" style="background-image:url('weapons.jpg')">
-        <div class="card-title">SİLAH TÜCCARI</div>
-    </div>
+<div class="card" onclick="goTo('coffeeshop.html')">
+<img src="coffeeshop.jpg">
+<span>Coffee Shop</span>
+</div>
 
+<div class="card" onclick="goTo('weapons.html')">
+<img src="weapons.jpg">
+<span>Silah Tüccarı</span>
+</div>
+
+</div>
+
+<!-- FOOTER -->
+
+<div class="footer">
+<div>Envanter</div>
+<div>Liderlik</div>
+<div>Mağaza</div>
+<div>Bölgeler</div>
 </div>
 
 <script>
-let xp = 30;
-let xpFill = document.getElementById("xpFill");
-xpFill.style.width = xp + "%";
 
-/* DEMO XP artışı */
-setInterval(()=>{
-    xp += 1;
-    if(xp > 100) xp = 0;
-    xpFill.style.width = xp + "%";
-},2000);
+function goTo(page){
+window.location.href = page;
+}
+
 </script>
 
 </body>
