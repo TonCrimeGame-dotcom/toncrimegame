@@ -1,21 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" href="global.css">
-<script src="js/engine.js"></script>
-<script src="js/ui.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TonCrime</title>
+
 <style>
 body{
   margin:0;
-  background:url("assets/background.jpg") center/cover no-repeat;
   width:390px;
   height:700px;
+  overflow:hidden;
+  font-family:Georgia, serif;
+  background:url("background.jpg") center/cover no-repeat;
+}
+
+/* LOGO */
+.logo{
+  position:absolute;
+  top:10px;
+  left:15px;
+  height:60px;
+}
+
+/* HUD PANEL */
+.hud{
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:rgba(0,0,0,0.85);
+  border:2px solid gold;
+  border-radius:20px;
+  padding:8px 15px;
+  color:gold;
+  font-size:13px;
+  min-width:160px;
+}
+
+/* BAR */
+.bar{
+  width:120px;
+  height:7px;
+  background:#333;
+  margin-top:4px;
+  border-radius:6px;
+  overflow:hidden;
+}
+.fill{
+  height:100%;
+}
+.energy{ background:lime; }
+.xp{ background:orange; }
+
+/* SLIDER */
+.slider-wrapper{
+  position:absolute;
+  bottom:130px;
+  width:100%;
   overflow:hidden;
 }
 
 .slider{
-  position:absolute;
-  bottom:100px;
   display:flex;
   transition:0.4s;
 }
@@ -25,34 +70,198 @@ body{
   text-align:center;
   color:gold;
 }
+
+.building h2{
+  margin-top:40px;
+  font-size:22px;
+}
+
+.enter{
+  margin-top:15px;
+  padding:8px 25px;
+  background:gold;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+/* ARROWS */
+.arrow{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:35px;
+  color:gold;
+  cursor:pointer;
+}
+.left{ left:10px; }
+.right{ right:10px; }
+
+/* CHAT */
+.chat{
+  position:absolute;
+  right:5px;
+  bottom:5px;
+  width:170px;
+  height:200px;
+  background:rgba(0,0,0,0.7);
+  border:1px solid gold;
+  color:white;
+  font-size:11px;
+  display:flex;
+  flex-direction:column;
+}
+
+.chat-messages{
+  flex:1;
+  overflow:auto;
+  padding:5px;
+}
+
+.chat input{
+  border:none;
+  padding:5px;
+  font-size:11px;
+}
 </style>
 </head>
+
 <body>
 
+<img src="logo.png" class="logo">
+
+<div class="hud">
+<div><b id="username"></b></div>
+⚡ <span id="energyText"></span>
+<div class="bar"><div id="energyFill" class="fill energy"></div></div>
+
+⭐ XP
+<div class="bar"><div id="xpFill" class="fill xp"></div></div>
+
+💰 <span id="ytonText"></span>
+<br>
+🔫 <span id="weaponText"></span>
+</div>
+
+<div class="arrow left" onclick="prev()">‹</div>
+<div class="arrow right" onclick="next()">›</div>
+
+<div class="slider-wrapper">
 <div class="slider" id="slider">
 
 <div class="building">
 <h2>Nightclub</h2>
-<button onclick="location.href='nightclub.html'">Giriş</button>
+<button class="enter" onclick="location.href='nightclub.html'">Giriş</button>
 </div>
 
 <div class="building">
-<h2>Coffee</h2>
-<button onclick="location.href='coffee.html'">Giriş</button>
+<h2>Coffee Shop</h2>
+<button class="enter" onclick="location.href='coffee.html'">Giriş</button>
 </div>
 
+<div class="building">
+<h2>Black Market</h2>
+<button class="enter">Giriş</button>
+</div>
+
+</div>
+</div>
+
+<div class="chat">
+<div class="chat-messages" id="chatBox"></div>
+<input type="text" placeholder="Mesaj..." id="chatInput">
 </div>
 
 <script>
-let i=0;
-function slide(dir){
-  i+=dir;
-  if(i<0)i=0;
-  if(i>1)i=1;
-  document.getElementById("slider").style.transform=
-  "translateX(-"+(i*390)+"px)";
+
+/* ===== GLOBAL PLAYER ENGINE ===== */
+
+if(!localStorage.getItem("player")){
+  localStorage.setItem("player", JSON.stringify({
+    username:"Player01",
+    energy:50,
+    maxEnergy:100,
+    xp:0,
+    level:1,
+    yton:1000,
+    weapon:{name:"Tabanca",bonus:10},
+    lastEnergyTime:Date.now()
+  }));
 }
+
+function getPlayer(){
+  return JSON.parse(localStorage.getItem("player"));
+}
+
+function savePlayer(p){
+  localStorage.setItem("player", JSON.stringify(p));
+}
+
+/* 5 DAKİKADA 1 ENERJİ */
+function energyRegen(){
+  let p=getPlayer();
+  let now=Date.now();
+  let diff=now-p.lastEnergyTime;
+
+  if(diff>=300000){
+    let gain=Math.floor(diff/300000);
+    p.energy=Math.min(p.maxEnergy,p.energy+gain);
+    p.lastEnergyTime=now;
+    savePlayer(p);
+    updateUI();
+  }
+}
+
+setInterval(energyRegen,10000);
+
+/* UI UPDATE */
+function updateUI(){
+  let p=getPlayer();
+
+  document.getElementById("username").innerText=p.username;
+  document.getElementById("energyText").innerText=p.energy+"/"+p.maxEnergy;
+  document.getElementById("ytonText").innerText=p.yton;
+  document.getElementById("weaponText").innerText=
+  p.weapon.name+" (+"+p.weapon.bonus+"%)";
+
+  document.getElementById("energyFill").style.width=
+  (p.energy/p.maxEnergy*100)+"%";
+
+  document.getElementById("xpFill").style.width=
+  (p.xp/(p.level*100)*100)+"%";
+}
+
+updateUI();
+
+/* SLIDER */
+let index=0;
+function next(){
+  if(index<2){
+    index++;
+    document.getElementById("slider").style.transform=
+    "translateX(-"+(index*390)+"px)";
+  }
+}
+function prev(){
+  if(index>0){
+    index--;
+    document.getElementById("slider").style.transform=
+    "translateX(-"+(index*390)+"px)";
+  }
+}
+
+/* CHAT */
+document.getElementById("chatInput")
+.addEventListener("keypress",function(e){
+  if(e.key==="Enter" && this.value!=""){
+    let div=document.createElement("div");
+    div.innerText=getPlayer().username+": "+this.value;
+    document.getElementById("chatBox").appendChild(div);
+    this.value="";
+  }
+});
+
 </script>
 
 </body>
-</html>
+  </html>
