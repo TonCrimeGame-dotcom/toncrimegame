@@ -22,36 +22,40 @@ body{
   position:relative;
   overflow:hidden;
   border-radius:20px;
+  background:black;
 }
 
+/* BACKGROUND */
 .bg{
   position:absolute;
   width:100%;
   height:100%;
   object-fit:cover;
+  z-index:0;
 }
 
+/* LOGO */
 .logo{
   position:absolute;
   top:15px;
   left:15px;
-  height:60px;
-  z-index:30;
+  height:55px;
+  z-index:5;
 }
 
-/* ===== HUD ===== */
+/* HUD */
 .hud{
   position:absolute;
   top:15px;
   right:15px;
-  width:210px;
-  padding:12px;
+  width:200px;
+  padding:10px;
   border-radius:18px;
   background:rgba(0,0,0,0.5);
   backdrop-filter:blur(8px);
   color:white;
   font-size:12px;
-  z-index:30;
+  z-index:5;
 }
 
 .bar{
@@ -64,7 +68,6 @@ body{
 
 .fill{
   height:100%;
-  transition:0.3s;
 }
 
 .energyFill{ background:#00ff88; }
@@ -76,33 +79,21 @@ body{
   gap:6px;
 }
 
-/* ===== SLIDER ===== */
-.slider-wrapper{
+/* SLIDER AREA (chat üstüne çıkmaz) */
+.slider-area{
   position:absolute;
-  bottom:120px;
+  bottom:70px; /* chat yüksekliği kadar boşluk */
   width:100%;
-  display:flex;
-  align-items:center;
-}
-
-.arrow{
-  width:30px;
-  text-align:center;
-  font-size:26px;
-  color:gold;
-  cursor:pointer;
-  z-index:20;
+  z-index:3;
 }
 
 .slider{
   overflow:hidden;
-  flex:1;
 }
 
-.slider-track{
+.track{
   display:flex;
   transition:transform 0.3s ease;
-  touch-action:pan-y;
 }
 
 .card{
@@ -127,31 +118,38 @@ body{
   font-weight:bold;
 }
 
-/* ===== CHAT ===== */
+/* CHAT SABİT ALT */
 .chat{
   position:absolute;
   bottom:0;
   width:100%;
-  background:rgba(0,0,0,0.7);
-  padding:6px;
+  height:70px;
+  background:rgba(0,0,0,0.85);
   display:flex;
-  gap:6px;
+  align-items:center;
+  padding:10px;
+  box-sizing:border-box;
+  gap:8px;
+  z-index:6;
 }
 
 .chat input{
   flex:1;
-  padding:8px;
+  height:40px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
+  padding:0 10px;
 }
 
 .chat button{
-  padding:8px 12px;
+  height:40px;
+  padding:0 14px;
   border:none;
+  border-radius:10px;
   background:gold;
-  border-radius:8px;
   cursor:pointer;
 }
+
 </style>
 </head>
 <body>
@@ -174,11 +172,9 @@ body{
   </div>
 </div>
 
-<div class="slider-wrapper">
-  <div class="arrow" onclick="slide(-1)">‹</div>
-
+<div class="slider-area">
   <div class="slider">
-    <div class="slider-track" id="track">
+    <div class="track" id="track">
 
       <div class="card" onclick="go('missions.html')">
         <img src="missions.jpg">
@@ -212,8 +208,6 @@ body{
 
     </div>
   </div>
-
-  <div class="arrow" onclick="slide(1)">›</div>
 </div>
 
 <div class="chat">
@@ -225,90 +219,58 @@ body{
 
 <script>
 
-/* ===== SLIDER + SWIPE ===== */
-let position = 0;
-const track = document.getElementById("track");
-
-function slide(dir){
-  position += dir * 180;
-  clamp();
-  updateSlide();
-}
-
-function clamp(){
-  const max = track.scrollWidth - 300;
-  if(position < 0) position = 0;
-  if(position > max) position = max;
-}
-
-function updateSlide(){
-  track.style.transform = "translateX(-"+position+"px)";
-}
-
-/* ===== TOUCH SWIPE ===== */
-let startX = 0;
-let currentX = 0;
-let isDragging = false;
-
-track.addEventListener("touchstart", e=>{
-  startX = e.touches[0].clientX;
-  isDragging = true;
-});
-
-track.addEventListener("touchmove", e=>{
-  if(!isDragging) return;
-  currentX = e.touches[0].clientX;
-  let diff = startX - currentX;
-  track.style.transform = "translateX(-"+(position + diff)+"px)";
-});
-
-track.addEventListener("touchend", e=>{
-  if(!isDragging) return;
-  isDragging = false;
-  let diff = startX - currentX;
-
-  if(Math.abs(diff) > 50){
-    position += diff;
-  }
-  clamp();
-  updateSlide();
-});
-
-/* ===== NAV ===== */
+/* NAV */
 function go(page){
   window.location.href = page;
 }
 
-/* ===== PLAYER ===== */
-let player = JSON.parse(localStorage.getItem("player")) || {
-  energy:60,
-  maxEnergy:100,
-  xp:0,
-  xpMax:1000,
-  level:1,
-  yton:1000
+/* SLIDE SWIPE */
+let position=0;
+const track=document.getElementById("track");
+
+let startX=0;
+let isDragging=false;
+
+track.addEventListener("touchstart",e=>{
+  startX=e.touches[0].clientX;
+  isDragging=true;
+});
+
+track.addEventListener("touchmove",e=>{
+  if(!isDragging) return;
+  let diff=startX-e.touches[0].clientX;
+  track.style.transform="translateX("+(-position-diff)+"px)";
+});
+
+track.addEventListener("touchend",e=>{
+  if(!isDragging) return;
+  let diff=startX-e.changedTouches[0].clientX;
+  position+=diff;
+  if(position<0) position=0;
+  if(position>track.scrollWidth-300) position=track.scrollWidth-300;
+  track.style.transform="translateX(-"+position+"px)";
+  isDragging=false;
+});
+
+/* PLAYER */
+let player=JSON.parse(localStorage.getItem("player"))||{
+  energy:60,maxEnergy:100,xp:0,xpMax:1000,level:1,yton:1000
 };
 
 function updateHUD(){
-  document.getElementById("energyText").innerText =
-    "⚡ "+player.energy+"/"+player.maxEnergy;
+  document.getElementById("energyText").innerText="⚡ "+player.energy+"/"+player.maxEnergy;
+  document.getElementById("energyBar").style.width=(player.energy/player.maxEnergy*100)+"%";
 
-  document.getElementById("energyBar").style.width =
-    (player.energy/player.maxEnergy*100)+"%";
+  document.getElementById("xpText").innerText="XP "+player.xp+"/"+player.xpMax+" (Lv "+player.level+")";
+  document.getElementById("xpBar").style.width=(player.xp/player.xpMax*100)+"%";
 
-  document.getElementById("xpText").innerText =
-    "XP "+player.xp+"/"+player.xpMax+" (Lv "+player.level+")";
-
-  document.getElementById("xpBar").style.width =
-    (player.xp/player.xpMax*100)+"%";
-
-  document.getElementById("ytonText").innerText = player.yton;
+  document.getElementById("ytonText").innerText=player.yton;
 }
 
 updateHUD();
 
-/* ===== CHAT ===== */
-let chatData = JSON.parse(localStorage.getItem("chat")) || [];
+/* CHAT */
+let chatData=JSON.parse(localStorage.getItem("chat"))||[];
 
 function sendMessage(){
   const input=document.getElementById("chatInput");
