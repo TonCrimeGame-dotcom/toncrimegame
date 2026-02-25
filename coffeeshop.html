@@ -17,16 +17,13 @@ body{
     font-family:Arial;
 }
 
-/* TELEGRAM ORANI */
 .app{
     width:390px;
     height:690px;
     position:relative;
-    perspective:2000px;
     overflow:hidden;
 }
 
-/* BACKGROUND */
 .bg{
     position:absolute;
     width:100%;
@@ -34,100 +31,93 @@ body{
     object-fit:cover;
 }
 
-/* CAMERA EFFECT */
-.camera{
-    position:absolute;
-    width:100%;
-    height:100%;
-    transition:transform 0.8s ease;
-}
-.camera.zoom{
-    transform:scale(1.06);
-}
-
-/* BOOK WRAPPER */
-.book-wrapper{
+.book-closed{
     position:absolute;
     width:320px;
-    height:480px;
     left:50%;
     top:50%;
     transform:translate(-50%,-50%);
-    transform-style:preserve-3d;
-    transition:transform 1s ease;
     cursor:pointer;
+    transition:0.4s;
 }
 
-.book-wrapper.open{
-    transform:translate(-50%,-50%) rotateY(180deg);
-}
-
-/* PAGES */
-.page{
+.book-open{
     position:absolute;
-    width:100%;
-    height:100%;
-    backface-visibility:hidden;
+    width:330px;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%) scale(0.9);
+    opacity:0;
+    transition:0.6s;
 }
 
-.page img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
+.book-open.active{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1);
 }
 
-.page.back{
-    transform:rotateY(180deg);
-}
+.hidden{ display:none; }
 
-/* MENU CONTENT */
 .menu{
     position:absolute;
     top:130px;
-    left:70px;
-    width:180px;
-    color:gold;
+    left:65px;
+    width:220px;
+    color:lime;
     opacity:0;
-    transition:0.5s;
+    transition:0.4s;
 }
 
-.menu.show{
+.menu.active{
     opacity:1;
 }
 
 .item{
     display:flex;
     justify-content:space-between;
-    margin:18px 0;
+    margin:14px 0;
     cursor:pointer;
     transition:0.2s;
 }
 
 .item:hover{
-    transform:scale(1.07);
+    transform:scale(1.06);
 }
 
-.coin{
-    width:16px;
-    margin-right:4px;
-    animation:glow 1.2s infinite alternate;
+.nav{
+    position:absolute;
+    bottom:20px;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    padding:0 40px;
 }
 
-@keyframes glow{
-    from{filter:drop-shadow(0 0 3px gold);}
-    to{filter:drop-shadow(0 0 12px gold);}
+.nav button{
+    background:lime;
+    border:none;
+    padding:6px 14px;
+    font-weight:bold;
+    border-radius:6px;
+    cursor:pointer;
 }
 
-/* BUY EFFECT */
+.status{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    font-size:12px;
+}
+
 .buy{
     position:absolute;
     top:50%;
     left:50%;
     transform:translate(-50%,-50%);
-    color:gold;
-    font-size:22px;
+    color:lime;
+    font-size:20px;
     opacity:0;
-    pointer-events:none;
 }
 
 .buy.show{
@@ -145,66 +135,141 @@ body{
 
 <div class="app">
 
-<div class="camera" id="camera">
-
 <img src="coffeeshop_indoor.jpg" class="bg">
 
-<div class="book-wrapper" id="book">
+<img src="coffeeshop_book_closed.png" class="book-closed" id="bookClosed">
+<img src="coffeeshop_book_open.png" class="book-open" id="bookOpen">
 
-    <div class="page front">
-        <img src="coffeeshop_book_closed.png">
-    </div>
+<div class="menu" id="menu"></div>
 
-    <div class="page back">
-        <img src="coffeeshop_book_open.png">
-    </div>
-
+<div class="nav hidden" id="nav">
+<button onclick="prevPage()">◀</button>
+<button onclick="nextPage()">▶</button>
 </div>
 
-<div class="menu" id="menu">
+<div class="status" id="status"></div>
+<div class="buy" id="buyEffect"></div>
 
-<div class="item" onclick="buy('Espresso',50,event)">
-<span>Espresso</span>
-<span><img src="yton.png" class="coin">50</span>
-</div>
-
-<div class="item" onclick="buy('Americano',100,event)">
-<span>Americano</span>
-<span><img src="yton.png" class="coin">100</span>
-</div>
-
-<div class="item" onclick="buy('Dark Roast',200,event)">
-<span>Dark Roast</span>
-<span><img src="yton.png" class="coin">200</span>
-</div>
-
-</div>
-
-<div class="buy" id="buyEffect">+ SATIN ALINDI</div>
-
-</div>
 </div>
 
 <script>
 
-let open=false;
-const book=document.getElementById("book");
-const camera=document.getElementById("camera");
+/* PLAYER STATE */
+
+let player={
+  energy:0,
+  addiction:0,
+  risk:0,
+  respect:0,
+  inventory:[],
+  lastProduct:null
+};
+
+/* PRODUCTS */
+
+const pages=[
+  [
+    {name:"Premium Weed",energy:25,addiction:20,risk:10},
+    {name:"Hash",energy:20,addiction:18,risk:8},
+    {name:"Edible",energy:30,addiction:25,risk:12},
+    {name:"Sativa",energy:22,addiction:15,risk:6}
+  ],
+  [
+    {name:"Hybrid",energy:28,addiction:23,risk:11},
+    {name:"CBD",energy:15,addiction:5,risk:0},
+    {name:"Oil",energy:35,addiction:30,risk:15},
+    {name:"MoonRock",energy:40,addiction:35,risk:20}
+  ],
+  [
+    {name:"Energy Snack",energy:10,addiction:5,risk:0},
+    {name:"Choco Bar",energy:12,addiction:7,risk:0},
+    {name:"Special Mix",energy:45,addiction:40,risk:25}
+  ]
+];
+
+let currentPage=0;
+
+/* OPEN BOOK */
+
+const closed=document.getElementById("bookClosed");
+const openBook=document.getElementById("bookOpen");
 const menu=document.getElementById("menu");
+const nav=document.getElementById("nav");
+const status=document.getElementById("status");
 const buyEffect=document.getElementById("buyEffect");
 
-book.addEventListener("click",()=>{
-    open=!open;
-    book.classList.toggle("open");
-    camera.classList.toggle("zoom");
-    menu.classList.toggle("show");
+closed.addEventListener("click",()=>{
+  closed.classList.add("hidden");
+  openBook.classList.add("active");
+  menu.classList.add("active");
+  nav.classList.remove("hidden");
+  renderPage();
 });
 
-function buy(name,price,e){
-    e.stopPropagation();
-    buyEffect.innerText=name+" Alındı!";
-    buyEffect.classList.add("show");
-    setTimeout(()=>buyEffect.classList.remove("show"),1000);
+/* PAGE RENDER */
+
+function renderPage(){
+  menu.innerHTML="";
+  pages[currentPage].forEach(item=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`
+      <span>${item.name}</span>
+      <span>${item.energy}⚡</span>
+    `;
+    div.onclick=()=>useItem(item);
+    menu.appendChild(div);
+  });
+}
+
+/* NAV */
+
+function nextPage(){
+  if(currentPage<pages.length-1){
+    currentPage++;
+    renderPage();
+  }
+}
+
+function prevPage(){
+  if(currentPage>0){
+    currentPage--;
+    renderPage();
+  }
+}
+
+/* GAME LOGIC */
+
+function useItem(item){
+
+  player.energy+=item.energy;
+  player.addiction+=item.addiction;
+  player.risk+=item.risk;
+
+  if(player.addiction>50){
+    player.risk+=20;
+  }
+
+  if(player.lastProduct && Math.random()<0.30){
+    player.inventory.push("coffeeshop_worker");
+  }
+
+  player.lastProduct=item.name;
+
+  buyEffect.innerText=item.name+" Kullanıldı!";
+  buyEffect.classList.add("show");
+  setTimeout(()=>buyEffect.classList.remove("show"),1000);
+
+  updateStatus();
+}
+
+function updateStatus(){
+  status.innerHTML=`
+  ⚡ Energy: ${player.energy}<br>
+  ☣ Addiction: ${player.addiction}<br>
+  ⚠ Risk: ${player.risk}<br>
+  👩 Worker: ${player.inventory.length}
+  `;
 }
 
 </script>
