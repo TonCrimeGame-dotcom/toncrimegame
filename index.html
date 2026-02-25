@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TonCrime</title>
+<title>TonCrime City</title>
 
 <style>
 body{
@@ -22,7 +22,7 @@ body{
   background:black;
 }
 
-/* Background */
+/* BACKGROUND */
 .bg{
   position:absolute;
   width:100%;
@@ -31,10 +31,10 @@ body{
   z-index:0;
 }
 
-/* Logo */
+/* LOGO */
 .logo{
   position:absolute;
-  top:10px;
+  top:12px;
   left:15px;
   height:55px;
   z-index:30;
@@ -44,8 +44,8 @@ body{
 .hud{
   position:absolute;
   top:10px;
-  right:15px;
-  background:rgba(0,0,0,0.7);
+  right:12px;
+  background:rgba(0,0,0,0.75);
   border:1px solid gold;
   border-radius:25px;
   padding:6px 14px;
@@ -56,102 +56,71 @@ body{
   z-index:30;
 }
 
-/* Slider container */
-.slider{
+/* SLIDER */
+.slider-wrapper{
   position:absolute;
-  top:0;
-  left:0;
-  width:400%;
-  height:100%;
+  bottom:120px;
+  width:100%;
+  overflow:hidden;
+  z-index:20;
+}
+
+.slider{
   display:flex;
   transition:0.4s ease;
 }
 
-/* Screen */
-.screen{
-  width:390px;
-  height:100%;
-  padding-top:90px;
-  box-sizing:border-box;
-}
-
-/* Menu box */
-.box{
-  width:330px;
-  margin:0 auto;
-  background:rgba(0,0,0,0.75);
-  border:2px solid gold;
-  border-radius:15px;
-  padding:15px;
-  color:gold;
-}
-
-.item{
-  display:flex;
-  justify-content:space-between;
-  margin:10px 0;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-.item:hover{ color:white; }
-
-/* Chat */
-.chatbox{
-  height:300px;
-  overflow-y:auto;
-  background:rgba(0,0,0,0.6);
-  border:1px solid gold;
-  border-radius:10px;
-  padding:8px;
-  color:white;
-  font-size:12px;
-}
-
-.chatinput{
-  display:flex;
-  margin-top:8px;
-}
-
-.chatinput input{
-  flex:1;
-  padding:6px;
-  border:none;
-}
-
-.chatinput button{
-  padding:6px;
-  background:gold;
-  border:none;
-}
-
-/* Nav */
-.nav{
-  position:absolute;
-  bottom:0;
-  width:100%;
-  background:rgba(0,0,0,0.9);
-  display:flex;
-  justify-content:space-around;
-  padding:10px 0;
-  border-top:1px solid gold;
-  z-index:30;
-}
-
-.nav button{
-  background:none;
-  border:none;
-  color:gold;
-  font-weight:bold;
-  font-size:13px;
-  cursor:pointer;
-}
-.nav button:hover{ color:white; }
-
-.center{
+.building{
+  min-width:390px;
   text-align:center;
   color:gold;
-  margin-top:60px;
+}
+
+.building img{
+  width:280px;
+  border-radius:15px;
+  border:2px solid gold;
+  margin-top:20px;
+}
+
+.building h2{
+  margin-top:15px;
+}
+
+/* NAV ARROWS */
+.arrow{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:30px;
+  color:gold;
+  cursor:pointer;
+  z-index:25;
+}
+
+.left{ left:10px; }
+.right{ right:10px; }
+
+/* ENTER BUTTON */
+.enter-btn{
+  margin-top:15px;
+  padding:8px 20px;
+  background:gold;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+  border-radius:10px;
+}
+
+/* FOOTER INFO */
+.footer{
+  position:absolute;
+  bottom:20px;
+  width:100%;
+  text-align:center;
+  color:gold;
+  font-size:12px;
+  z-index:30;
 }
 
 </style>
@@ -160,7 +129,7 @@ body{
 
 <div class="app">
 
-<img src="nightclub_indoor.jpg" class="bg">
+<img src="background.jpg" class="bg">
 <img src="logo.png" class="logo">
 
 <div class="hud">
@@ -170,112 +139,79 @@ body{
 💰 <span id="yton">1000</span>
 </div>
 
-<div class="slider" id="slider">
+<div class="arrow left" onclick="prev()">‹</div>
+<div class="arrow right" onclick="next()">›</div>
 
-<!-- NIGHTCLUB -->
-<div class="screen">
-  <div class="box">
-    <div class="item" onclick="buy(15,50)">Rakı <span>15⚡ | 50</span></div>
-    <div class="item" onclick="buy(20,70)">Vodka <span>20⚡ | 70</span></div>
-    <div class="item" onclick="buy(25,100)">Whiskey <span>25⚡ | 100</span></div>
-    <div class="item" onclick="buy(30,150)">Champagne <span>30⚡ | 150</span></div>
-  </div>
-</div>
+<div class="slider-wrapper">
+  <div class="slider" id="slider">
 
-<!-- COFFEE -->
-<div class="screen">
-  <div class="box">
-    <div class="item" onclick="buy(10,30)">Latte <span>10⚡ | 30</span></div>
-    <div class="item" onclick="buy(8,25)">Espresso <span>8⚡ | 25</span></div>
-    <div class="item" onclick="buy(12,40)">Mocha <span>12⚡ | 40</span></div>
-  </div>
-</div>
-
-<!-- PROFILE -->
-<div class="screen">
-  <div class="center">
-    <h2>Profil</h2>
-    Seviye: <span id="level">1</span><br><br>
-    XP: <span id="profileXp">0</span><br>
-    Enerji: <span id="profileEnergy">50</span><br>
-    YTON: <span id="profileYton">1000</span>
-  </div>
-</div>
-
-<!-- CHAT -->
-<div class="screen">
-  <div class="box">
-    <div class="chatbox" id="chatbox"></div>
-    <div class="chatinput">
-      <input type="text" id="chatinput" placeholder="Mesaj yaz...">
-      <button onclick="sendMsg()">Gönder</button>
+    <div class="building">
+      <img src="nightclub.jpg">
+      <h2>Nightclub</h2>
+      <button class="enter-btn" onclick="enter('nightclub.html')">Giriş</button>
     </div>
+
+    <div class="building">
+      <img src="coffee.jpg">
+      <h2>Coffee Shop</h2>
+      <button class="enter-btn" onclick="enter('coffee.html')">Giriş</button>
+    </div>
+
+    <div class="building">
+      <img src="mission.jpg">
+      <h2>Görevler</h2>
+      <button class="enter-btn" onclick="enter('missions.html')">Giriş</button>
+    </div>
+
   </div>
 </div>
 
-</div>
-
-<div class="nav">
-  <button onclick="goTo(0)">Nightclub</button>
-  <button onclick="goTo(1)">Coffee</button>
-  <button onclick="goTo(2)">Profil</button>
-  <button onclick="goTo(3)">Chat</button>
+<div class="footer">
+Şehir Merkezi
 </div>
 
 </div>
 
 <script>
 
-/* MOTOR */
+/* ===== MOTOR ===== */
+
 let energy=50;
 let xp=0;
 let yton=1000;
-let level=1;
 
 function updateHUD(){
-  energy = Math.max(0,energy);
-
   document.getElementById("energy").innerText=energy;
   document.getElementById("xp").innerText=xp;
   document.getElementById("yton").innerText=yton;
-
-  document.getElementById("profileXp").innerText=xp;
-  document.getElementById("profileEnergy").innerText=energy;
-  document.getElementById("profileYton").innerText=yton;
-  document.getElementById("level").innerText=level;
-}
-
-function buy(gain,price){
-  if(yton < price) return alert("Yetersiz YTON");
-
-  yton -= price;
-  energy += gain;
-  xp += 10;
-
-  if(xp >= level*100){
-    level++;
-    alert("Seviye Atladın!");
-  }
-
-  updateHUD();
-}
-
-/* NAV SLIDE */
-function goTo(index){
-  document.getElementById("slider").style.transform=
-    "translateX(-"+(index*390)+"px)";
-}
-
-/* CHAT */
-function sendMsg(){
-  let msg=document.getElementById("chatinput").value;
-  if(msg==="") return;
-  document.getElementById("chatbox").innerHTML+=
-  "<div><b>Player01:</b> "+msg+"</div>";
-  document.getElementById("chatinput").value="";
 }
 
 updateHUD();
+
+/* ===== SLIDER ===== */
+
+let index=0;
+const slider=document.getElementById("slider");
+
+function next(){
+  if(index<2){
+    index++;
+    slider.style.transform="translateX(-"+(index*390)+"px)";
+  }
+}
+
+function prev(){
+  if(index>0){
+    index--;
+    slider.style.transform="translateX(-"+(index*390)+"px)";
+  }
+}
+
+/* ===== ENTER ===== */
+
+function enter(page){
+  window.location.href=page;
+}
 
 </script>
 
