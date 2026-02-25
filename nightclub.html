@@ -9,9 +9,9 @@
 body{
   margin:0;
   background:black;
+  font-family:Arial, sans-serif;
 }
 
-/* SABİT TELEGRAM ORANI */
 .app{
   width:390px;
   height:690px;
@@ -29,50 +29,68 @@ body{
   object-fit:cover;
 }
 
-/* CLOSED BOOK */
-.book-closed{
+/* HUD */
+.hud{
   position:absolute;
-  width:300px;
-  bottom:60px;
+  top:10px;
   left:50%;
-  transform:translateX(-50%) rotateX(10deg);
+  transform:translateX(-50%);
+  display:flex;
+  gap:20px;
+  color:gold;
+  font-weight:bold;
+  font-size:14px;
+  z-index:5;
+  text-shadow:0 0 10px black;
+}
+
+/* BOOK WRAPPER */
+.book-wrapper{
+  position:absolute;
+  bottom:40px;
+  left:50%;
+  transform:translateX(-50%);
+  width:340px;
+  perspective:1000px;
+}
+
+.book-wrapper img{
+  width:100%;
+  display:block;
+}
+
+/* CLOSED */
+.book-closed{
   cursor:pointer;
   transition:0.5s;
   box-shadow:0 30px 60px rgba(0,0,0,0.8);
 }
 
-/* OPEN BOOK */
+/* OPEN */
 .book-open{
   position:absolute;
-  width:340px;
-  bottom:40px;
-  left:50%;
-  transform:translateX(-50%) scale(0.8);
+  top:0;
+  left:0;
   opacity:0;
+  transform:scale(0.85);
   transition:0.6s;
 }
 
 .book-open.active{
   opacity:1;
-  transform:translateX(-50%) scale(1);
+  transform:scale(1);
 }
 
-.hidden{
-  display:none;
-}
-
-/* OVERLAY HİZALAMA (book_open.png'e göre ayarlı) */
+/* OVERLAY (YÜZDE BAZLI) */
 .overlay{
   position:absolute;
-  bottom:170px;
-  left:50%;
-  transform:translateX(-50%);
-  width:300px;
-  height:280px;
+  top:22%;
+  left:6%;
+  width:88%;
+  height:63%;
   display:flex;
-  gap:20px;
   opacity:0;
-  transition:0.4s;
+  transition:0.5s;
 }
 
 .overlay.active{
@@ -81,12 +99,14 @@ body{
 
 .page{
   width:50%;
+  padding:5px;
+  box-sizing:border-box;
 }
 
 .item{
   display:flex;
   justify-content:space-between;
-  margin:12px 0;
+  margin:8px 0;
   color:gold;
   font-weight:bold;
   font-size:13px;
@@ -97,67 +117,121 @@ body{
 .item:hover{
   transform:scale(1.05);
 }
+
+.result{
+  position:absolute;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  color:white;
+  font-size:13px;
+  text-align:center;
+  width:90%;
+}
 </style>
 </head>
 <body>
 
 <div class="app">
 
-<img src="nightclub_indoor.jpg" class="bg">
+<img src="/nightclub_indoor.jpg" class="bg">
 
-<img src="nightclub_book_closed.png" class="book-closed" id="closed">
-<img src="nightclub_book_open.png" class="book-open" id="open">
-
-<div class="overlay" id="overlay">
-  <div class="page" id="leftPage"></div>
-  <div class="page" id="rightPage"></div>
+<div class="hud">
+  <div>⚡ Energy: <span id="energy">0</span></div>
+  <div>⭐ XP: <span id="xp">0</span></div>
 </div>
+
+<div class="book-wrapper">
+
+  <img src="/nightclub_book_closed.png" class="book-closed" id="closed">
+  <img src="/nightclub_book_open.png" class="book-open" id="open">
+
+  <div class="overlay" id="overlay">
+    <div class="page" id="leftPage"></div>
+    <div class="page" id="rightPage"></div>
+  </div>
+
+</div>
+
+<div class="result" id="result"></div>
 
 </div>
 
 <script>
 
-const leftProducts=[
-  {name:"Rakı",energy:15},
-  {name:"Vodka",energy:20},
-  {name:"Whiskey",energy:25},
-  {name:"Beer",energy:10}
+let energy=0;
+let xp=0;
+let drank=false;
+let ate=false;
+
+const drinks=[
+  {name:"Rakı",energy:15,type:"drink"},
+  {name:"Vodka",energy:20,type:"drink"},
+  {name:"Whiskey",energy:25,type:"drink"},
+  {name:"Beer",energy:10,type:"drink"},
+  {name:"Champagne",energy:30,type:"drink"},
+  {name:"Tequila",energy:22,type:"drink"},
+  {name:"Gin",energy:18,type:"drink"},
+  {name:"Rum",energy:20,type:"drink"}
 ];
 
-const rightProducts=[
-  {name:"Champagne",energy:30},
-  {name:"Tequila",energy:22},
-  {name:"Gin",energy:18},
-  {name:"Rum",energy:20}
+const foods=[
+  {name:"Patates",energy:8,type:"food"},
+  {name:"Çerez",energy:5,type:"food"},
+  {name:"Meyve Tabağı",energy:10,type:"food"},
+  {name:"Burger",energy:15,type:"food"}
 ];
 
 const left=document.getElementById("leftPage");
 const right=document.getElementById("rightPage");
+const energyEl=document.getElementById("energy");
+const xpEl=document.getElementById("xp");
+const result=document.getElementById("result");
 
-function render(){
-  leftProducts.forEach(p=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<span>${p.name}</span><span>${p.energy}⚡</span>`;
-    left.appendChild(div);
-  });
-
-  rightProducts.forEach(p=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<span>${p.name}</span><span>${p.energy}⚡</span>`;
-    right.appendChild(div);
-  });
+function createItem(p){
+  const div=document.createElement("div");
+  div.className="item";
+  div.innerHTML=`<span>${p.name}</span><span>${p.energy}⚡</span>`;
+  div.onclick=()=>consume(p);
+  return div;
 }
 
-render();
+drinks.slice(0,4).forEach(p=>left.appendChild(createItem(p)));
+drinks.slice(4,8).forEach(p=>right.appendChild(createItem(p)));
+foods.forEach(p=>right.appendChild(createItem(p)));
+
+function consume(p){
+  energy+=p.energy;
+  xp+=5;
+  energyEl.textContent=energy;
+  xpEl.textContent=xp;
+
+  if(p.type==="drink") drank=true;
+  if(p.type==="food") ate=true;
+
+  checkOutcome();
+}
+
+function checkOutcome(){
+  if(drank && !ate){
+    if(Math.random()<0.45){
+      result.textContent="⚠ Saldırıya uğradın!";
+    }
+  }
+
+  if(drank && ate){
+    if(Math.random()<0.30){
+      result.textContent="💃 Yeni çalışan kazandın!";
+    }
+  }
+}
 
 const closed=document.getElementById("closed");
 const open=document.getElementById("open");
 const overlay=document.getElementById("overlay");
 
 closed.onclick=()=>{
-  closed.classList.add("hidden");
+  closed.style.display="none";
   open.classList.add("active");
   overlay.classList.add("active");
 };
