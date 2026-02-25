@@ -1,218 +1,57 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TonCrime City</title>
-
+<link rel="stylesheet" href="global.css">
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
 <style>
 body{
   margin:0;
-  background:black;
-  font-family:Georgia, serif;
-  overflow:hidden;
-}
-
-.app{
+  background:url("assets/background.jpg") center/cover no-repeat;
   width:390px;
   height:700px;
-  margin:0 auto;
-  position:relative;
   overflow:hidden;
-  background:black;
-}
-
-/* BACKGROUND */
-.bg{
-  position:absolute;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  z-index:0;
-}
-
-/* LOGO */
-.logo{
-  position:absolute;
-  top:12px;
-  left:15px;
-  height:55px;
-  z-index:30;
-}
-
-/* HUD */
-.hud{
-  position:absolute;
-  top:10px;
-  right:12px;
-  background:rgba(0,0,0,0.75);
-  border:1px solid gold;
-  border-radius:25px;
-  padding:6px 14px;
-  color:gold;
-  font-size:13px;
-  display:flex;
-  gap:12px;
-  z-index:30;
-}
-
-/* SLIDER */
-.slider-wrapper{
-  position:absolute;
-  bottom:120px;
-  width:100%;
-  overflow:hidden;
-  z-index:20;
 }
 
 .slider{
+  position:absolute;
+  bottom:100px;
   display:flex;
-  transition:0.4s ease;
+  transition:0.4s;
 }
 
 .building{
-  min-width:390px;
+  width:390px;
   text-align:center;
   color:gold;
 }
-
-.building img{
-  width:280px;
-  border-radius:15px;
-  border:2px solid gold;
-  margin-top:20px;
-}
-
-.building h2{
-  margin-top:15px;
-}
-
-/* NAV ARROWS */
-.arrow{
-  position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  font-size:30px;
-  color:gold;
-  cursor:pointer;
-  z-index:25;
-}
-
-.left{ left:10px; }
-.right{ right:10px; }
-
-/* ENTER BUTTON */
-.enter-btn{
-  margin-top:15px;
-  padding:8px 20px;
-  background:gold;
-  border:none;
-  font-weight:bold;
-  cursor:pointer;
-  border-radius:10px;
-}
-
-/* FOOTER INFO */
-.footer{
-  position:absolute;
-  bottom:20px;
-  width:100%;
-  text-align:center;
-  color:gold;
-  font-size:12px;
-  z-index:30;
-}
-
 </style>
 </head>
 <body>
 
-<div class="app">
+<div class="slider" id="slider">
 
-<img src="background.jpg" class="bg">
-<img src="logo.png" class="logo">
-
-<div class="hud">
-👤 <span id="username">Player01</span>
-⚡ <span id="energy">50</span>
-⭐ <span id="xp">0</span>
-💰 <span id="yton">1000</span>
+<div class="building">
+<h2>Nightclub</h2>
+<button onclick="location.href='nightclub.html'">Giriş</button>
 </div>
 
-<div class="arrow left" onclick="prev()">‹</div>
-<div class="arrow right" onclick="next()">›</div>
-
-<div class="slider-wrapper">
-  <div class="slider" id="slider">
-
-    <div class="building">
-      <img src="nightclub.jpg">
-      <h2>Nightclub</h2>
-      <button class="enter-btn" onclick="enter('nightclub.html')">Giriş</button>
-    </div>
-
-    <div class="building">
-      <img src="coffee.jpg">
-      <h2>Coffee Shop</h2>
-      <button class="enter-btn" onclick="enter('coffee.html')">Giriş</button>
-    </div>
-
-    <div class="building">
-      <img src="mission.jpg">
-      <h2>Görevler</h2>
-      <button class="enter-btn" onclick="enter('missions.html')">Giriş</button>
-    </div>
-
-  </div>
-</div>
-
-<div class="footer">
-Şehir Merkezi
+<div class="building">
+<h2>Coffee</h2>
+<button onclick="location.href='coffee.html'">Giriş</button>
 </div>
 
 </div>
 
 <script>
-
-/* ===== MOTOR ===== */
-
-let energy=50;
-let xp=0;
-let yton=1000;
-
-function updateHUD(){
-  document.getElementById("energy").innerText=energy;
-  document.getElementById("xp").innerText=xp;
-  document.getElementById("yton").innerText=yton;
+let i=0;
+function slide(dir){
+  i+=dir;
+  if(i<0)i=0;
+  if(i>1)i=1;
+  document.getElementById("slider").style.transform=
+  "translateX(-"+(i*390)+"px)";
 }
-
-updateHUD();
-
-/* ===== SLIDER ===== */
-
-let index=0;
-const slider=document.getElementById("slider");
-
-function next(){
-  if(index<2){
-    index++;
-    slider.style.transform="translateX(-"+(index*390)+"px)";
-  }
-}
-
-function prev(){
-  if(index>0){
-    index--;
-    slider.style.transform="translateX(-"+(index*390)+"px)";
-  }
-}
-
-/* ===== ENTER ===== */
-
-function enter(page){
-  window.location.href=page;
-}
-
 </script>
 
 </body>
