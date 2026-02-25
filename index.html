@@ -37,9 +37,9 @@ body{
 /* LOGO */
 .logo{
   position:absolute;
-  top:45px;
-  left:25px;
-  height:90px;
+  top:15px;
+  left:15px;
+  height:55px;
   z-index:5;
 }
 
@@ -79,7 +79,7 @@ body{
   gap:6px;
 }
 
-/* ===== SLIDER ORTADA ===== */
+/* SLIDER ORTADA */
 .slider-area{
   position:absolute;
   top:50%;
@@ -120,7 +120,7 @@ body{
   font-weight:bold;
 }
 
-/* ===== CHAT PANEL ===== */
+/* CHAT */
 .chat-container{
   position:absolute;
   bottom:0;
@@ -174,7 +174,6 @@ body{
   background:gold;
   cursor:pointer;
 }
-
 </style>
 </head>
 <body>
@@ -197,69 +196,142 @@ body{
   </div>
 </div>
 
-<!-- SLIDER -->
 <div class="slider-area">
   <div class="slider">
     <div class="track" id="track">
 
       <div class="card" onclick="go('missions.html')">
-        <img src="missions.jpg">
-        <span>Görevler</span>
+        <img src="missions.jpg"><span>Görevler</span>
       </div>
 
       <div class="card" onclick="go('pvp.html')">
-        <img src="pvp.jpg">
-        <span>PvP</span>
+        <img src="pvp.jpg"><span>PvP</span>
       </div>
 
       <div class="card" onclick="go('nightclub.html')">
-        <img src="nightclub.jpg">
-        <span>Gece Kulübü</span>
+        <img src="nightclub.jpg"><span>Gece Kulübü</span>
       </div>
 
       <div class="card" onclick="go('coffeeshop.html')">
-        <img src="coffeeshop.jpg">
-        <span>Coffee</span>
+        <img src="coffeeshop.jpg"><span>Coffee</span>
       </div>
 
       <div class="card" onclick="go('xxx.html')">
-        <img src="xxx.jpg">
-        <span>Genel Ev</span>
+        <img src="xxx.jpg"><span>Genel Ev</span>
       </div>
 
       <div class="card" onclick="go('weapons.html')">
-        <img src="weapons.jpg">
-        <span>Silah</span>
+        <img src="weapons.jpg"><span>Silah</span>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- CHAT -->
 <div class="chat-container" id="chatBox">
-
   <div class="chat-header" onclick="toggleChat()">CHAT</div>
-
   <div class="chat-messages" id="chatMessages"></div>
-
   <div class="chat-input">
     <input type="text" id="chatInput" placeholder="Mesaj...">
     <button onclick="sendMessage()">Gönder</button>
   </div>
-
 </div>
 
 </div>
 
 <script>
 
-/* NAV */
-function go(page){
-  window.location.href = page;
+/* ================= PLAYER ================= */
+
+let player = JSON.parse(localStorage.getItem("player")) || {
+  energy: 60,
+  maxEnergy: 100,
+  xp: 0,
+  xpMax: 1000,
+  level: 1,
+  yton: 1000,
+  lastEnergyTime: Date.now()
+};
+
+function savePlayer(){
+  localStorage.setItem("player", JSON.stringify(player));
 }
 
-/* SLIDE SWIPE */
+/* ================= ENERGY TIMER ================= */
+
+function updateEnergy(){
+  const now = Date.now();
+  const fiveMin = 5 * 60 * 1000;
+  const diff = now - player.lastEnergyTime;
+
+  if(diff >= fiveMin){
+    const gained = Math.floor(diff / fiveMin);
+    player.energy += gained;
+
+    if(player.energy > player.maxEnergy)
+      player.energy = player.maxEnergy;
+
+    player.lastEnergyTime = now;
+    savePlayer();
+  }
+}
+
+/* ================= XP SYSTEM ================= */
+
+function addXP(amount){
+  player.xp += amount;
+
+  while(player.xp >= player.xpMax){
+    player.xp -= player.xpMax;
+    player.level++;
+    player.xpMax = Math.floor(player.xpMax * 1.25);
+    showLevelUp();
+  }
+
+  savePlayer();
+  updateHUD();
+}
+
+function showLevelUp(){
+  const div = document.createElement("div");
+  div.innerText = "LEVEL UP! (Lv " + player.level + ")";
+  div.style.position = "absolute";
+  div.style.top = "50%";
+  div.style.left = "50%";
+  div.style.transform = "translate(-50%,-50%)";
+  div.style.padding = "15px 25px";
+  div.style.background = "gold";
+  div.style.color = "black";
+  div.style.fontWeight = "bold";
+  div.style.borderRadius = "15px";
+  div.style.zIndex = "999";
+  div.style.boxShadow = "0 0 20px gold";
+  document.querySelector(".app").appendChild(div);
+  setTimeout(()=> div.remove(), 2000);
+}
+
+/* ================= HUD ================= */
+
+function updateHUD(){
+  updateEnergy();
+
+  document.getElementById("energyText").innerText =
+    "⚡ " + player.energy + "/" + player.maxEnergy;
+
+  document.getElementById("energyBar").style.width =
+    (player.energy/player.maxEnergy*100)+"%";
+
+  document.getElementById("xpText").innerText =
+    "XP " + player.xp + "/" + player.xpMax + " (Lv " + player.level + ")";
+
+  document.getElementById("xpBar").style.width =
+    (player.xp/player.xpMax*100)+"%";
+
+  document.getElementById("ytonText").innerText = player.yton;
+}
+
+/* ================= SLIDE SWIPE ================= */
+
 let position=0;
 const track=document.getElementById("track");
 
@@ -287,24 +359,8 @@ track.addEventListener("touchend",e=>{
   isDragging=false;
 });
 
-/* PLAYER */
-let player=JSON.parse(localStorage.getItem("player"))||{
-  energy:60,maxEnergy:100,xp:0,xpMax:1000,level:1,yton:1000
-};
+/* ================= CHAT ================= */
 
-function updateHUD(){
-  document.getElementById("energyText").innerText="⚡ "+player.energy+"/"+player.maxEnergy;
-  document.getElementById("energyBar").style.width=(player.energy/player.maxEnergy*100)+"%";
-
-  document.getElementById("xpText").innerText="XP "+player.xp+"/"+player.xpMax+" (Lv "+player.level+")";
-  document.getElementById("xpBar").style.width=(player.xp/player.xpMax*100)+"%";
-
-  document.getElementById("ytonText").innerText=player.yton;
-}
-
-updateHUD();
-
-/* CHAT */
 let chatData=JSON.parse(localStorage.getItem("chat"))||[];
 
 function toggleChat(){
@@ -330,7 +386,16 @@ function loadChat(){
   });
 }
 
-loadChat();
+function go(page){
+  window.location.href = page;
+}
+
+/* INIT */
+document.addEventListener("DOMContentLoaded",()=>{
+  updateHUD();
+  loadChat();
+  setInterval(updateHUD,10000);
+});
 
 </script>
 
