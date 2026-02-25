@@ -1,198 +1,156 @@
 /* ===================================================
-   TONCRIME HEAT & HOSPITAL ENGINE
-   Dynamic Crime Consequence System
+   TONCRIME HEAT ENGINE
+   Police Attention System
    =================================================== */
 
 (function(){
 
-if(!window.EVENT){
-  console.warn("Heat engine waiting EVENT...");
+if(!window.db || !window.GAME){
+  console.warn("Heat engine waiting...");
   return;
 }
 
-/* ===========================================
-   CONFIG
-=========================================== */
+const Heat = {
 
-const STORAGE_KEY="tc_heat";
+  value:0,
+  lastDecay:0,
 
-const HOSPITAL_TIME = 24*60*60*1000; // 24 saat
-const EXIT_COST = 700;
+  /* ===========================================
+     LOAD
+  =========================================== */
 
-/* ===========================================
-   ENGINE
-=========================================== */
+  async load(){
 
-const HEAT = {
+    const user = GAME.user;
+    if(!user) return;
 
-  data:{},
+    const {data} = await db
+      .from("users")
+      .select("heat")
+      .eq("id",user.id)
+      .single();
 
-  /* ===================================== */
-  init(){
+    this.value = data?.heat || 0;
 
-    this.load();
-
-    EVENT.on("pvp:attack",()=>this.addHeat(4));
-    EVENT.on("pvp:win",()=>this.addHeat(2));
-    EVENT.on("mission:fail",()=>this.addHeat(3));
-
-    setInterval(()=>this.checkHospital(),5000);
-
-    console.log("🕵️ Heat Engine Ready");
+    this.updateState();
   },
 
-  /* ===================================== */
-  load(){
+  /* ===========================================
+     ADD HEAT
+  =========================================== */
 
-    try{
-      this.data=
-        JSON.parse(localStorage.getItem(STORAGE_KEY))
-        || {};
-    }catch{
-      this.data={};
-    }
+  async add(amount){
 
-    if(!this.data[CONFIG.USER_ID]){
-      this.data[CONFIG.USER_ID]={
-        heat:0,
-        hospitalUntil:0
-      };
-    }
+    const user = GAME.user;
+    if(!user) return;
+
+    this.value += amount;
+    this.value = Math.min(100,this.value);
+
+    await db.from("users")
+      .update({heat:this.value})
+      .eq("id",user.id);
+
+    this.updateState();
+
+    if(window.NOTIFY)
+      notify("🚨 Heat +" + amount);
   },
 
-  save(){
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(this.data)
-    );
+  /* ===========================================
+     REDUCE HEAT
+  =========================================== */
+
+  async reduce(amount){
+
+    const user = GAME.user;
+    if(!user) return;
+
+    this.value -= amount;
+    this.value = Math.max(0,this.value);
+
+    await db.from("users")
+      .update({heat:this.value})
+      .eq("id",user.id);
+
+    this.updateState();
   },
 
-  player(){
-    return this.data[CONFIG.USER_ID];
+  /* ===========================================
+     STATE EFFECT
+  =========================================== */
+
+  updateState(){
+
+    let level="safe";
+
+    if(this.value>=80) level="wanted";
+    else if(this.value>=50) level="danger";
+    else if(this.value>=20) level="suspicious";
+
+    GAME.heatLevel = level;
+
+    if(window.EVENT)
+      EVENT.emit("heat:update",{
+        value:this.value,
+        level
+      });
   },
 
-  /* ===================================== */
-  HEAT SYSTEM
-  ===================================== */
+  /* ===========================================
+     AUTO DECAY
+  =========================================== */
 
-  addHeat(v){
+  async decay(){
 
-    const p=this.player();
+    const now = Date.now();
 
-    p.heat+=v;
+    if(now - this.lastDecay < 300000) return;
 
-    /* risk roll */
-    const risk=Math.min(60,p.heat);
+    this.lastDecay = now;
 
-    if(Math.random()*100 < risk){
-      this.sendHospital();
-    }
-
-    this.save();
-    this.updateUI();
-  },
-
-  /* ===================================== */
-  HOSPITAL
-  ===================================== */
-
-  sendHospital(){
-
-    const p=this.player();
-
-    p.hospitalUntil=Date.now()+HOSPITAL_TIME;
-    p.heat=0;
-
-    if(GAME.user)
-      GAME.user.energy=0;
-
-    EVENT.emit("player:hospitalized");
-
-    NOTIFY.push("🏥 Ağır yaralandın! Hastanedesin.");
-
-    this.save();
-  },
-
-  checkHospital(){
-
-    const p=this.player();
-
-    if(!p.hospitalUntil) return;
-
-    if(Date.now()>p.hospitalUntil){
-
-      p.hospitalUntil=0;
-      NOTIFY.push("✅ Hastaneden çıktın.");
-
-      EVENT.emit("player:released");
-
-      this.save();
-    }
-  },
-
-  /* ===================================== */
-  PAY EXIT
-  ===================================== */
-
-  earlyExit(){
-
-    const p=this.player();
-
-    if(!p.hospitalUntil) return;
-
-    if(GAME.user.yton < EXIT_COST){
-      NOTIFY.push("Yetersiz YTON");
-      return;
-    }
-
-    GAME.user.yton -= EXIT_COST;
-
-    p.hospitalUntil=0;
-
-    EVENT.emit("player:released");
-
-    NOTIFY.push("💊 Özel tedavi ile çıktın.");
-
-    this.save();
-  },
-
-  /* ===================================== */
-  UI
-  ===================================== */
-
-  updateUI(){
-
-    if(!window.UI) return;
-
-    const p=this.player();
-
-    UI.updateHeat({
-      heat:p.heat,
-      hospital:p.hospitalUntil>Date.now()
-    });
+    await this.reduce(2);
   }
 
 };
 
-window.HEAT=HEAT;
+window.HEAT = Heat;
+
 
 /* ===========================================
-   START
+   EVENT LINKS
 =========================================== */
 
-EVENT.on("game:ready",()=>{
-  HEAT.init();
-});
+/* black market buy */
+if(window.EVENT){
 
-/* ===========================================
-   CORE REGISTER
-=========================================== */
+  EVENT.on("blackmarket:update",()=>{
+    // passive monitor
+  });
 
-if(window.CORE){
-  CORE.register(
-    "Heat Engine",
-    ()=>!!window.HEAT
-  );
+  EVENT.on("blackmarket:buy",()=>{
+    Heat.add(10);
+  });
+
+  EVENT.on("pvp:attack",()=>{
+    Heat.add(3);
+  });
+
 }
+
+
+/* ===========================================
+   LOOP
+=========================================== */
+
+setInterval(()=>{
+  Heat.decay();
+},60000);
+
+
+/* LOAD */
+setTimeout(()=>Heat.load(),2000);
+
+console.log("🚨 Heat Engine Ready");
 
 })();

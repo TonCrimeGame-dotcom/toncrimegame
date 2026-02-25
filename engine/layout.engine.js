@@ -1,184 +1,195 @@
 /* ===================================================
-   TONCRIME LAYOUT ENGINE
-   Global Game Shell
+   TONCRIME GLOBAL LAYOUT ENGINE
+   Tek UI sistemi — tüm sayfalar buradan yönetilir
    =================================================== */
 
-(function(){
+(function () {
 
-const Layout = {
+let layoutReady = false;
 
-init(){
+/* ===================================================
+   BUILD GLOBAL UI
+   =================================================== */
 
-document.body.insertAdjacentHTML("afterbegin",`
+function buildLayout() {
 
-<div id="tc-sidebar" class="tc-sidebar">
-  <h3>TonCrime</h3>
+  if (layoutReady) return;
+  layoutReady = true;
 
-  <p onclick="PAGE.go('index')">🏠 Ana Sayfa</p>
-  <p onclick="PAGE.go('missions')">🎯 Görevler</p>
-  <p onclick="PAGE.go('pvp')">⚔ PvP</p>
-  <p onclick="PAGE.go('coffee')">☕ Coffee Shop</p>
-  <p onclick="PAGE.go('club')">🍾 Gece Kulübü</p>
-  <p onclick="PAGE.go('brothel')">❤️ Genel Ev</p>
-  <p onclick="PAGE.go('market')">💰 Market</p>
-</div>
+  document.body.style.margin = "0";
+  document.body.style.background = "#0f1115";
+  document.body.style.fontFamily = "Arial, sans-serif";
+  document.body.style.color = "#fff";
 
-<div id="tc-overlay"></div>
+  /* ---------- ROOT GRID ---------- */
 
-<div class="tc-topbar">
-  <div class="menu-btn" onclick="Layout.toggle()">☰</div>
-  <div class="logo">TonCrime</div>
+  document.body.innerHTML = `
+  <div id="tc-root">
 
-  <div class="stats">
-    <div id="stats"></div>
+    <!-- SIDEBAR -->
+    <div id="tc-sidebar">
+      <h2>TonCrime</h2>
 
-    <div class="bar">
-      <div id="xpBar" class="xp"></div>
+      <button onclick="goPage('index.html')">🏠 Ana Sayfa</button>
+      <button onclick="goPage('missions.html')">🎯 Görevler</button>
+      <button onclick="goPage('coffeeshop.html')">☕ Coffee Shop</button>
+      <button onclick="goPage('nightclub.html')">🍾 Gece Kulübü</button>
+      <button onclick="goPage('hospital.html')">🏥 Hastane</button>
+      <button onclick="goPage('pvp.html')">⚔ PvP Arena</button>
     </div>
 
-    <div class="bar">
-      <div id="energyBar" class="energy"></div>
+    <!-- MAIN -->
+    <div id="tc-main">
+
+      <!-- TOPBAR -->
+      <div id="tc-topbar">
+        <div id="tc-title">TonCrime</div>
+        <div id="tc-stats">yükleniyor...</div>
+      </div>
+
+      <!-- PAGE CONTENT -->
+      <div id="tc-content"></div>
+
     </div>
+
   </div>
-</div>
+  `;
 
-<div class="tc-main">
-  <div id="tc-content"></div>
+  injectStyles();
 
-  <div class="tc-userpanel" id="playerCard"></div>
-</div>
-
-<div id="crimeFeed" class="tc-feed"></div>
-
-`);
-
-this.injectCSS();
-
-console.log("🧱 Layout Ready");
-},
-
-toggle(){
-document.getElementById("tc-sidebar")
-.classList.toggle("open");
+  movePageContent();
 }
 
+/* ===================================================
+   MOVE HTML INTO CONTENT AREA
+   =================================================== */
+
+function movePageContent() {
+
+  const content = document.getElementById("tc-content");
+
+  const old = document.querySelector("#app")
+        || document.querySelector("main")
+        || document.querySelector(".container");
+
+  if (old) {
+    content.appendChild(old);
+    old.style.display = "block";
+  }
+}
+
+/* ===================================================
+   GLOBAL NAVIGATION
+   =================================================== */
+
+window.goPage = function (page) {
+  window.location.href = page + "?v=" + Date.now();
 };
 
-/* ================= CSS ================= */
+/* ===================================================
+   UPDATE USER STATS (ENGINE CALLS THIS)
+   =================================================== */
 
-Layout.injectCSS=function(){
+window.renderTopStats = function(user){
 
-const style=document.createElement("style");
+  const el = document.getElementById("tc-stats");
+  if(!el || !user) return;
 
-style.innerHTML=`
+  el.innerHTML =
+    `Lv ${user.level}
+     | XP ${user.xp}
+     | ⚡ ${user.energy}
+     | 💰 ${Number(user.yton).toFixed(2)}`;
+};
 
-body{
-margin:0;
-background:#0e0e0e;
-color:white;
-font-family:Arial;
+/* ===================================================
+   STYLE INJECTION
+   =================================================== */
+
+function injectStyles(){
+
+const css = document.createElement("style");
+
+css.innerHTML = `
+
+#tc-root{
+  display:flex;
+  height:100vh;
 }
 
-.tc-topbar{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:70px;
-background:#111;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 20px;
-z-index:999;
-border-bottom:1px solid #222;
+/* SIDEBAR */
+
+#tc-sidebar{
+  width:220px;
+  background:#15181f;
+  padding:20px;
+  box-sizing:border-box;
+  border-right:1px solid #222;
 }
 
-.logo{
-color:gold;
-font-weight:bold;
-font-size:22px;
+#tc-sidebar h2{
+  color:gold;
+  margin-bottom:20px;
 }
 
-.menu-btn{
-cursor:pointer;
-font-size:22px;
-margin-right:10px;
+#tc-sidebar button{
+  width:100%;
+  margin:6px 0;
+  padding:10px;
+  background:#1f2430;
+  border:none;
+  color:white;
+  cursor:pointer;
+  border-radius:6px;
 }
 
-.stats{
-width:420px;
+#tc-sidebar button:hover{
+  background:#2a3142;
 }
 
-.bar{
-height:6px;
-background:#333;
-margin-top:5px;
-border-radius:4px;
-overflow:hidden;
+/* MAIN AREA */
+
+#tc-main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
 }
 
-.xp{background:limegreen;height:100%;}
-.energy{background:gold;height:100%;}
+/* TOPBAR */
 
-.tc-sidebar{
-position:fixed;
-left:-260px;
-top:0;
-width:260px;
-height:100%;
-background:#151515;
-padding:20px;
-transition:.3s;
-z-index:1000;
+#tc-topbar{
+  height:60px;
+  background:#15181f;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  border-bottom:1px solid #222;
 }
 
-.tc-sidebar.open{left:0;}
-
-.tc-sidebar p{
-cursor:pointer;
-margin:10px 0;
+#tc-title{
+  color:gold;
+  font-size:20px;
+  font-weight:bold;
 }
 
-.tc-main{
-margin-top:80px;
-display:flex;
-gap:30px;
-padding:20px;
-}
+/* CONTENT */
 
 #tc-content{
-width:65%;
-}
-
-.tc-userpanel{
-width:25%;
-background:#1b1b1b;
-padding:15px;
-border-radius:10px;
-}
-
-.tc-feed{
-position:fixed;
-bottom:0;
-left:0;
-width:100%;
-background:#111;
-padding:8px;
-font-size:13px;
-border-top:1px solid #222;
+  flex:1;
+  padding:20px 40px; /* <<< SOL BOŞLUK BURADA */
+  overflow:auto;
 }
 
 `;
 
-document.head.appendChild(style);
-};
+document.head.appendChild(css);
+}
 
-window.Layout=Layout;
+/* ===================================================
+   AUTO START
+   =================================================== */
 
-/* AUTO START */
-document.addEventListener("DOMContentLoaded",()=>{
-Layout.init();
-});
+document.addEventListener("DOMContentLoaded", buildLayout);
 
 })();
