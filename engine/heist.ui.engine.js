@@ -1,15 +1,14 @@
 /* ===================================================
-   TONCRIME HEIST UI ENGINE
+   TONCRIME HEIST UI ENGINE (FULL)
    =================================================== */
 
 (function(){
 
 if(!window.HEIST_UI) window.HEIST_UI = {};
-
 const UI = window.HEIST_UI;
 
 /* ===================================================
-   RENDER SCENE
+   RENDER
    =================================================== */
 
 UI.render = function(containerId, params){
@@ -17,34 +16,33 @@ UI.render = function(containerId, params){
   const container = document.getElementById(containerId);
   container.innerHTML = "";
   container.style.position = "relative";
+  container.style.background = "#000";
+  container.style.height = "450px";
+  container.style.overflow = "hidden";
 
   const scene = HEIST.generateScene(params);
 
-  // Create grid container
   const grid = document.createElement("div");
   grid.style.display = "grid";
-  grid.style.gridTemplateColumns = "repeat(3, 1fr)";
-  grid.style.gridTemplateRows = "repeat(3, 1fr)";
+  grid.style.gridTemplateColumns = "repeat(3,1fr)";
+  grid.style.gridTemplateRows = "repeat(3,1fr)";
   grid.style.width = "100%";
   grid.style.height = "100%";
 
   container.appendChild(grid);
 
-  // Render grid cells
   for(let r=0;r<3;r++){
     for(let c=0;c<3;c++){
 
       const cell = document.createElement("div");
-      cell.style.border = "1px solid rgba(255,255,255,0.05)";
-      cell.style.position = "relative";
       cell.dataset.row = r;
       cell.dataset.col = c;
-
+      cell.style.position = "relative";
+      cell.style.border = "1px solid rgba(255,255,255,0.05)";
       grid.appendChild(cell);
     }
   }
 
-  // Render objects
   scene.objects.forEach(obj=>{
 
     const cell = [...grid.children].find(c =>
@@ -55,16 +53,16 @@ UI.render = function(containerId, params){
     const el = document.createElement("div");
     el.innerText = obj.type.toUpperCase();
     el.style.color = "white";
-    el.style.cursor = "pointer";
     el.style.textAlign = "center";
     el.style.paddingTop = "40px";
+    el.style.cursor = "pointer";
 
     el.onclick = function(){
 
       const result = HEIST.clickObject(obj.id);
 
       if(result.result === "win"){
-        alert("KAZANDIN");
+        alert("KASA AÇILDI! +1200 YTON");
       }
 
       if(result.result === "wrong"){
@@ -89,6 +87,10 @@ UI.updateRisk = function(){
 
   if(bar){
     bar.style.width = risk + "%";
+  }
+
+  if(risk > 80){
+    document.body.style.animation = "shake 0.2s infinite";
   }
 
   if(HEIST.isFailed()){
