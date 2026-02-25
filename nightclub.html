@@ -15,10 +15,9 @@ body{
 .app{
   width:390px;
   height:690px;
-  position:relative;
   margin:0 auto;
+  position:relative;
   overflow:hidden;
-  background:black;
 }
 
 /* BACKGROUND */
@@ -39,31 +38,24 @@ body{
   gap:20px;
   color:gold;
   font-weight:bold;
-  font-size:14px;
   z-index:5;
-  text-shadow:0 0 10px black;
 }
 
 /* BOOK WRAPPER */
 .book-wrapper{
   position:absolute;
-  bottom:40px;
+  bottom:50px;
   left:50%;
   transform:translateX(-50%);
-  width:340px;
-  perspective:1000px;
+  width:320px;
 }
 
-.book-wrapper img{
-  width:100%;
-  display:block;
-}
-
-/* CLOSED */
+/* CLOSED (DIV HITBOX FIX) */
 .book-closed{
+  width:100%;
+  height:460px;
+  background:url('/nightclub_book_closed.png') center/contain no-repeat;
   cursor:pointer;
-  transition:0.5s;
-  box-shadow:0 30px 60px rgba(0,0,0,0.8);
 }
 
 /* OPEN */
@@ -71,9 +63,12 @@ body{
   position:absolute;
   top:0;
   left:0;
+  width:100%;
+  height:460px;
+  background:url('/nightclub_book_open.png') center/contain no-repeat;
   opacity:0;
-  transform:scale(0.85);
-  transition:0.6s;
+  transform:scale(0.9);
+  transition:0.5s;
 }
 
 .book-open.active{
@@ -81,7 +76,7 @@ body{
   transform:scale(1);
 }
 
-/* OVERLAY (YÜZDE BAZLI) */
+/* OVERLAY */
 .overlay{
   position:absolute;
   top:22%;
@@ -90,7 +85,7 @@ body{
   height:63%;
   display:flex;
   opacity:0;
-  transition:0.5s;
+  transition:0.4s;
 }
 
 .overlay.active{
@@ -99,7 +94,7 @@ body{
 
 .page{
   width:50%;
-  padding:5px;
+  padding:6px;
   box-sizing:border-box;
 }
 
@@ -107,15 +102,28 @@ body{
   display:flex;
   justify-content:space-between;
   margin:8px 0;
-  color:gold;
-  font-weight:bold;
   font-size:13px;
+  font-weight:bold;
+  color:gold;
   cursor:pointer;
-  transition:0.2s;
 }
 
 .item:hover{
   transform:scale(1.05);
+}
+
+/* EXIT BUTTON */
+.exit{
+  position:absolute;
+  bottom:10px;
+  right:15px;
+  background:gold;
+  color:black;
+  padding:6px 12px;
+  font-weight:bold;
+  cursor:pointer;
+  border-radius:4px;
+  display:none;
 }
 
 .result{
@@ -137,22 +145,24 @@ body{
 <img src="/nightclub_indoor.jpg" class="bg">
 
 <div class="hud">
-  <div>⚡ Energy: <span id="energy">0</span></div>
-  <div>⭐ XP: <span id="xp">0</span></div>
+  ⚡ <span id="energy">0</span>
+  ⭐ <span id="xp">0</span>
 </div>
 
 <div class="book-wrapper">
 
-  <img src="/nightclub_book_closed.png" class="book-closed" id="closed">
-  <img src="/nightclub_book_open.png" class="book-open" id="open">
+  <div class="book-closed" id="closed"></div>
 
-  <div class="overlay" id="overlay">
-    <div class="page" id="leftPage"></div>
-    <div class="page" id="rightPage"></div>
+  <div class="book-open" id="open">
+      <div class="overlay" id="overlay">
+          <div class="page" id="leftPage"></div>
+          <div class="page" id="rightPage"></div>
+      </div>
   </div>
 
 </div>
 
+<div class="exit" id="exitBtn">Çık</div>
 <div class="result" id="result"></div>
 
 </div>
@@ -165,21 +175,21 @@ let drank=false;
 let ate=false;
 
 const drinks=[
-  {name:"Rakı",energy:15,type:"drink"},
-  {name:"Vodka",energy:20,type:"drink"},
-  {name:"Whiskey",energy:25,type:"drink"},
-  {name:"Beer",energy:10,type:"drink"},
-  {name:"Champagne",energy:30,type:"drink"},
-  {name:"Tequila",energy:22,type:"drink"},
-  {name:"Gin",energy:18,type:"drink"},
-  {name:"Rum",energy:20,type:"drink"}
+ {name:"Rakı",energy:15,type:"drink"},
+ {name:"Vodka",energy:20,type:"drink"},
+ {name:"Whiskey",energy:25,type:"drink"},
+ {name:"Beer",energy:10,type:"drink"},
+ {name:"Champagne",energy:30,type:"drink"},
+ {name:"Tequila",energy:22,type:"drink"},
+ {name:"Gin",energy:18,type:"drink"},
+ {name:"Rum",energy:20,type:"drink"}
 ];
 
 const foods=[
-  {name:"Patates",energy:8,type:"food"},
-  {name:"Çerez",energy:5,type:"food"},
-  {name:"Meyve Tabağı",energy:10,type:"food"},
-  {name:"Burger",energy:15,type:"food"}
+ {name:"Patates",energy:8,type:"food"},
+ {name:"Çerez",energy:5,type:"food"},
+ {name:"Meyve",energy:10,type:"food"},
+ {name:"Burger",energy:15,type:"food"}
 ];
 
 const left=document.getElementById("leftPage");
@@ -189,11 +199,11 @@ const xpEl=document.getElementById("xp");
 const result=document.getElementById("result");
 
 function createItem(p){
-  const div=document.createElement("div");
-  div.className="item";
-  div.innerHTML=`<span>${p.name}</span><span>${p.energy}⚡</span>`;
-  div.onclick=()=>consume(p);
-  return div;
+ const div=document.createElement("div");
+ div.className="item";
+ div.innerHTML=`<span>${p.name}</span><span>${p.energy}⚡</span>`;
+ div.onclick=()=>consume(p);
+ return div;
 }
 
 drinks.slice(0,4).forEach(p=>left.appendChild(createItem(p)));
@@ -201,39 +211,49 @@ drinks.slice(4,8).forEach(p=>right.appendChild(createItem(p)));
 foods.forEach(p=>right.appendChild(createItem(p)));
 
 function consume(p){
-  energy+=p.energy;
-  xp+=5;
-  energyEl.textContent=energy;
-  xpEl.textContent=xp;
+ energy+=p.energy;
+ xp+=5;
+ energyEl.textContent=energy;
+ xpEl.textContent=xp;
 
-  if(p.type==="drink") drank=true;
-  if(p.type==="food") ate=true;
-
-  checkOutcome();
-}
-
-function checkOutcome(){
-  if(drank && !ate){
-    if(Math.random()<0.45){
-      result.textContent="⚠ Saldırıya uğradın!";
-    }
-  }
-
-  if(drank && ate){
-    if(Math.random()<0.30){
-      result.textContent="💃 Yeni çalışan kazandın!";
-    }
-  }
+ if(p.type==="drink") drank=true;
+ if(p.type==="food") ate=true;
 }
 
 const closed=document.getElementById("closed");
 const open=document.getElementById("open");
 const overlay=document.getElementById("overlay");
+const exitBtn=document.getElementById("exitBtn");
 
 closed.onclick=()=>{
-  closed.style.display="none";
-  open.classList.add("active");
-  overlay.classList.add("active");
+ closed.style.display="none";
+ open.classList.add("active");
+ overlay.classList.add("active");
+ exitBtn.style.display="block";
+};
+
+exitBtn.onclick=()=>{
+ // ÇIKIŞTA RİSK HESABI
+ if(drank && !ate){
+   if(Math.random()<0.45){
+     result.textContent="⚠ Saldırıya uğradın!";
+   }
+ }
+
+ if(drank && ate){
+   if(Math.random()<0.30){
+     result.textContent="💃 Yeni çalışan kazandın!";
+   }
+ }
+
+ // reset state
+ drank=false;
+ ate=false;
+
+ open.classList.remove("active");
+ overlay.classList.remove("active");
+ closed.style.display="block";
+ exitBtn.style.display="none";
 };
 
 </script>
