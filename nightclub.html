@@ -9,7 +9,7 @@
 body{
   margin:0;
   background:black;
-  font-family:Arial, sans-serif;
+  font-family:Georgia, serif;
 }
 
 .app{
@@ -38,7 +38,6 @@ body{
   transition:0.4s;
   z-index:8;
 }
-
 .dark-overlay.active{
   opacity:1;
   pointer-events:auto;
@@ -69,11 +68,6 @@ body{
   background:url('/nightclub_book_closed.png') center/contain no-repeat;
   cursor:pointer;
   z-index:5;
-  transition:0.3s;
-}
-
-.book-closed:hover{
-  transform:translateX(-50%) scale(1.05);
 }
 
 /* MODAL */
@@ -88,7 +82,6 @@ body{
   transition:0.4s;
   z-index:12;
 }
-
 .menu-modal.active{
   opacity:1;
   pointer-events:auto;
@@ -99,38 +92,34 @@ body{
   width:380px;
   height:540px;
   background:url('/nightclub_book_open.png') center/contain no-repeat;
-  transform:scale(0.7);
-  transition:0.4s;
+  transform:scale(0.9);
   position:relative;
 }
 
-.menu-modal.active .menu-book{
-  transform:scale(1);
-}
-
-/* OVERLAY */
+/* PIXEL PERFECT INNER AREA */
 .overlay{
   position:absolute;
-  top:22%;
-  left:6%;
-  width:88%;
-  height:62%;
+  top:120px;
+  left:40px;
+  width:300px;
+  height:310px;
   display:flex;
 }
 
 .page{
   width:50%;
-  padding:6px;
+  padding:0 8px;
   box-sizing:border-box;
 }
 
 .item{
   display:flex;
   justify-content:space-between;
-  margin:8px 0;
-  font-size:13px;
+  margin:10px 0;
+  font-size:15px;
   font-weight:bold;
   color:gold;
+  text-shadow:0 0 5px rgba(255,215,0,0.6);
   cursor:pointer;
 }
 
@@ -140,8 +129,8 @@ body{
 
 .exit{
   position:absolute;
-  bottom:20px;
-  right:20px;
+  bottom:25px;
+  right:25px;
   background:gold;
   color:black;
   padding:6px 12px;
@@ -235,6 +224,7 @@ foods.forEach(p=>right.appendChild(createItem(p)));
 function consume(p){
  energy+=p.energy;
  xp+=5;
+
  document.getElementById("energy").textContent=energy;
  document.getElementById("xp").textContent=xp;
 
