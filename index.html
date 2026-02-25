@@ -5,196 +5,257 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
 
-<link rel="icon" type="image/png" href="logo.png">
-
 <style>
-
 body{
-margin:0;
-background:url("background.jpg") center/cover no-repeat fixed;
-font-family:Arial, sans-serif;
-color:white;
-overflow-x:hidden;
+  margin:0;
+  background:#000;
+  font-family:Georgia, serif;
 }
 
-/* TOP BAR */
-
-.topbar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:15px 20px;
-background:rgba(0,0,0,0.8);
+.app{
+  width:390px;
+  height:700px;
+  margin:0 auto;
+  position:relative;
+  overflow:hidden;
+  background:black;
 }
 
-.logo{
-height:40px;
+/* BACKGROUND */
+.bg{
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:0;
 }
 
-.stats{
-display:flex;
-gap:15px;
-align-items:center;
+/* HUD */
+.hud{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.7);
+  border:1px solid gold;
+  border-radius:25px;
+  padding:6px 15px;
+  color:gold;
+  font-size:14px;
+  display:flex;
+  gap:15px;
+  z-index:20;
 }
 
-.stat{
-background:rgba(255,255,255,0.1);
-padding:8px 15px;
-border-radius:20px;
-display:flex;
-align-items:center;
-gap:8px;
+/* SCREENS */
+.screen{
+  position:absolute;
+  width:100%;
+  height:100%;
+  display:none;
+  padding-top:60px;
 }
 
-.stat img{
-height:18px;
+.active{ display:block; }
+
+/* MENU BOX */
+.box{
+  width:340px;
+  margin:20px auto;
+  background:rgba(0,0,0,0.75);
+  border:2px solid gold;
+  border-radius:15px;
+  padding:15px;
+  color:gold;
 }
 
-/* XP BAR */
+.item{
+  display:flex;
+  justify-content:space-between;
+  margin:10px 0;
+  cursor:pointer;
+  font-weight:bold;
+}
+.item:hover{ color:white; }
 
-.xp-container{
-height:8px;
-background:#222;
+/* CHAT */
+.chatbox{
+  height:300px;
+  overflow-y:auto;
+  background:rgba(0,0,0,0.6);
+  border:1px solid gold;
+  border-radius:10px;
+  padding:8px;
+  color:white;
+  font-size:12px;
 }
 
-.xp-fill{
-height:100%;
-width:40%;
-background:gold;
-transition:0.3s;
+.chatinput{
+  display:flex;
+  margin-top:8px;
 }
 
-/* CARD SLIDER */
-
-.cards{
-display:flex;
-overflow-x:auto;
-gap:20px;
-padding:30px 20px;
-scroll-snap-type:x mandatory;
+.chatinput input{
+  flex:1;
+  padding:6px;
+  border:none;
 }
 
-.cards::-webkit-scrollbar{
-display:none;
+.chatinput button{
+  padding:6px 10px;
+  background:gold;
+  border:none;
 }
 
-.card{
-flex:0 0 280px;
-aspect-ratio:9/16;
-border-radius:25px;
-overflow:hidden;
-position:relative;
-scroll-snap-align:center;
-cursor:pointer;
-transition:0.3s;
+/* NAV */
+.nav{
+  position:absolute;
+  bottom:0;
+  width:100%;
+  background:rgba(0,0,0,0.85);
+  display:flex;
+  justify-content:space-around;
+  padding:10px 0;
+  border-top:1px solid gold;
+  z-index:20;
 }
 
-.card img{
-width:100%;
-height:100%;
-object-fit:cover;
+.nav button{
+  background:none;
+  border:none;
+  color:gold;
+  font-weight:bold;
+  font-size:13px;
+  cursor:pointer;
 }
+.nav button:hover{ color:white; }
 
-.card:hover{
-transform:scale(1.05);
-}
-
-.card span{
-position:absolute;
-bottom:20px;
-left:20px;
-background:rgba(0,0,0,0.7);
-padding:10px 18px;
-border-radius:12px;
-font-size:18px;
-}
-
-/* FOOTER */
-
-.footer{
-position:fixed;
-bottom:0;
-width:100%;
-background:rgba(0,0,0,0.85);
-display:flex;
-justify-content:space-around;
-padding:12px 0;
-}
-
-.footer div{
-cursor:pointer;
+.center{
+  text-align:center;
+  color:gold;
+  margin-top:40px;
 }
 
 </style>
 </head>
-
 <body>
 
-<!-- TOP BAR -->
+<div class="app">
 
-<div class="topbar">
-<img src="logo.png" class="logo">
+<img src="nightclub_indoor.jpg" class="bg">
 
-<div class="stats">
-<div class="stat">⚡ 45</div>
-<div class="stat"><img src="yton.png"> 250</div>
-</div>
-</div>
-
-<div class="xp-container">
-<div class="xp-fill"></div>
+<!-- HUD -->
+<div class="hud">
+👤 <span id="username">Player01</span>
+⚡ <span id="energy">50</span>
+⭐ <span id="xp">0</span>
+💰 <span id="yton">1000</span>
 </div>
 
-<!-- CARD SLIDER -->
-
-<div class="cards">
-
-<div class="card" onclick="goTo('missions.html')">
-<img src="missions.jpg">
-<span>Görevler</span>
+<!-- NIGHTCLUB -->
+<div class="screen active" id="nightclub">
+  <div class="box">
+    <div class="item" onclick="buy(15,50)">Rakı <span>15⚡ | 50</span></div>
+    <div class="item" onclick="buy(20,70)">Vodka <span>20⚡ | 70</span></div>
+    <div class="item" onclick="buy(25,100)">Whiskey <span>25⚡ | 100</span></div>
+    <div class="item" onclick="buy(30,150)">Champagne <span>30⚡ | 150</span></div>
+  </div>
 </div>
 
-<div class="card" onclick="goTo('pvp.html')">
-<img src="pvp.jpg">
-<span>PvP Arena</span>
+<!-- COFFEE -->
+<div class="screen" id="coffee">
+  <div class="box">
+    <div class="item" onclick="buy(10,30)">Latte <span>10⚡ | 30</span></div>
+    <div class="item" onclick="buy(8,25)">Espresso <span>8⚡ | 25</span></div>
+    <div class="item" onclick="buy(12,40)">Mocha <span>12⚡ | 40</span></div>
+  </div>
 </div>
 
-<div class="card" onclick="goTo('nightclub.html')">
-<img src="nightclub.jpg">
-<span>Gece Kulübü</span>
+<!-- PROFILE -->
+<div class="screen" id="profile">
+  <div class="center">
+    <h2>Profil</h2>
+    Seviye: <span id="level">1</span><br><br>
+    Toplam XP: <span id="profileXp">0</span><br><br>
+    Enerji: <span id="profileEnergy">50</span><br><br>
+    YTON: <span id="profileYton">1000</span>
+  </div>
 </div>
 
-<div class="card" onclick="goTo('xxx.html')">
-<img src="xxx.jpg">
-<span>Genel Ev</span>
+<!-- CHAT -->
+<div class="screen" id="chat">
+  <div class="box">
+    <div class="chatbox" id="chatbox"></div>
+    <div class="chatinput">
+      <input type="text" id="chatinput" placeholder="Mesaj yaz...">
+      <button onclick="sendMsg()">Gönder</button>
+    </div>
+  </div>
 </div>
 
-<div class="card" onclick="goTo('coffeeshop.html')">
-<img src="coffeeshop.jpg">
-<span>Coffee Shop</span>
+<!-- NAV -->
+<div class="nav">
+  <button onclick="show('nightclub')">Nightclub</button>
+  <button onclick="show('coffee')">Coffee</button>
+  <button onclick="show('profile')">Profil</button>
+  <button onclick="show('chat')">Chat</button>
 </div>
 
-<div class="card" onclick="goTo('weapons.html')">
-<img src="weapons.jpg">
-<span>Silah Tüccarı</span>
-</div>
-
-</div>
-
-<!-- FOOTER -->
-
-<div class="footer">
-<div>Envanter</div>
-<div>Liderlik</div>
-<div>Mağaza</div>
-<div>Bölgeler</div>
 </div>
 
 <script>
 
-function goTo(page){
-window.location.href = page;
+/* ===== MOTOR ===== */
+
+let energy=50;
+let xp=0;
+let yton=1000;
+let level=1;
+
+function updateHUD(){
+  document.getElementById("energy").innerText=energy;
+  document.getElementById("xp").innerText=xp;
+  document.getElementById("yton").innerText=yton;
+
+  document.getElementById("profileXp").innerText=xp;
+  document.getElementById("profileEnergy").innerText=energy;
+  document.getElementById("profileYton").innerText=yton;
+  document.getElementById("level").innerText=level;
 }
+
+function buy(gain,price){
+  if(yton < price) return alert("Yetersiz YTON");
+
+  yton -= price;
+  energy += gain;
+  xp += 10;
+
+  if(xp >= level*100){
+    level++;
+    alert("Seviye Atladın!");
+  }
+
+  updateHUD();
+}
+
+/* CHAT */
+function sendMsg(){
+  let msg=document.getElementById("chatinput").value;
+  if(msg==="") return;
+
+  let box=document.getElementById("chatbox");
+  box.innerHTML+="<div><b>Player01:</b> "+msg+"</div>";
+  box.scrollTop=box.scrollHeight;
+  document.getElementById("chatinput").value="";
+}
+
+/* NAV */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+updateHUD();
 
 </script>
 
