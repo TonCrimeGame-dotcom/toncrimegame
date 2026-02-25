@@ -6,8 +6,6 @@
 <title>TonCrime</title>
 
 <style>
-
-/* ===== FRAME ===== */
 body{
   margin:0;
   background:#000;
@@ -33,7 +31,6 @@ body{
   object-fit:cover;
 }
 
-/* ===== LOGO ===== */
 .logo{
   position:absolute;
   top:15px;
@@ -104,7 +101,8 @@ body{
 
 .slider-track{
   display:flex;
-  transition:0.4s ease;
+  transition:transform 0.3s ease;
+  touch-action:pan-y;
 }
 
 .card{
@@ -154,7 +152,6 @@ body{
   border-radius:8px;
   cursor:pointer;
 }
-
 </style>
 </head>
 <body>
@@ -164,7 +161,6 @@ body{
 <img src="background.jpg" class="bg">
 <img src="logo.png" class="logo">
 
-<!-- HUD -->
 <div class="hud">
   <div id="energyText"></div>
   <div class="bar"><div class="fill energyFill" id="energyBar"></div></div>
@@ -178,7 +174,6 @@ body{
   </div>
 </div>
 
-<!-- SLIDER -->
 <div class="slider-wrapper">
   <div class="arrow" onclick="slide(-1)">‹</div>
 
@@ -221,7 +216,6 @@ body{
   <div class="arrow" onclick="slide(1)">›</div>
 </div>
 
-<!-- CHAT -->
 <div class="chat">
   <input type="text" id="chatInput" placeholder="Mesaj...">
   <button onclick="sendMessage()">Gönder</button>
@@ -231,15 +225,54 @@ body{
 
 <script>
 
-/* ===== SLIDER ===== */
+/* ===== SLIDER + SWIPE ===== */
 let position = 0;
+const track = document.getElementById("track");
 
 function slide(dir){
-  const track = document.getElementById("track");
   position += dir * 180;
-  position = Math.max(0, Math.min(position, track.scrollWidth - 300));
-  track.style.transform = "translateX(-" + position + "px)";
+  clamp();
+  updateSlide();
 }
+
+function clamp(){
+  const max = track.scrollWidth - 300;
+  if(position < 0) position = 0;
+  if(position > max) position = max;
+}
+
+function updateSlide(){
+  track.style.transform = "translateX(-"+position+"px)";
+}
+
+/* ===== TOUCH SWIPE ===== */
+let startX = 0;
+let currentX = 0;
+let isDragging = false;
+
+track.addEventListener("touchstart", e=>{
+  startX = e.touches[0].clientX;
+  isDragging = true;
+});
+
+track.addEventListener("touchmove", e=>{
+  if(!isDragging) return;
+  currentX = e.touches[0].clientX;
+  let diff = startX - currentX;
+  track.style.transform = "translateX(-"+(position + diff)+"px)";
+});
+
+track.addEventListener("touchend", e=>{
+  if(!isDragging) return;
+  isDragging = false;
+  let diff = startX - currentX;
+
+  if(Math.abs(diff) > 50){
+    position += diff;
+  }
+  clamp();
+  updateSlide();
+});
 
 /* ===== NAV ===== */
 function go(page){
@@ -253,13 +286,8 @@ let player = JSON.parse(localStorage.getItem("player")) || {
   xp:0,
   xpMax:1000,
   level:1,
-  yton:1000,
-  lastEnergyTime:Date.now()
+  yton:1000
 };
-
-function save(){
-  localStorage.setItem("player",JSON.stringify(player));
-}
 
 function updateHUD(){
   document.getElementById("energyText").innerText =
