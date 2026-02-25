@@ -12,10 +12,9 @@ body{
   font-family:Georgia, serif;
 }
 
-/* APP BÜYÜTÜLDÜ */
 .app{
-  width:520px;
-  height:820px;
+  width:390px;
+  height:690px;
   margin:0 auto;
   position:relative;
   overflow:hidden;
@@ -29,21 +28,6 @@ body{
   object-fit:cover;
 }
 
-/* DARK OVERLAY */
-.dark-overlay{
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,0.75);
-  opacity:0;
-  pointer-events:none;
-  transition:0.4s;
-  z-index:8;
-}
-.dark-overlay.active{
-  opacity:1;
-  pointer-events:auto;
-}
-
 /* HUD */
 .hud{
   position:absolute;
@@ -51,104 +35,62 @@ body{
   left:50%;
   transform:translateX(-50%);
   display:flex;
-  gap:30px;
+  gap:25px;
   color:gold;
+  font-size:18px;
   font-weight:bold;
-  font-size:20px;
-  z-index:15;
+  z-index:10;
 }
 
-/* CLOSED BOOK */
-.book-closed{
+/* MENU PANEL */
+.menu{
   position:absolute;
-  bottom:120px;
+  bottom:70px;
   left:50%;
   transform:translateX(-50%);
-  width:230px;
-  height:330px;
-  background:url('/nightclub_book_closed.png') center/contain no-repeat;
-  cursor:pointer;
-  z-index:5;
-}
-
-/* MODAL */
-.menu-modal{
-  position:absolute;
-  inset:0;
+  width:340px;
+  background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(6px);
+  border:2px solid gold;
+  border-radius:12px;
+  padding:15px;
   display:flex;
-  justify-content:center;
-  align-items:center;
-  opacity:0;
-  pointer-events:none;
-  transition:0.4s;
-  z-index:12;
-}
-.menu-modal.active{
-  opacity:1;
-  pointer-events:auto;
+  gap:20px;
+  z-index:9;
 }
 
-/* OPEN BOOK %35 BÜYÜTÜLDÜ */
-.menu-book{
-  width:513px;   /* 380 x 1.35 */
-  height:729px;  /* 540 x 1.35 */
-  background:url('/nightclub_book_open.png') center/contain no-repeat;
-  position:relative;
+/* COLUMN */
+.column{
+  flex:1;
 }
 
-/* INNER OVERLAY ORANTILI */
-.overlay{
-  position:absolute;
-  top:162px;
-  left:54px;
-  width:405px;
-  height:418px;
-  display:flex;
-}
-
-.page{
-  width:50%;
-  padding:0 10px;
-  box-sizing:border-box;
-}
-
+/* ITEM */
 .item{
   display:flex;
   justify-content:space-between;
-  margin:12px 0;
-  font-size:16px;   /* YAZI ESKİ BOYUTA DÖNDÜ */
-  font-weight:bold;
+  margin:10px 0;
   color:gold;
-  text-shadow:0 0 6px rgba(255,215,0,0.7);
+  font-weight:bold;
   cursor:pointer;
+  transition:0.2s;
 }
 
 .item:hover{
   transform:scale(1.05);
+  color:white;
 }
 
-.exit{
-  position:absolute;
-  bottom:45px;
-  right:45px;
-  background:gold;
-  color:black;
-  padding:8px 14px;
-  font-weight:bold;
-  cursor:pointer;
-  border-radius:6px;
-}
-
+/* RESULT */
 .result{
   position:absolute;
-  bottom:25px;
+  bottom:20px;
   left:50%;
   transform:translateX(-50%);
   color:white;
-  font-size:16px;
-  width:90%;
+  font-size:14px;
   text-align:center;
-  z-index:20;
+  width:90%;
+  z-index:10;
 }
 </style>
 </head>
@@ -158,23 +100,14 @@ body{
 
 <img src="/nightclub_indoor.jpg" class="bg">
 
-<div class="dark-overlay" id="darkOverlay"></div>
-
 <div class="hud">
   ⚡ <span id="energy">0</span>
   ⭐ <span id="xp">0</span>
 </div>
 
-<div class="book-closed" id="closedBook"></div>
-
-<div class="menu-modal" id="menuModal">
-  <div class="menu-book">
-      <div class="overlay">
-          <div class="page" id="leftPage"></div>
-          <div class="page" id="rightPage"></div>
-      </div>
-      <div class="exit" id="exitBtn">Çık</div>
-  </div>
+<div class="menu">
+  <div class="column" id="leftColumn"></div>
+  <div class="column" id="rightColumn"></div>
 </div>
 
 <div class="result" id="result"></div>
@@ -206,8 +139,9 @@ const foods=[
  {name:"Burger",energy:15,type:"food"}
 ];
 
-const left=document.getElementById("leftPage");
-const right=document.getElementById("rightPage");
+const left=document.getElementById("leftColumn");
+const right=document.getElementById("rightColumn");
+const result=document.getElementById("result");
 
 function createItem(p){
  const div=document.createElement("div");
@@ -230,35 +164,23 @@ function consume(p){
 
  if(p.type==="drink") drank=true;
  if(p.type==="food") ate=true;
+
+ result.textContent=`${p.name} satın alındı! +${p.energy} enerji`;
+
+ checkScenario();
 }
 
-const closedBook=document.getElementById("closedBook");
-const menuModal=document.getElementById("menuModal");
-const darkOverlay=document.getElementById("darkOverlay");
-const exitBtn=document.getElementById("exitBtn");
-const result=document.getElementById("result");
-
-closedBook.onclick=()=>{
- menuModal.classList.add("active");
- darkOverlay.classList.add("active");
- closedBook.style.display="none";
-};
-
-exitBtn.onclick=()=>{
+function checkScenario(){
  if(drank && !ate && Math.random()<0.45){
    result.textContent="⚠ Saldırıya uğradın!";
+   drank=false;
  }
  if(drank && ate && Math.random()<0.30){
    result.textContent="💃 Yeni çalışan kazandın!";
+   drank=false;
+   ate=false;
  }
-
- drank=false;
- ate=false;
-
- menuModal.classList.remove("active");
- darkOverlay.classList.remove("active");
- closedBook.style.display="block";
-};
+}
 
 </script>
 
