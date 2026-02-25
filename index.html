@@ -16,14 +16,12 @@ body{
   height:100vh;
 }
 
-/* TELEGRAM FRAME */
 .app{
   width:390px;
   height:690px;
   position:relative;
   overflow:hidden;
   border-radius:20px;
-  box-shadow:0 0 40px rgba(0,0,0,0.8);
 }
 
 .bg{
@@ -33,46 +31,56 @@ body{
   object-fit:cover;
 }
 
-/* LOGO */
 .logo{
   position:absolute;
-  top:12px;
-  left:12px;
-  height:66px;
+  top:15px;
+  left:15px;
+  height:60px;
   z-index:20;
 }
 
-/* HUD */
+/* ===== MODERN HUD ===== */
+
 .hud{
   position:absolute;
-  top:12px;
-  right:12px;
-  width:180px;
-  background:rgba(0,0,0,0.85);
-  padding:8px;
-  border-radius:14px;
-  border:1px solid gold;
-  color:gold;
+  top:15px;
+  right:15px;
+  width:200px;
+  padding:12px;
+  border-radius:16px;
+  backdrop-filter:blur(8px);
+  background:rgba(0,0,0,0.45);
+  color:white;
   font-size:12px;
-  z-index:20;
+}
+
+.username{
+  font-weight:bold;
+  margin-bottom:6px;
 }
 
 .bar{
-  height:8px;
-  background:#333;
+  height:6px;
+  background:rgba(255,255,255,0.2);
   border-radius:10px;
-  margin:4px 0;
+  margin:4px 0 8px 0;
   overflow:hidden;
 }
 
 .fill{
   height:100%;
-  background:lime;
+  background:linear-gradient(90deg, #00ff88, #00ffaa);
   width:0%;
   transition:0.3s;
 }
 
+.weapon{
+  font-size:11px;
+  opacity:0.9;
+}
+
 /* MENU */
+
 .menu-wrapper{
   position:absolute;
   bottom:170px;
@@ -82,45 +90,31 @@ body{
 
 .menu-slider{
   display:flex;
-  transition:0.4s ease;
 }
 
 .menu-card{
   min-width:160px;
   margin:0 10px;
   text-align:center;
-  cursor:pointer;
 }
 
 .menu-card img{
   width:160px;
   height:220px;
-  border-radius:18px;
-  border:2px solid gold;
+  border-radius:20px;
   object-fit:cover;
-  transition:0.3s;
-}
-
-.menu-card img:hover{
-  transform:scale(1.05);
-}
-
-.menu-card span{
-  display:block;
-  margin-top:6px;
-  color:gold;
-  font-weight:bold;
+  border:2px solid rgba(255,255,255,0.3);
 }
 
 /* CHAT */
+
 .chat{
   position:absolute;
   bottom:0;
   left:0;
   width:100%;
   height:150px;
-  background:rgba(0,0,0,0.9);
-  border-top:2px solid gold;
+  background:rgba(0,0,0,0.85);
   display:flex;
   flex-direction:column;
 }
@@ -128,7 +122,7 @@ body{
 .chat-messages{
   flex:1;
   overflow:auto;
-  padding:5px;
+  padding:6px;
   color:white;
   font-size:11px;
 }
@@ -146,10 +140,11 @@ body{
 }
 
 .chat-input button{
-  padding:6px 10px;
+  padding:6px 12px;
   border:none;
-  background:gold;
+  background:#00ff88;
   cursor:pointer;
+  font-weight:bold;
 }
 
 </style>
@@ -161,36 +156,30 @@ body{
 <img src="background.jpg" class="bg">
 <img src="logo.png" class="logo">
 
-<!-- HUD -->
 <div class="hud">
-  👤 <span id="username"></span>
+  <div class="username" id="username"></div>
 
-  ⚡ Enerji
+  Enerji
   <div class="bar"><div class="fill" id="energyFill"></div></div>
 
-  ⭐ XP (Lv <span id="level"></span>)
+  XP (Lv <span id="level"></span>)
   <div class="bar"><div class="fill" id="xpFill"></div></div>
 
-  💰 <img src="yton.png" height="12"> <span id="yton"></span>
+  💰 <span id="yton"></span>
 
-  <div style="font-size:11px;margin-top:4px;">
+  <div class="weapon">
     🔫 <span id="weaponName"></span> (+<span id="weaponBonus"></span>%)
   </div>
 </div>
 
-<!-- MENU -->
 <div class="menu-wrapper">
   <div class="menu-slider">
-    <div class="menu-card"><img src="missions.jpg"><span>Görevler</span></div>
-    <div class="menu-card"><img src="pvp.jpg"><span>PvP</span></div>
-    <div class="menu-card"><img src="nightclub.jpg"><span>Gece Kulübü</span></div>
-    <div class="menu-card"><img src="coffeeshop.jpg"><span>CoffeeShop</span></div>
-    <div class="menu-card"><img src="xxx.jpg"><span>Genel Ev</span></div>
-    <div class="menu-card"><img src="weapons.jpg"><span>Silah Tüccarı</span></div>
+    <div class="menu-card"><img src="missions.jpg"></div>
+    <div class="menu-card"><img src="pvp.jpg"></div>
+    <div class="menu-card"><img src="nightclub.jpg"></div>
   </div>
 </div>
 
-<!-- CHAT -->
 <div class="chat">
   <div class="chat-messages" id="chatMessages"></div>
   <div class="chat-input">
@@ -203,9 +192,9 @@ body{
 
 <script>
 
-/* =========================
-   GLOBAL PLAYER MOTOR
-========================= */
+/* =====================
+   PLAYER MOTOR
+===================== */
 
 let player = JSON.parse(localStorage.getItem("player")) || {
   username:"Player01",
@@ -214,36 +203,24 @@ let player = JSON.parse(localStorage.getItem("player")) || {
   xp:0,
   level:1,
   yton:1000,
-  weapon:{ name:"Tabanca", bonus:10 },
+  weapon:{name:"Tabanca",bonus:10},
   lastEnergyTime:Date.now()
 };
 
-function save(){
-  localStorage.setItem("player", JSON.stringify(player));
+function savePlayer(){
+  localStorage.setItem("player",JSON.stringify(player));
 }
 
 /* ENERJI REGEN */
 function regenEnergy(){
   const now = Date.now();
-  const diff = now - player.lastEnergyTime;
-
-  if(diff >= 300000){
+  if(now - player.lastEnergyTime >= 300000){
     if(player.energy < player.maxEnergy){
-      player.energy += 1;
+      player.energy++;
       player.lastEnergyTime = now;
-      save();
+      savePlayer();
     }
   }
-}
-
-/* XP EKLE */
-function addXP(amount){
-  player.xp += amount;
-  if(player.xp >= 100){
-    player.level++;
-    player.xp = 0;
-  }
-  save();
 }
 
 /* UI */
@@ -261,15 +238,35 @@ function updateUI(){
     (player.xp/100*100)+"%";
 }
 
-/* CHAT */
+/* =====================
+   CHAT MOTOR (KALICI)
+===================== */
+
+let chatData = JSON.parse(localStorage.getItem("chat")) || [];
+
+function saveChat(){
+  localStorage.setItem("chat",JSON.stringify(chatData));
+}
+
+function loadChat(){
+  const container = document.getElementById("chatMessages");
+  container.innerHTML="";
+  chatData.forEach(msg=>{
+    const div=document.createElement("div");
+    div.textContent=msg;
+    container.appendChild(div);
+  });
+}
+
 function sendMessage(){
   const input=document.getElementById("chatInput");
   const msg=input.value.trim();
   if(!msg) return;
 
-  const div=document.createElement("div");
-  div.textContent=player.username+": "+msg;
-  document.getElementById("chatMessages").appendChild(div);
+  const fullMsg = player.username+": "+msg;
+  chatData.push(fullMsg);
+  saveChat();
+  loadChat();
   input.value="";
 }
 
@@ -280,6 +277,7 @@ setInterval(()=>{
 },1000);
 
 updateUI();
+loadChat();
 
 </script>
 
