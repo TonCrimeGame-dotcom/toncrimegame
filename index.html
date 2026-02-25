@@ -7,15 +7,15 @@
 
 <style>
 
-/* ===== TELEGRAM FRAME ===== */
+/* ===== FRAME ===== */
 body{
   margin:0;
   background:#000;
-  font-family:Georgia, serif;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
+  font-family:Georgia, serif;
 }
 
 .app{
@@ -23,8 +23,7 @@ body{
   height:690px;
   position:relative;
   overflow:hidden;
-  border-radius:22px;
-  box-shadow:0 0 40px rgba(0,0,0,0.8);
+  border-radius:20px;
 }
 
 .bg{
@@ -48,37 +47,31 @@ body{
   position:absolute;
   top:15px;
   right:15px;
-  width:220px;
-  padding:14px;
-  border-radius:20px;
-  background:rgba(0,0,0,0.45);
-  backdrop-filter:blur(10px);
+  width:210px;
+  padding:12px;
+  border-radius:18px;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(8px);
   color:white;
-  font-size:13px;
+  font-size:12px;
   z-index:30;
 }
 
 .bar{
-  height:8px;
-  background:rgba(255,255,255,0.15);
-  border-radius:12px;
-  margin:6px 0 12px 0;
+  height:6px;
+  background:rgba(255,255,255,0.2);
+  border-radius:10px;
+  margin:5px 0;
   overflow:hidden;
 }
 
 .fill{
   height:100%;
-  border-radius:12px;
   transition:0.3s;
 }
 
-.energyFill{
-  background:linear-gradient(90deg,#00ff88,#00ffaa);
-}
-
-.xpFill{
-  background:linear-gradient(90deg,#ffaa00,#ff5500);
-}
+.energyFill{ background:#00ff88; }
+.xpFill{ background:#ffaa00; }
 
 .yton-row{
   display:flex;
@@ -86,98 +79,79 @@ body{
   gap:6px;
 }
 
-.yton-row img{
-  height:16px;
-}
-
-/* ===== SLIDE MENU ===== */
-.menu-wrapper{
+/* ===== SLIDER ===== */
+.slider-wrapper{
   position:absolute;
-  bottom:90px;
+  bottom:120px;
   width:100%;
-  overflow:hidden;
-}
-
-.menu-slider{
   display:flex;
-  gap:18px;
-  padding-left:20px;
+  align-items:center;
 }
 
-.menu-card{
-  min-width:150px;
+.arrow{
+  width:30px;
+  text-align:center;
+  font-size:26px;
+  color:gold;
+  cursor:pointer;
+  z-index:20;
+}
+
+.slider{
+  overflow:hidden;
+  flex:1;
+}
+
+.slider-track{
+  display:flex;
+  transition:0.4s ease;
+}
+
+.card{
+  min-width:160px;
+  margin:0 10px;
   text-align:center;
   cursor:pointer;
 }
 
-.menu-card img{
-  width:150px;
+.card img{
+  width:160px;
   height:210px;
-  border-radius:20px;
+  border-radius:18px;
   border:2px solid gold;
   object-fit:cover;
 }
 
-.menu-card span{
+.card span{
   display:block;
   margin-top:6px;
   color:gold;
   font-weight:bold;
 }
 
-/* ===== CHAT PANEL ===== */
-.chat-container{
+/* ===== CHAT ===== */
+.chat{
   position:absolute;
   bottom:0;
   width:100%;
-  height:50px;
   background:rgba(0,0,0,0.7);
-  backdrop-filter:blur(8px);
-  transition:0.4s;
-  overflow:hidden;
-}
-
-.chat-container.open{
-  height:250px;
-}
-
-.chat-header{
-  height:50px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:gold;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.chat-messages{
-  height:150px;
-  overflow-y:auto;
-  padding:8px;
-  color:white;
-  font-size:13px;
-}
-
-.chat-input{
-  display:flex;
   padding:6px;
+  display:flex;
   gap:6px;
 }
 
-.chat-input input{
+.chat input{
   flex:1;
   padding:8px;
   border:none;
-  border-radius:10px;
-  outline:none;
+  border-radius:8px;
 }
 
-.chat-input button{
+.chat button{
   padding:8px 12px;
   border:none;
-  border-radius:10px;
   background:gold;
+  border-radius:8px;
   cursor:pointer;
 }
 
@@ -190,152 +164,131 @@ body{
 <img src="background.jpg" class="bg">
 <img src="logo.png" class="logo">
 
-<!-- ===== HUD ===== -->
+<!-- HUD -->
 <div class="hud">
-
   <div id="energyText"></div>
-  <div class="bar">
-    <div class="fill energyFill" id="energyBar"></div>
-  </div>
+  <div class="bar"><div class="fill energyFill" id="energyBar"></div></div>
 
   <div id="xpText"></div>
-  <div class="bar">
-    <div class="fill xpFill" id="xpBar"></div>
-  </div>
+  <div class="bar"><div class="fill xpFill" id="xpBar"></div></div>
 
   <div class="yton-row">
-    <img src="yton.png">
+    <img src="yton.png" height="14">
     <span id="ytonText"></span>
   </div>
-
-  <div id="weaponText"></div>
-
 </div>
 
-<!-- ===== MENU ===== -->
-<div class="menu-wrapper">
-  <div class="menu-slider">
-    <div class="menu-card"><img src="missions.jpg"><span>Görevler</span></div>
-    <div class="menu-card"><img src="pvp.jpg"><span>PvP</span></div>
-    <div class="menu-card"><img src="nightclub.jpg"><span>Gece Kulübü</span></div>
-    <div class="menu-card"><img src="coffeeshop.jpg"><span>Coffee</span></div>
-    <div class="menu-card"><img src="xxx.jpg"><span>Genel Ev</span></div>
-    <div class="menu-card"><img src="weapons.jpg"><span>Silah</span></div>
+<!-- SLIDER -->
+<div class="slider-wrapper">
+  <div class="arrow" onclick="slide(-1)">‹</div>
+
+  <div class="slider">
+    <div class="slider-track" id="track">
+
+      <div class="card" onclick="go('missions.html')">
+        <img src="missions.jpg">
+        <span>Görevler</span>
+      </div>
+
+      <div class="card" onclick="go('pvp.html')">
+        <img src="pvp.jpg">
+        <span>PvP</span>
+      </div>
+
+      <div class="card" onclick="go('nightclub.html')">
+        <img src="nightclub.jpg">
+        <span>Gece Kulübü</span>
+      </div>
+
+      <div class="card" onclick="go('coffeeshop.html')">
+        <img src="coffeeshop.jpg">
+        <span>Coffee</span>
+      </div>
+
+      <div class="card" onclick="go('xxx.html')">
+        <img src="xxx.jpg">
+        <span>Genel Ev</span>
+      </div>
+
+      <div class="card" onclick="go('weapons.html')">
+        <img src="weapons.jpg">
+        <span>Silah</span>
+      </div>
+
+    </div>
   </div>
+
+  <div class="arrow" onclick="slide(1)">›</div>
 </div>
 
-<!-- ===== CHAT ===== -->
-<div class="chat-container" id="chatBox">
-
-  <div class="chat-header" onclick="toggleChat()">CHAT</div>
-
-  <div class="chat-messages" id="chatMessages"></div>
-
-  <div class="chat-input">
-    <input type="text" id="chatInput" placeholder="Mesaj...">
-    <button onclick="sendMessage()">Gönder</button>
-  </div>
-
+<!-- CHAT -->
+<div class="chat">
+  <input type="text" id="chatInput" placeholder="Mesaj...">
+  <button onclick="sendMessage()">Gönder</button>
 </div>
 
 </div>
 
 <script>
 
-/* ===== PLAYER DATA ===== */
+/* ===== SLIDER ===== */
+let position = 0;
 
+function slide(dir){
+  const track = document.getElementById("track");
+  position += dir * 180;
+  position = Math.max(0, Math.min(position, track.scrollWidth - 300));
+  track.style.transform = "translateX(-" + position + "px)";
+}
+
+/* ===== NAV ===== */
+function go(page){
+  window.location.href = page;
+}
+
+/* ===== PLAYER ===== */
 let player = JSON.parse(localStorage.getItem("player")) || {
-  energy: 60,
-  maxEnergy: 100,
-  xp: 0,
-  xpMax: 1000,
-  level: 1,
-  yton: 1000,
-  weapon: "Tabanca (+10%)",
-  lastEnergyTime: Date.now()
+  energy:60,
+  maxEnergy:100,
+  xp:0,
+  xpMax:1000,
+  level:1,
+  yton:1000,
+  lastEnergyTime:Date.now()
 };
 
-function savePlayer(){
-  localStorage.setItem("player", JSON.stringify(player));
+function save(){
+  localStorage.setItem("player",JSON.stringify(player));
 }
-
-/* ===== ENERGY TIMER (5 DK) ===== */
-
-function updateEnergy(){
-  const now = Date.now();
-  const diff = now - player.lastEnergyTime;
-  const fiveMin = 5 * 60 * 1000;
-
-  if(diff >= fiveMin){
-    const gained = Math.floor(diff / fiveMin);
-    player.energy = Math.min(player.energy + gained, player.maxEnergy);
-    player.lastEnergyTime = now;
-    savePlayer();
-  }
-}
-
-/* ===== HUD UPDATE ===== */
 
 function updateHUD(){
-
-  updateEnergy();
-
   document.getElementById("energyText").innerText =
-    "⚡ " + player.energy + "/" + player.maxEnergy;
+    "⚡ "+player.energy+"/"+player.maxEnergy;
 
   document.getElementById("energyBar").style.width =
-    (player.energy / player.maxEnergy * 100) + "%";
+    (player.energy/player.maxEnergy*100)+"%";
 
   document.getElementById("xpText").innerText =
-    "XP " + player.xp + "/" + player.xpMax + " (Lv " + player.level + ")";
+    "XP "+player.xp+"/"+player.xpMax+" (Lv "+player.level+")";
 
   document.getElementById("xpBar").style.width =
-    (player.xp / player.xpMax * 100) + "%";
+    (player.xp/player.xpMax*100)+"%";
 
   document.getElementById("ytonText").innerText = player.yton;
-  document.getElementById("weaponText").innerText = player.weapon;
 }
+
+updateHUD();
 
 /* ===== CHAT ===== */
-
 let chatData = JSON.parse(localStorage.getItem("chat")) || [];
 
-function saveChat(){
-  localStorage.setItem("chat", JSON.stringify(chatData));
-}
-
 function sendMessage(){
-  const input = document.getElementById("chatInput");
-  const msg = input.value.trim();
-  if(!msg) return;
-
-  chatData.push("Player: " + msg);
-  saveChat();
-  loadChat();
+  const input=document.getElementById("chatInput");
+  if(!input.value.trim()) return;
+  chatData.push(input.value);
+  localStorage.setItem("chat",JSON.stringify(chatData));
   input.value="";
 }
-
-function loadChat(){
-  const box = document.getElementById("chatMessages");
-  box.innerHTML="";
-  chatData.forEach(m=>{
-    const div = document.createElement("div");
-    div.innerText = m;
-    box.appendChild(div);
-  });
-}
-
-function toggleChat(){
-  document.getElementById("chatBox").classList.toggle("open");
-}
-
-/* ===== INIT ===== */
-
-document.addEventListener("DOMContentLoaded",()=>{
-  updateHUD();
-  loadChat();
-  setInterval(updateHUD, 10000);
-});
 
 </script>
 
