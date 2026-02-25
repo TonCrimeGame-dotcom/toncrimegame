@@ -87,40 +87,40 @@ body{
   pointer-events:auto;
 }
 
-/* OPEN BOOK */
+/* OPEN BOOK - %35 BÜYÜTÜLDÜ */
 .menu-book{
-  width:380px;
-  height:540px;
+  width:513px;   /* 380 x 1.35 */
+  height:729px;  /* 540 x 1.35 */
   background:url('/nightclub_book_open.png') center/contain no-repeat;
-  transform:scale(0.9);
   position:relative;
 }
 
-/* PIXEL PERFECT INNER AREA */
+/* PIXEL PERFECT INNER AREA - ORANTILI BÜYÜTÜLDÜ */
 .overlay{
   position:absolute;
-  top:120px;
-  left:40px;
-  width:300px;
-  height:310px;
+  top:162px;     /* 120 x 1.35 */
+  left:54px;     /* 40 x 1.35 */
+  width:405px;   /* 300 x 1.35 */
+  height:418px;  /* 310 x 1.35 */
   display:flex;
 }
 
 .page{
   width:50%;
-  padding:0 8px;
+  padding:0 10px;
   box-sizing:border-box;
 }
 
 .item{
   display:flex;
   justify-content:space-between;
-  margin:10px 0;
-  font-size:15px;
+  margin:14px 0;
+  font-size:18px;
   font-weight:bold;
   color:gold;
-  text-shadow:0 0 5px rgba(255,215,0,0.6);
+  text-shadow:0 0 6px rgba(255,215,0,0.7);
   cursor:pointer;
+  transition:0.2s;
 }
 
 .item:hover{
@@ -129,14 +129,14 @@ body{
 
 .exit{
   position:absolute;
-  bottom:25px;
-  right:25px;
+  bottom:40px;
+  right:40px;
   background:gold;
   color:black;
-  padding:6px 12px;
+  padding:8px 14px;
   font-weight:bold;
   cursor:pointer;
-  border-radius:5px;
+  border-radius:6px;
 }
 
 .result{
