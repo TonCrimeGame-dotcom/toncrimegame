@@ -1,29 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime - CoffeeShop</title>
 
 <style>
+
 body{
 margin:0;
-background:url("background.jpg") center/cover no-repeat fixed;
+background:black;
+overflow:hidden;
 font-family:Arial;
-color:white;
 }
+
+/* SAHNE */
 
 .scene{
 position:relative;
 height:100vh;
-background-size:cover;
-background-position:center;
+width:100vw;
+background-size:contain;      /* 🔥 COVER DEĞİL */
+background-repeat:no-repeat;  /* 🔥 */
+background-position:center;   /* 🔥 */
+background-color:black;       /* 🔥 */
 transition:0.4s;
 }
 
-.overlayBtn{
+/* BUTONLAR */
+
+.btn{
 position:absolute;
-bottom:30px;
+bottom:40px;
 left:50%;
 transform:translateX(-50%);
 background:gold;
@@ -39,23 +47,13 @@ position:absolute;
 top:20px;
 left:20px;
 background:red;
+color:white;
 padding:8px 15px;
 cursor:pointer;
 border-radius:6px;
 display:none;
 }
 
-.product{
-position:absolute;
-background:rgba(0,0,0,0.7);
-padding:10px;
-border-radius:8px;
-cursor:pointer;
-}
-
-.hidden{
-display:none;
-}
 </style>
 </head>
 
@@ -63,10 +61,8 @@ display:none;
 
 <div id="scene" class="scene" style="background-image:url('coffeeshop.jpg')">
 
-<div id="enterBtn" class="overlayBtn">İÇERİ GİR</div>
-
-<div id="menuBtn" class="overlayBtn hidden" style="bottom:80px;">MENÜ</div>
-
+<div id="enterBtn" class="btn">İÇERİ GİR</div>
+<div id="menuBtn" class="btn" style="display:none;">MENÜ</div>
 <div id="backBtn" class="backBtn">GERİ</div>
 
 </div>
@@ -78,78 +74,44 @@ const enterBtn = document.getElementById("enterBtn");
 const menuBtn = document.getElementById("menuBtn");
 const backBtn = document.getElementById("backBtn");
 
-let state = "card";
+let state="card";
 
-/* ================= ENTER ================= */
+/* İÇERİ GİR */
 
-enterBtn.onclick = function(){
-
-  scene.style.backgroundImage = "url('coffeeshop_indoor.jpg')";
-  enterBtn.classList.add("hidden");
-  menuBtn.classList.remove("hidden");
-  backBtn.style.display="block";
-  state="indoor";
+enterBtn.onclick=function(){
+scene.style.backgroundImage="url('coffeeshop_indoor.jpg')";
+enterBtn.style.display="none";
+menuBtn.style.display="block";
+backBtn.style.display="block";
+state="indoor";
 };
 
-/* ================= MENU ================= */
+/* MENÜ */
 
-menuBtn.onclick = function(){
-
-  scene.style.backgroundImage = "url('coffeeshop_indoor_menu.jpg')";
-  state="menu";
-
-  createProducts();
+menuBtn.onclick=function(){
+scene.style.backgroundImage="url('coffeeshop_indoor_menu.jpg')";
+state="menu";
 };
 
-/* ================= BACK ================= */
+/* GERİ */
 
-backBtn.onclick = function(){
+backBtn.onclick=function(){
 
-  if(state==="menu"){
-    scene.style.backgroundImage = "url('coffeeshop_indoor.jpg')";
-    removeProducts();
-    state="indoor";
-    return;
-  }
-
-  if(state==="indoor"){
-    scene.style.backgroundImage = "url('coffeeshop.jpg')";
-    menuBtn.classList.add("hidden");
-    enterBtn.classList.remove("hidden");
-    backBtn.style.display="none";
-    state="card";
-  }
-};
-
-/* ================= PRODUCTS ================= */
-
-function createProducts(){
-
-  const products = [
-    {name:"Ürün A", price:120},
-    {name:"Ürün B", price:180},
-    {name:"Ürün C", price:200}
-  ];
-
-  products.forEach((p,i)=>{
-
-    const div = document.createElement("div");
-    div.className="product";
-    div.style.top = (200 + i*60)+"px";
-    div.style.left = "50px";
-    div.innerText = p.name+" - "+p.price+" YTON";
-
-    div.onclick=function(){
-      alert(p.name+" satın alındı");
-    };
-
-    scene.appendChild(div);
-  });
+if(state==="menu"){
+scene.style.backgroundImage="url('coffeeshop_indoor.jpg')";
+state="indoor";
+return;
 }
 
-function removeProducts(){
-  document.querySelectorAll(".product").forEach(p=>p.remove());
+if(state==="indoor"){
+scene.style.backgroundImage="url('coffeeshop.jpg')";
+menuBtn.style.display="none";
+enterBtn.style.display="block";
+backBtn.style.display="none";
+state="card";
 }
+
+};
 
 </script>
 
