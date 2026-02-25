@@ -16,7 +16,7 @@ body{
   height:100vh;
 }
 
-/* FRAME */
+/* TELEGRAM FRAME */
 .app{
   width:390px;
   height:690px;
@@ -48,7 +48,7 @@ body{
   top:12px;
   right:12px;
   width:180px;
-  background:rgba(0,0,0,0.8);
+  background:rgba(0,0,0,0.85);
   padding:8px;
   border-radius:14px;
   border:1px solid gold;
@@ -72,13 +72,10 @@ body{
   transition:0.3s;
 }
 
-/* =========================
-   MENU – CHAT ÜSTÜNE ÇIKTI
-========================= */
-
+/* MENU */
 .menu-wrapper{
   position:absolute;
-  bottom:170px;   /* CHAT YÜKSEKLİĞİ + boşluk */
+  bottom:170px;
   width:100%;
   overflow:hidden;
 }
@@ -115,17 +112,14 @@ body{
   font-weight:bold;
 }
 
-/* =========================
-   CHAT
-========================= */
-
+/* CHAT */
 .chat{
   position:absolute;
   bottom:0;
   left:0;
   width:100%;
   height:150px;
-  background:rgba(0,0,0,0.85);
+  background:rgba(0,0,0,0.9);
   border-top:2px solid gold;
   display:flex;
   flex-direction:column;
@@ -169,32 +163,30 @@ body{
 
 <!-- HUD -->
 <div class="hud">
-  👤 Player01
+  👤 <span id="username"></span>
 
   ⚡ Enerji
   <div class="bar"><div class="fill" id="energyFill"></div></div>
 
-  ⭐ XP (Lv <span id="level">1</span>)
+  ⭐ XP (Lv <span id="level"></span>)
   <div class="bar"><div class="fill" id="xpFill"></div></div>
 
-  💰 <img src="yton.png" height="12"> <span id="yton">1000</span>
+  💰 <img src="yton.png" height="12"> <span id="yton"></span>
 
   <div style="font-size:11px;margin-top:4px;">
-    🔫 Tabanca (+10%)
+    🔫 <span id="weaponName"></span> (+<span id="weaponBonus"></span>%)
   </div>
 </div>
 
 <!-- MENU -->
 <div class="menu-wrapper">
   <div class="menu-slider">
-
     <div class="menu-card"><img src="missions.jpg"><span>Görevler</span></div>
     <div class="menu-card"><img src="pvp.jpg"><span>PvP</span></div>
     <div class="menu-card"><img src="nightclub.jpg"><span>Gece Kulübü</span></div>
     <div class="menu-card"><img src="coffeeshop.jpg"><span>CoffeeShop</span></div>
     <div class="menu-card"><img src="xxx.jpg"><span>Genel Ev</span></div>
     <div class="menu-card"><img src="weapons.jpg"><span>Silah Tüccarı</span></div>
-
   </div>
 </div>
 
@@ -211,17 +203,83 @@ body{
 
 <script>
 
-/* Basit UI */
+/* =========================
+   GLOBAL PLAYER MOTOR
+========================= */
+
+let player = JSON.parse(localStorage.getItem("player")) || {
+  username:"Player01",
+  energy:50,
+  maxEnergy:100,
+  xp:0,
+  level:1,
+  yton:1000,
+  weapon:{ name:"Tabanca", bonus:10 },
+  lastEnergyTime:Date.now()
+};
+
+function save(){
+  localStorage.setItem("player", JSON.stringify(player));
+}
+
+/* ENERJI REGEN */
+function regenEnergy(){
+  const now = Date.now();
+  const diff = now - player.lastEnergyTime;
+
+  if(diff >= 300000){
+    if(player.energy < player.maxEnergy){
+      player.energy += 1;
+      player.lastEnergyTime = now;
+      save();
+    }
+  }
+}
+
+/* XP EKLE */
+function addXP(amount){
+  player.xp += amount;
+  if(player.xp >= 100){
+    player.level++;
+    player.xp = 0;
+  }
+  save();
+}
+
+/* UI */
+function updateUI(){
+  document.getElementById("username").textContent = player.username;
+  document.getElementById("level").textContent = player.level;
+  document.getElementById("yton").textContent = player.yton;
+  document.getElementById("weaponName").textContent = player.weapon.name;
+  document.getElementById("weaponBonus").textContent = player.weapon.bonus;
+
+  document.getElementById("energyFill").style.width =
+    (player.energy/player.maxEnergy*100)+"%";
+
+  document.getElementById("xpFill").style.width =
+    (player.xp/100*100)+"%";
+}
+
+/* CHAT */
 function sendMessage(){
   const input=document.getElementById("chatInput");
   const msg=input.value.trim();
   if(!msg) return;
 
   const div=document.createElement("div");
-  div.textContent="Player01: "+msg;
+  div.textContent=player.username+": "+msg;
   document.getElementById("chatMessages").appendChild(div);
   input.value="";
 }
+
+/* INIT */
+setInterval(()=>{
+  regenEnergy();
+  updateUI();
+},1000);
+
+updateUI();
 
 </script>
 
