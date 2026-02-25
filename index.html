@@ -1,51 +1,145 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TonCrime</title>
 
-<link rel="stylesheet" href="style.css">
+<style>
+body{
+  margin:0;
+  background:black;
+  font-family:Georgia, serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
 
+/* TELEGRAM FRAME */
+.app{
+  width:390px;
+  height:690px;
+  position:relative;
+  overflow:hidden;
+  border-radius:20px;
+  box-shadow:0 0 40px rgba(0,0,0,0.8);
+}
+
+/* BACKGROUND */
+.bg{
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* LOGO */
+.logo{
+  position:absolute;
+  top:12px;
+  left:12px;
+  height:66px;
+  z-index:20;
+}
+
+/* HUD */
+.hud{
+  position:absolute;
+  top:12px;
+  right:12px;
+  display:flex;
+  gap:10px;
+  background:rgba(0,0,0,0.7);
+  padding:6px 12px;
+  border-radius:20px;
+  border:1px solid gold;
+  color:gold;
+  font-weight:bold;
+  font-size:14px;
+  z-index:20;
+  align-items:center;
+}
+
+.hud img{
+  height:14px;
+}
+
+/* SLIDE MENU */
+.menu-wrapper{
+  position:absolute;
+  bottom:80px;
+  width:100%;
+  overflow:hidden;
+}
+
+.menu-slider{
+  display:flex;
+  transition:0.4s ease;
+}
+
+.menu-card{
+  min-width:160px;
+  margin:0 10px;
+  text-align:center;
+  cursor:pointer;
+}
+
+.menu-card img{
+  width:160px;
+  height:220px;
+  border-radius:18px;
+  border:2px solid gold;
+  object-fit:cover;
+  transition:0.3s;
+}
+
+.menu-card img:hover{
+  transform:scale(1.05);
+}
+
+.menu-card span{
+  display:block;
+  margin-top:6px;
+  color:gold;
+  font-weight:bold;
+}
+
+/* ARROWS */
+.arrow{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:28px;
+  color:gold;
+  cursor:pointer;
+  z-index:10;
+}
+
+.arrow.left{ left:5px; }
+.arrow.right{ right:5px; }
+
+</style>
 </head>
 <body>
 
-<!-- LOGO -->
+<div class="app">
+
+<img src="background.jpg" class="bg">
 <img src="logo.png" class="logo">
 
-<!-- HUD -->
 <div class="hud">
-  <div class="username" id="username">Player</div>
-
-  <div class="row">
-    ⚡ <span id="energyText">0/100</span>
-    <div class="bar">
-      <div id="energyFill" class="fill energy"></div>
-    </div>
-  </div>
-
-  <div class="row">
-    ⭐ XP
-    <div class="bar">
-      <div id="xpFill" class="fill xp"></div>
-    </div>
-  </div>
-
-  <div class="row yton">
-    <img src="yton.png">
-    <span id="ytonText">0</span>
-  </div>
-
-  <div class="row">
-    🔫 <span id="weaponText">Yok</span>
-  </div>
+  👤 Player01
+  ⚡ <span id="energy">50</span>
+  ⭐ <span id="xp">0</span>
+  <img src="yton.png"> <span id="yton">1000</span>
 </div>
 
-<!-- SLIDE MENU -->
-<div class="menu-container">
+<div class="menu-wrapper">
+  <div class="arrow left" onclick="slide(-1)">‹</div>
+  <div class="arrow right" onclick="slide(1)">›</div>
 
-  <div class="menu-slider" id="menuSlider">
-
+  <div class="menu-slider" id="slider">
     <div class="menu-card" onclick="go('missions.html')">
       <img src="missions.jpg">
       <span>Görevler</span>
@@ -53,7 +147,7 @@
 
     <div class="menu-card" onclick="go('pvp.html')">
       <img src="pvp.jpg">
-      <span>PvP Arena</span>
+      <span>PvP</span>
     </div>
 
     <div class="menu-card" onclick="go('nightclub.html')">
@@ -63,7 +157,7 @@
 
     <div class="menu-card" onclick="go('coffeeshop.html')">
       <img src="coffeeshop.jpg">
-      <span>Coffee Shop</span>
+      <span>CoffeeShop</span>
     </div>
 
     <div class="menu-card" onclick="go('xxx.html')">
@@ -75,128 +169,23 @@
       <img src="weapons.jpg">
       <span>Silah Tüccarı</span>
     </div>
-
   </div>
-
-  <div class="menu-arrow left" onclick="slideMenu(-1)">‹</div>
-  <div class="menu-arrow right" onclick="slideMenu(1)">›</div>
-
 </div>
 
-<!-- CHAT -->
-<div class="chat">
-  <div class="chat-messages" id="chatBox"></div>
-  <input type="text" id="chatInput" placeholder="Mesaj...">
 </div>
 
 <script>
+let position=0;
 
-/* =============================
-   GLOBAL PLAYER SYSTEM
-   ============================= */
-
-if(!localStorage.getItem("player")){
-  localStorage.setItem("player", JSON.stringify({
-    username:"TonPlayer",
-    energy:60,
-    maxEnergy:100,
-    xp:20,
-    level:1,
-    yton:1500,
-    weapon:{name:"Tabanca",bonus:10},
-    lastEnergyTime:Date.now()
-  }));
-}
-
-function getPlayer(){
-  return JSON.parse(localStorage.getItem("player"));
-}
-
-function savePlayer(p){
-  localStorage.setItem("player", JSON.stringify(p));
-}
-
-/* =============================
-   ENERGY REGEN (5 DAKİKA)
-   ============================= */
-
-function energyRegen(){
-  let p = getPlayer();
-  let now = Date.now();
-  let diff = now - p.lastEnergyTime;
-
-  if(diff >= 300000){
-    let gain = Math.floor(diff / 300000);
-    p.energy = Math.min(p.maxEnergy, p.energy + gain);
-    p.lastEnergyTime = now;
-    savePlayer(p);
-    updateUI();
-  }
-}
-
-setInterval(energyRegen,10000);
-
-/* =============================
-   UI UPDATE
-   ============================= */
-
-function updateUI(){
-  let p = getPlayer();
-
-  document.getElementById("username").innerText = p.username;
-  document.getElementById("energyText").innerText =
-    p.energy + "/" + p.maxEnergy;
-
-  document.getElementById("ytonText").innerText = p.yton;
-  document.getElementById("weaponText").innerText =
-    p.weapon.name + " (+"+p.weapon.bonus+"%)";
-
-  document.getElementById("energyFill").style.width =
-    (p.energy / p.maxEnergy * 100) + "%";
-
-  document.getElementById("xpFill").style.width =
-    (p.xp / (p.level*100) * 100) + "%";
-}
-
-updateUI();
-
-/* =============================
-   SLIDE MENU
-   ============================= */
-
-let menuIndex = 0;
-
-function slideMenu(dir){
-  const slider = document.getElementById("menuSlider");
-  const total = slider.children.length;
-
-  menuIndex += dir;
-
-  if(menuIndex < 0) menuIndex = 0;
-  if(menuIndex > total-1) menuIndex = total-1;
-
-  slider.style.transform =
-    "translateX(-" + (menuIndex * 240) + "px)";
+function slide(dir){
+  const slider=document.getElementById("slider");
+  position += dir*180;
+  slider.style.transform="translateX("+(-position)+"px)";
 }
 
 function go(page){
-  window.location.href = page;
+  window.location.href=page;
 }
-
-/* =============================
-   CHAT
-   ============================= */
-
-document.getElementById("chatInput")
-.addEventListener("keypress", function(e){
-  if(e.key==="Enter" && this.value!=""){
-    let div = document.createElement("div");
-    div.innerText = getPlayer().username + ": " + this.value;
-    document.getElementById("chatBox").appendChild(div);
-    this.value="";
-  }
-});
-
 </script>
 
 </body>
