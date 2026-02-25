@@ -20,6 +20,18 @@ body{
   overflow:hidden;
 }
 
+/* TEST HEADER */
+.test{
+  position:absolute;
+  top:0;
+  width:100%;
+  text-align:center;
+  color:red;
+  font-weight:bold;
+  z-index:9999;
+  background:black;
+}
+
 /* BACKGROUND */
 .bg{
   position:absolute;
@@ -36,7 +48,7 @@ body{
 /* HUD */
 .hud{
   position:absolute;
-  top:15px;
+  top:35px;
   left:50%;
   transform:translateX(-50%);
   display:flex;
@@ -55,7 +67,7 @@ body{
   transform:translateX(-50%);
   width:230px;
   height:330px;
-  background:url('/nightclub_book_closed.png') center/contain no-repeat;
+  background:url('/nightclub_book_closed.png?v=2') center/contain no-repeat;
   cursor:pointer;
   z-index:3;
   transition:0.3s;
@@ -65,7 +77,7 @@ body{
   transform:translateX(-50%) scale(1.05);
 }
 
-/* FULL SCREEN MODAL */
+/* MODAL */
 .menu-modal{
   position:absolute;
   inset:0;
@@ -87,7 +99,7 @@ body{
 .menu-book{
   width:360px;
   height:520px;
-  background:url('/nightclub_book_open.png') center/contain no-repeat;
+  background:url('/nightclub_book_open.png?v=2') center/contain no-repeat;
   transform:scale(0.7);
   transition:0.4s;
   position:relative;
@@ -127,7 +139,6 @@ body{
   transform:scale(1.05);
 }
 
-/* EXIT BUTTON */
 .exit{
   position:absolute;
   bottom:15px;
@@ -140,7 +151,6 @@ body{
   border-radius:5px;
 }
 
-/* RESULT TEXT */
 .result{
   position:absolute;
   bottom:20px;
@@ -158,7 +168,9 @@ body{
 
 <div class="app">
 
-<img src="/nightclub_indoor.jpg" class="bg" id="bg">
+<div class="test">TEST VERSION 2</div>
+
+<img src="/nightclub_indoor.jpg?v=2" class="bg" id="bg">
 
 <div class="hud">
   ⚡ <span id="energy">0</span>
@@ -167,7 +179,6 @@ body{
 
 <div class="book-closed" id="closedBook"></div>
 
-<!-- FULL SCREEN MENU -->
 <div class="menu-modal" id="menuModal">
   <div class="menu-book">
       <div class="overlay">
@@ -225,7 +236,6 @@ foods.forEach(p=>right.appendChild(createItem(p)));
 function consume(p){
  energy+=p.energy;
  xp+=5;
-
  document.getElementById("energy").textContent=energy;
  document.getElementById("xp").textContent=xp;
 
