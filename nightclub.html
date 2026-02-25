@@ -26,6 +26,11 @@ body{
   width:100%;
   height:100%;
   object-fit:cover;
+  transition:0.4s;
+}
+
+.blur{
+  filter:blur(8px) brightness(0.6);
 }
 
 /* HUD */
@@ -41,42 +46,51 @@ body{
   z-index:5;
 }
 
-/* BOOK WRAPPER */
-.book-wrapper{
+/* BOOK CLOSED */
+.book-closed{
   position:absolute;
-  bottom:50px;
+  bottom:60px;
   left:50%;
   transform:translateX(-50%);
-  width:320px;
-}
-
-/* CLOSED (DIV HITBOX FIX) */
-.book-closed{
-  width:100%;
-  height:460px;
+  width:220px;
+  height:320px;
   background:url('/nightclub_book_closed.png') center/contain no-repeat;
   cursor:pointer;
+  transition:0.4s;
 }
 
-/* OPEN */
-.book-open{
+/* MODAL */
+.menu-modal{
   position:absolute;
-  top:0;
-  left:0;
-  width:100%;
-  height:460px;
-  background:url('/nightclub_book_open.png') center/contain no-repeat;
+  inset:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
   opacity:0;
-  transform:scale(0.9);
-  transition:0.5s;
+  pointer-events:none;
+  transition:0.4s;
 }
 
-.book-open.active{
+.menu-modal.active{
   opacity:1;
+  pointer-events:auto;
+}
+
+/* OPEN BOOK FULL */
+.menu-book{
+  width:360px;
+  height:520px;
+  background:url('/nightclub_book_open.png') center/contain no-repeat;
+  transform:scale(0.7);
+  transition:0.4s;
+  position:relative;
+}
+
+.menu-modal.active .menu-book{
   transform:scale(1);
 }
 
-/* OVERLAY */
+/* OVERLAY INSIDE BOOK */
 .overlay{
   position:absolute;
   top:22%;
@@ -84,12 +98,6 @@ body{
   width:88%;
   height:63%;
   display:flex;
-  opacity:0;
-  transition:0.4s;
-}
-
-.overlay.active{
-  opacity:1;
 }
 
 .page{
@@ -112,7 +120,7 @@ body{
   transform:scale(1.05);
 }
 
-/* EXIT BUTTON */
+/* EXIT */
 .exit{
   position:absolute;
   bottom:10px;
@@ -123,7 +131,6 @@ body{
   font-weight:bold;
   cursor:pointer;
   border-radius:4px;
-  display:none;
 }
 
 .result{
@@ -133,8 +140,8 @@ body{
   transform:translateX(-50%);
   color:white;
   font-size:13px;
-  text-align:center;
   width:90%;
+  text-align:center;
 }
 </style>
 </head>
@@ -142,27 +149,26 @@ body{
 
 <div class="app">
 
-<img src="/nightclub_indoor.jpg" class="bg">
+<img src="/nightclub_indoor.jpg" class="bg" id="bg">
 
 <div class="hud">
   ⚡ <span id="energy">0</span>
   ⭐ <span id="xp">0</span>
 </div>
 
-<div class="book-wrapper">
+<div class="book-closed" id="closed"></div>
 
-  <div class="book-closed" id="closed"></div>
-
-  <div class="book-open" id="open">
-      <div class="overlay" id="overlay">
+<!-- FULL SCREEN MENU -->
+<div class="menu-modal" id="modal">
+  <div class="menu-book">
+      <div class="overlay">
           <div class="page" id="leftPage"></div>
           <div class="page" id="rightPage"></div>
       </div>
+      <div class="exit" id="exitBtn">Çık</div>
   </div>
-
 </div>
 
-<div class="exit" id="exitBtn">Çık</div>
 <div class="result" id="result"></div>
 
 </div>
@@ -194,9 +200,6 @@ const foods=[
 
 const left=document.getElementById("leftPage");
 const right=document.getElementById("rightPage");
-const energyEl=document.getElementById("energy");
-const xpEl=document.getElementById("xp");
-const result=document.getElementById("result");
 
 function createItem(p){
  const div=document.createElement("div");
@@ -213,47 +216,37 @@ foods.forEach(p=>right.appendChild(createItem(p)));
 function consume(p){
  energy+=p.energy;
  xp+=5;
- energyEl.textContent=energy;
- xpEl.textContent=xp;
+ document.getElementById("energy").textContent=energy;
+ document.getElementById("xp").textContent=xp;
 
  if(p.type==="drink") drank=true;
  if(p.type==="food") ate=true;
 }
 
 const closed=document.getElementById("closed");
-const open=document.getElementById("open");
-const overlay=document.getElementById("overlay");
+const modal=document.getElementById("modal");
+const bg=document.getElementById("bg");
 const exitBtn=document.getElementById("exitBtn");
+const result=document.getElementById("result");
 
 closed.onclick=()=>{
- closed.style.display="none";
- open.classList.add("active");
- overlay.classList.add("active");
- exitBtn.style.display="block";
+ modal.classList.add("active");
+ bg.classList.add("blur");
 };
 
 exitBtn.onclick=()=>{
- // ÇIKIŞTA RİSK HESABI
- if(drank && !ate){
-   if(Math.random()<0.45){
-     result.textContent="⚠ Saldırıya uğradın!";
-   }
+ if(drank && !ate && Math.random()<0.45){
+   result.textContent="⚠ Saldırıya uğradın!";
+ }
+ if(drank && ate && Math.random()<0.30){
+   result.textContent="💃 Yeni çalışan kazandın!";
  }
 
- if(drank && ate){
-   if(Math.random()<0.30){
-     result.textContent="💃 Yeni çalışan kazandın!";
-   }
- }
-
- // reset state
  drank=false;
  ate=false;
 
- open.classList.remove("active");
- overlay.classList.remove("active");
- closed.style.display="block";
- exitBtn.style.display="none";
+ modal.classList.remove("active");
+ bg.classList.remove("blur");
 };
 
 </script>
