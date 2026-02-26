@@ -8,12 +8,12 @@
 <style>
 body{
   margin:0;
-  background:#000;
+  background:black;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
-  font-family:Arial, sans-serif;
+  font-family:Arial;
 }
 
 .app{
@@ -25,7 +25,7 @@ body{
   background:black;
 }
 
-/* BG */
+/* BACKGROUND */
 .bg{
   position:absolute;
   width:100%;
@@ -38,7 +38,7 @@ body{
   position:absolute;
   top:15px;
   left:15px;
-  height:50px;
+  height:55px;
   z-index:5;
 }
 
@@ -47,9 +47,9 @@ body{
   position:absolute;
   top:15px;
   right:15px;
-  width:210px;
-  padding:10px;
+  width:220px;
   background:rgba(0,0,0,0.7);
+  padding:10px;
   border-radius:15px;
   color:white;
   font-size:12px;
@@ -59,7 +59,7 @@ body{
 .bar{
   height:6px;
   background:#333;
-  border-radius:8px;
+  border-radius:10px;
   margin:4px 0 8px 0;
   overflow:hidden;
 }
@@ -71,7 +71,7 @@ body{
 .energyFill{ background:#00ff88; }
 .xpFill{ background:#ffaa00; }
 
-/* SLIDER */
+/* SLIDE MENU */
 .slider-area{
   position:absolute;
   top:50%;
@@ -106,7 +106,7 @@ body{
 
 .card span{
   display:block;
-  margin-top:5px;
+  margin-top:6px;
   color:gold;
   font-weight:bold;
 }
@@ -146,8 +146,8 @@ body{
 
 .chat-input{
   display:flex;
-  padding:5px;
-  gap:5px;
+  padding:6px;
+  gap:6px;
 }
 
 .chat-input input{
@@ -171,29 +171,37 @@ body{
 <img src="assets/logo.png" class="logo">
 
 <div class="hud">
-  <div id="energyText"></div>
+
+  <div id="energyText">⚡ 60/100</div>
   <div class="bar"><div class="fill energyFill" id="energyBar"></div></div>
 
-  <div id="xpText"></div>
+  <div id="xpText">XP 0/1000 (Lv 1)</div>
   <div class="bar"><div class="fill xpFill" id="xpBar"></div></div>
 
-  <div>YTON: <span id="ytonText"></span></div>
+  <div style="display:flex;align-items:center;gap:5px;">
+    <img src="assets/yton.png" height="14">
+    <span id="ytonText">1000</span>
+  </div>
+
 </div>
 
 <div class="slider-area">
   <div class="slider">
     <div class="track" id="track">
 
-      <div class="card" onclick="go('missions.html')">
-        <img src="missions.jpg"><span>Görevler</span>
+      <div class="card">
+        <img src="assets/missions.jpg">
+        <span>Görevler</span>
       </div>
 
-      <div class="card" onclick="go('pvp.html')">
-        <img src="pvp.jpg"><span>PvP</span>
+      <div class="card">
+        <img src="assets/pvp.jpg">
+        <span>PvP</span>
       </div>
 
-      <div class="card" onclick="go('nightclub.html')">
-        <img src="nightclub.jpg"><span>Gece Kulübü</span>
+      <div class="card">
+        <img src="assets/nightclub.jpg">
+        <span>Gece Kulübü</span>
       </div>
 
     </div>
@@ -214,7 +222,7 @@ body{
 <script>
 
 /* PLAYER */
-let player = JSON.parse(localStorage.getItem("player")) || {
+let player={
   energy:60,
   xp:0,
   xpMax:1000,
@@ -222,61 +230,42 @@ let player = JSON.parse(localStorage.getItem("player")) || {
   yton:1000
 };
 
-function save(){
-  localStorage.setItem("player",JSON.stringify(player));
-}
-
-/* HUD */
 function updateHUD(){
-  document.getElementById("energyText").innerText =
+  document.getElementById("energyText").innerText=
     "⚡ "+player.energy+"/100";
+  document.getElementById("energyBar").style.width=
+    player.energy+"%";
 
-  document.getElementById("energyBar").style.width =
-    (player.energy)+"%";
-
-  document.getElementById("xpText").innerText =
+  document.getElementById("xpText").innerText=
     "XP "+player.xp+"/"+player.xpMax+" (Lv "+player.level+")";
-
-  document.getElementById("xpBar").style.width =
+  document.getElementById("xpBar").style.width=
     (player.xp/player.xpMax*100)+"%";
 
-  document.getElementById("ytonText").innerText =
+  document.getElementById("ytonText").innerText=
     player.yton;
 }
 
+updateHUD();
+
 /* SLIDE */
-document.addEventListener("DOMContentLoaded",()=>{
+const track=document.getElementById("track");
+let startX=0;
+let current=0;
 
-  updateHUD();
-  loadChat();
-
-  const track=document.getElementById("track");
-  let startX=0;
-  let current=0;
-
-  track.addEventListener("touchstart",e=>{
-    startX=e.touches[0].clientX;
-  });
-
-  track.addEventListener("touchend",e=>{
-    let diff=startX - e.changedTouches[0].clientX;
-    current+=diff;
-    if(current<0) current=0;
-    if(current>track.scrollWidth-300)
-      current=track.scrollWidth-300;
-    track.style.transform="translateX(-"+current+"px)";
-  });
-
+track.addEventListener("touchstart",e=>{
+  startX=e.touches[0].clientX;
 });
 
-/* NAV */
-function go(page){
-  window.location.href=page;
-}
+track.addEventListener("touchend",e=>{
+  let diff=startX-e.changedTouches[0].clientX;
+  current+=diff;
+  if(current<0) current=0;
+  if(current>track.scrollWidth-300)
+    current=track.scrollWidth-300;
+  track.style.transform="translateX(-"+current+"px)";
+});
 
 /* CHAT */
-let chatData=JSON.parse(localStorage.getItem("chat"))||[];
-
 function toggleChat(){
   document.getElementById("chatBox").classList.toggle("open");
 }
@@ -285,20 +274,11 @@ function sendMessage(){
   const input=document.getElementById("chatInput");
   if(!input.value.trim()) return;
 
-  chatData.push(input.value);
-  localStorage.setItem("chat",JSON.stringify(chatData));
-  loadChat();
-  input.value="";
-}
-
-function loadChat(){
   const box=document.getElementById("chatMessages");
-  box.innerHTML="";
-  chatData.forEach(m=>{
-    const div=document.createElement("div");
-    div.innerText=m;
-    box.appendChild(div);
-  });
+  const div=document.createElement("div");
+  div.innerText=input.value;
+  box.appendChild(div);
+  input.value="";
 }
 
 </script>
