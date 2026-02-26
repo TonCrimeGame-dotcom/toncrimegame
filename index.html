@@ -8,7 +8,7 @@
 <style>
 body{
   margin:0;
-  background:black;
+  background:#000;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -22,7 +22,6 @@ body{
   position:relative;
   overflow:hidden;
   border-radius:20px;
-  background:black;
 }
 
 /* BACKGROUND */
@@ -38,7 +37,7 @@ body{
   position:absolute;
   top:15px;
   left:15px;
-  height:55px;
+  height:50px;
   z-index:5;
 }
 
@@ -47,7 +46,7 @@ body{
   position:absolute;
   top:15px;
   right:15px;
-  width:220px;
+  width:210px;
   background:rgba(0,0,0,0.7);
   padding:10px;
   border-radius:15px;
@@ -59,7 +58,7 @@ body{
 .bar{
   height:6px;
   background:#333;
-  border-radius:10px;
+  border-radius:8px;
   margin:4px 0 8px 0;
   overflow:hidden;
 }
@@ -71,7 +70,7 @@ body{
 .energyFill{ background:#00ff88; }
 .xpFill{ background:#ffaa00; }
 
-/* SLIDE MENU */
+/* SLIDER */
 .slider-area{
   position:absolute;
   top:50%;
@@ -80,18 +79,17 @@ body{
   width:100%;
 }
 
-.slider{
-  overflow:hidden;
-}
-
 .track{
   display:flex;
+  gap:20px;
+  padding:0 20px;
+  cursor:grab;
+  user-select:none;
   transition:transform 0.3s ease;
 }
 
 .card{
   min-width:170px;
-  margin:0 10px;
   text-align:center;
   cursor:pointer;
 }
@@ -171,40 +169,36 @@ body{
 <img src="assets/logo.png" class="logo">
 
 <div class="hud">
+  <div>⚡ 60/100</div>
+  <div class="bar"><div class="fill energyFill" style="width:60%"></div></div>
 
-  <div id="energyText">⚡ 60/100</div>
-  <div class="bar"><div class="fill energyFill" id="energyBar"></div></div>
-
-  <div id="xpText">XP 0/1000 (Lv 1)</div>
-  <div class="bar"><div class="fill xpFill" id="xpBar"></div></div>
+  <div>XP 0/1000 (Lv 1)</div>
+  <div class="bar"><div class="fill xpFill" style="width:0%"></div></div>
 
   <div style="display:flex;align-items:center;gap:5px;">
     <img src="assets/yton.png" height="14">
-    <span id="ytonText">1000</span>
+    <span>1000</span>
   </div>
-
 </div>
 
 <div class="slider-area">
-  <div class="slider">
-    <div class="track" id="track">
+  <div class="track" id="track">
 
-      <div class="card">
-        <img src="assets/missions.jpg">
-        <span>Görevler</span>
-      </div>
-
-      <div class="card">
-        <img src="assets/pvp.jpg">
-        <span>PvP</span>
-      </div>
-
-      <div class="card">
-        <img src="assets/nightclub.jpg">
-        <span>Gece Kulübü</span>
-      </div>
-
+    <div class="card" onclick="go('missions.html')">
+      <img src="assets/missions.jpg">
+      <span>Görevler</span>
     </div>
+
+    <div class="card" onclick="go('pvp.html')">
+      <img src="assets/pvp.jpg">
+      <span>PvP</span>
+    </div>
+
+    <div class="card" onclick="go('nightclub.html')">
+      <img src="assets/nightclub.jpg">
+      <span>Gece Kulübü</span>
+    </div>
+
   </div>
 </div>
 
@@ -221,51 +215,57 @@ body{
 
 <script>
 
-/* PLAYER */
-let player={
-  energy:60,
-  xp:0,
-  xpMax:1000,
-  level:1,
-  yton:1000
-};
-
-function updateHUD(){
-  document.getElementById("energyText").innerText=
-    "⚡ "+player.energy+"/100";
-  document.getElementById("energyBar").style.width=
-    player.energy+"%";
-
-  document.getElementById("xpText").innerText=
-    "XP "+player.xp+"/"+player.xpMax+" (Lv "+player.level+")";
-  document.getElementById("xpBar").style.width=
-    (player.xp/player.xpMax*100)+"%";
-
-  document.getElementById("ytonText").innerText=
-    player.yton;
+/* NAVIGATION */
+function go(page){
+  window.location.href = page;
 }
 
-updateHUD();
-
-/* SLIDE */
+/* SLIDER MOUSE + TOUCH */
 const track=document.getElementById("track");
 let startX=0;
-let current=0;
+let currentTranslate=0;
+let isDragging=false;
 
-track.addEventListener("touchstart",e=>{
-  startX=e.touches[0].clientX;
-});
+function start(e){
+  isDragging=true;
+  startX = e.type.includes("mouse") ? e.pageX : e.touches[0].clientX;
+}
 
-track.addEventListener("touchend",e=>{
-  let diff=startX-e.changedTouches[0].clientX;
-  current+=diff;
-  if(current<0) current=0;
-  if(current>track.scrollWidth-300)
-    current=track.scrollWidth-300;
-  track.style.transform="translateX(-"+current+"px)";
-});
+function move(e){
+  if(!isDragging) return;
+  let x = e.type.includes("mouse") ? e.pageX : e.touches[0].clientX;
+  let diff = x - startX;
+  track.style.transform = `translateX(${currentTranslate + diff}px)`;
+}
 
-/* CHAT */
+function end(e){
+  if(!isDragging) return;
+  isDragging=false;
+  let x = e.type.includes("mouse") ? e.pageX : e.changedTouches[0].clientX;
+  let diff = x - startX;
+  currentTranslate += diff;
+
+  const max = 0;
+  const min = -(track.scrollWidth - 390);
+
+  if(currentTranslate > max) currentTranslate = max;
+  if(currentTranslate < min) currentTranslate = min;
+
+  track.style.transform = `translateX(${currentTranslate}px)`;
+}
+
+track.addEventListener("mousedown", start);
+track.addEventListener("mousemove", move);
+track.addEventListener("mouseup", end);
+track.addEventListener("mouseleave", end);
+
+track.addEventListener("touchstart", start);
+track.addEventListener("touchmove", move);
+track.addEventListener("touchend", end);
+
+/* CHAT STORAGE */
+let chatData = JSON.parse(localStorage.getItem("chat")) || [];
+
 function toggleChat(){
   document.getElementById("chatBox").classList.toggle("open");
 }
@@ -274,12 +274,23 @@ function sendMessage(){
   const input=document.getElementById("chatInput");
   if(!input.value.trim()) return;
 
-  const box=document.getElementById("chatMessages");
-  const div=document.createElement("div");
-  div.innerText=input.value;
-  box.appendChild(div);
+  chatData.push(input.value);
+  localStorage.setItem("chat", JSON.stringify(chatData));
+  loadChat();
   input.value="";
 }
+
+function loadChat(){
+  const box=document.getElementById("chatMessages");
+  box.innerHTML="";
+  chatData.forEach(m=>{
+    const div=document.createElement("div");
+    div.innerText=m;
+    box.appendChild(div);
+  });
+}
+
+loadChat();
 
 </script>
 
