@@ -73,7 +73,7 @@ body{
   left:50%;
   transform:translate(-50%,-50%);
   width:85%;
-  background:rgba(0,0,0,0.8);
+  background:rgba(0,0,0,0.85);
   padding:20px;
   border-radius:15px;
   text-align:center;
@@ -119,94 +119,93 @@ button{
   </div>
 </div>
 
-<div class="centerBox" id="box">
-  <div id="content">
-    Rakip aranıyor...
-    <button onclick="startMatch()">Maç Başlat</button>
-  </div>
+<div class="centerBox" id="content">
+  Rakip aranıyor...
+  <button onclick="startMatch()">Maç Başlat</button>
 </div>
 
 </div>
+
+<!-- PLAYER ENGINE HER ZAMAN ÖNCE -->
+<script src="engine/player.engine.js"></script>
 
 <script>
 
-/* PLAYER LOAD */
-let player = JSON.parse(localStorage.getItem("player"));
+/* ===========================
+   PvP CORE - PLAYER OVERRIDE YOK
+=========================== */
 
-function save(){
-  localStorage.setItem("player",JSON.stringify(player));
-}
+const player = window.player;
 
-function updateHUD(){
-  document.getElementById("energyText").innerText =
-    "⚡ " + player.energy + "/" + player.maxEnergy;
-
-  document.getElementById("xpText").innerText =
-    "XP " + player.xp + "/" + player.xpMax + " (Lv " + player.level + ")";
-
-  document.getElementById("ytonText").innerText = player.yton;
-
-  document.getElementById("energyBar").style.width =
-    (player.energy/player.maxEnergy*100)+"%";
-
-  document.getElementById("xpBar").style.width =
-    (player.xp/player.xpMax*100)+"%";
-}
-
-updateHUD();
-
-/* PvP SYSTEM */
-
+/* SORULAR */
 const questions=[
   {q:"5 x 6 kaçtır?", a:["20","30","25","35"], correct:1},
-  {q:"12 + 8 kaçtır?", a:["18","20","22","16"], correct:1}
+  {q:"12 + 8 kaçtır?", a:["18","20","22","16"], correct:1},
+  {q:"9 x 3 kaçtır?", a:["27","21","24","18"], correct:0}
 ];
 
-let current;
+let currentQuestion;
 let startTime;
 
 function startMatch(){
-  current = questions[Math.floor(Math.random()*questions.length)];
-  document.getElementById("content").innerHTML =
-    "<div>"+current.q+"</div>";
+  currentQuestion = questions[Math.floor(Math.random()*questions.length)];
+  const box = document.getElementById("content");
 
-  current.a.forEach((ans,i)=>{
-    document.getElementById("content").innerHTML +=
-      "<div class='answer' onclick='submit("+i+")'>"+ans+"</div>";
+  box.innerHTML = "<div>"+currentQuestion.q+"</div>";
+
+  currentQuestion.a.forEach((ans,i)=>{
+    box.innerHTML +=
+      "<div class='answer' onclick='submitAnswer("+i+")'>"+ans+"</div>";
   });
 
   startTime = Date.now();
 }
 
-function submit(i){
-  let time = (Date.now() - startTime)/1000;
+function submitAnswer(i){
+
+  const responseTime = (Date.now() - startTime)/1000;
 
   let playerPower = 20 + (player.weapon.bonus*100);
-  if(i === current.correct){
-    playerPower += (10 - time);
+
+  if(i === currentQuestion.correct){
+    playerPower += (10 - responseTime);
   }
 
   let botPower = 20 + Math.random()*15;
 
   if(playerPower > botPower){
-    player.xp += 50;
-    player.yton += 10;
-    result("Kazandın! +50 XP +10 YTON", "lime");
+    win();
   } else {
-    player.energy -= 10;
-    if(player.energy < 0) player.energy=0;
-    result("Kaybettin! -10 Enerji", "red");
+    lose();
   }
 
-  save();
-  updateHUD();
+  window.savePlayer();
+  window.updateHUD();
 }
 
-function result(text,color){
+function win(){
+  player.xp += 50;
+  player.yton += 10;
+
   document.getElementById("content").innerHTML =
-    "<div style='color:"+color+";font-size:18px;'>"+text+"</div>" +
+    "<div style='color:lime;font-size:18px;'>Kazandın!</div>" +
+    "<div>+50 XP +10 YTON</div>" +
     "<button onclick='location.reload()'>Tekrar</button>";
 }
+
+function lose(){
+  player.energy -= 10;
+  if(player.energy < 0) player.energy = 0;
+
+  document.getElementById("content").innerHTML =
+    "<div style='color:red;font-size:18px;'>Kaybettin!</div>" +
+    "<div>-10 Enerji</div>" +
+    "<button onclick='location.reload()'>Tekrar</button>";
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  updateHUD();
+});
 
 </script>
 
