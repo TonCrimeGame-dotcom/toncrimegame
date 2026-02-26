@@ -1,175 +1,181 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>TonCrime PvP</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PvP Arena</title>
 
 <style>
-body{margin:0;background:#111;color:white;font-family:Arial;text-align:center}
-.topbar{background:#000;padding:15px;font-size:18px}
-button{padding:10px 20px;margin:8px;border:none;background:gold;font-weight:bold;cursor:pointer}
-#pvpArea{margin-top:40px}
+body{
+  margin:0;
+  background:black;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  font-family:Arial;
+  color:white;
+}
+
+.app{
+  width:390px;
+  height:690px;
+  position:relative;
+  overflow:hidden;
+  border-radius:20px;
+  background:#111;
+  padding:20px;
+  box-sizing:border-box;
+}
+
+.title{
+  text-align:center;
+  font-size:20px;
+  margin-bottom:15px;
+  color:gold;
+}
+
+.box{
+  background:#222;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:15px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  background:gold;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.answer{
+  background:#333;
+  padding:8px;
+  margin-top:8px;
+  cursor:pointer;
+  border-radius:6px;
+}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-⚔ TONCRIME PvP
+<div class="app">
+
+<div class="title">PvP Arena</div>
+
+<div class="box" id="matchBox">
+  <div>Rakip aranıyor...</div>
+  <button onclick="startMatch()">Maç Başlat</button>
 </div>
 
-<div>
-<button onclick="startMatch(2.5,4)">Bronze (2.5 → 4)</button>
-<button onclick="startMatch(6,10)">Silver (6 → 10)</button>
-<button onclick="startMatch(0,1)">Free</button>
+<div class="box" id="questionBox" style="display:none;">
+  <div id="questionText"></div>
+  <div id="answers"></div>
 </div>
 
-<div id="pvpArea"></div>
+<div class="box" id="resultBox" style="display:none;"></div>
+
+</div>
 
 <script>
 
-const SUPABASE_URL="https://hwhscuyudwphnsipibpy.supabase.co";
-const SUPABASE_KEY="sb_publishable_dItLcV8z83CvDWuR8nTabA_ImTHGETu";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+/* PLAYER LOAD */
+let player = JSON.parse(localStorage.getItem("player"));
 
-const FUNCTION_URL="https://hwhscuyudwphnsipibpy.supabase.co/functions/v1/resolve-pvp";
-
-let currentMatch=null;
-let questions=[];
-let questionIndex=0;
-let totalTime=0;
-let questionStart=0;
-
-/* DEVICE ID */
-if(!localStorage.getItem("device_id")){
-  localStorage.setItem("device_id",crypto.randomUUID());
+/* BOT RAKİP */
+function generateBot(){
+  return {
+    level: Math.max(1, player.level + (Math.floor(Math.random()*30)-15)),
+    power: 10 + Math.random()*20
+  };
 }
 
-/* USER */
-async function loadUser(){
-  const id=localStorage.getItem("tc_user");
-  if(!id){alert("Login yok");return null;}
-  const {data}=await db.from("users").select("*").eq("id",id).single();
-  return data;
-}
-
-/* HASH */
-async function generateHash(score,time,secret){
-  const data=new TextEncoder().encode(score+"-"+time+"-"+secret);
-  const hashBuffer=await crypto.subtle.digest("SHA-256",data);
-  const hashArray=Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-
-/* MATCH START */
-async function startMatch(cost,reward){
-
-  const user=await loadUser();
-  if(!user)return;
-
-  if(user.yton<cost){
-    alert("Yetersiz Yton");
-    return;
+/* SORULAR */
+const questions=[
+  {
+    q:"5 x 6 kaçtır?",
+    a:["20","30","25","35"],
+    correct:1
+  },
+  {
+    q:"10 + 15 kaçtır?",
+    a:["20","25","30","15"],
+    correct:1
   }
+];
 
-  if(cost>0){
-    await db.from("users").update({
-      yton:user.yton-cost
-    }).eq("id",user.id);
-  }
+let currentQuestion;
+let bot;
+let startTime;
 
-  const secret=crypto.randomUUID();
-
-  const {data}=await db.from("pvp_matches").insert({
-    player1:user.id,
-    status:"active",
-    reward:reward,
-    secret:secret
-  }).select().single();
-
-  currentMatch=data;
-
-  questions=[
-    {q:"5x5?",a:"25",o:["20","25","30","15"]},
-    {q:"HTML ne?",a:"Web",o:["Web","Oyun","Virüs","Telefon"]},
-    {q:"3^3?",a:"27",o:["9","27","18","81"]},
-    {q:"Başkent?",a:"Ankara",o:["İzmir","Bursa","Ankara","Van"]},
-    {q:"10/2?",a:"5",o:["2","5","8","6"]}
-  ];
-
-  questionIndex=0;
-  totalTime=0;
-
-  showQuestion();
+function startMatch(){
+  bot = generateBot();
+  document.getElementById("matchBox").style.display="none";
+  document.getElementById("questionBox").style.display="block";
+  loadQuestion();
 }
 
-/* QUESTION */
-function showQuestion(){
+function loadQuestion(){
+  currentQuestion = questions[Math.floor(Math.random()*questions.length)];
+  document.getElementById("questionText").innerText=currentQuestion.q;
 
-  if(questionIndex>=questions.length){
-    finishMatch();
-    return;
-  }
-
-  const q=questions[questionIndex];
-  document.getElementById("pvpArea").innerHTML=
-  "<h2>"+q.q+"</h2>"+
-  q.o.map(opt=>
-    "<button onclick=\"answer('"+opt+"')\">"+opt+"</button>"
-  ).join("<br><br>");
-
-  questionStart=performance.now();
-}
-
-/* ANSWER */
-function answer(opt){
-
-  const q=questions[questionIndex];
-  const rawTime=performance.now()-questionStart;
-
-  if(rawTime<150){
-    alert("Hız hilesi tespit edildi");
-    location.reload();
-    return;
-  }
-
-  totalTime+=rawTime;
-
-  if(opt===q.a){
-    currentMatch.score=(currentMatch.score||0)+1;
-  }
-
-  questionIndex++;
-  showQuestion();
-}
-
-/* FINISH */
-async function finishMatch(){
-
-  const user=await loadUser();
-  const hash=await generateHash(
-    currentMatch.score||0,
-    Math.floor(totalTime),
-    currentMatch.secret
-  );
-
-  await fetch(FUNCTION_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      matchId:currentMatch.id,
-      userId:user.id,
-      score:currentMatch.score||0,
-      time:Math.floor(totalTime),
-      hash:hash,
-      deviceId:localStorage.getItem("device_id")
-    })
+  const ansDiv=document.getElementById("answers");
+  ansDiv.innerHTML="";
+  currentQuestion.a.forEach((ans,index)=>{
+    const div=document.createElement("div");
+    div.className="answer";
+    div.innerText=ans;
+    div.onclick=()=>submitAnswer(index);
+    ansDiv.appendChild(div);
   });
 
-  document.getElementById("pvpArea").innerHTML=
-  "<h2>Maç sonucu server’a gönderildi.</h2>";
+  startTime = Date.now();
+}
+
+function submitAnswer(index){
+  const time = (Date.now() - startTime)/1000;
+  document.getElementById("questionBox").style.display="none";
+  document.getElementById("resultBox").style.display="block";
+
+  let playerPower = 20;
+  playerPower += player.weapon.bonus*100;
+
+  if(index === currentQuestion.correct){
+    playerPower += (10 - time);
+  }
+
+  let botPower = bot.power + Math.random()*10;
+
+  if(playerPower > botPower){
+    win();
+  } else {
+    lose();
+  }
+}
+
+function win(){
+  player.xp += 50;
+  player.yton += 10;
+  localStorage.setItem("player",JSON.stringify(player));
+
+  document.getElementById("resultBox").innerHTML=
+    "<h3 style='color:lime'>Kazandın!</h3> +50 XP +10 YTON";
+}
+
+function lose(){
+  player.energy -= 10;
+  if(player.energy < 0) player.energy=0;
+  localStorage.setItem("player",JSON.stringify(player));
+
+  document.getElementById("resultBox").innerHTML=
+    "<h3 style='color:red'>Kaybettin!</h3> -10 Enerji";
 }
 
 </script>
+
 </body>
 </html>
