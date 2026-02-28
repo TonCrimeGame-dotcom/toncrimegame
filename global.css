@@ -1,149 +1,92 @@
 /* =========================================================
-   TONCRIME - GLOBAL.CSS (TEK PARÇA / BAR YAZISI FIX)
-   - Logo 2x
-   - HUD zarif/transparan
-   - Enerji/XP yazısı barın ÜSTÜNE (index+pvp aynı)
+   TONCRIME - HUD FIX (TEK PARÇA)
+   1) Eski HUD'ı tamamen gizle
+   2) Yeni HUD (#tcHudMini) küçük + çerçevesiz + şeffaf
    ========================================================= */
 
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;background:#000;font-family:Georgia,serif;}
-.app{width:390px;height:690px;margin:0 auto;position:relative;overflow:hidden;border-radius:20px;}
-.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-
-/* ---------------- LOGO ---------------- */
-.tc-logo{
-  position:absolute;
-  top:8px;
-  left:16px;
-  z-index:300;
-  height:52px; /* %100 büyüt */
-  width:auto;
-  filter:drop-shadow(0 3px 10px rgba(0,0,0,.6));
+/* --- 1) ESKİ HUD: tamamen kapat (HTML/JS'e dokunmadan) --- */
+/* Senin eski sınıf/id'ler farklı olabilir; bunlar en yaygın olanlar */
+.hud-card,
+#hud,
+#hudCard,
+.hud,
+.tc-hud,
+#tcHud,
+.hudContainer,
+#hudContainer{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
 }
 
-/* ---------------- HUD (GLOBAL) ---------------- */
-/* index bazen .hud-card, pvp bazen .hud */
-.app .hud-card,
-.app .hud{
-  position:absolute;
-  top:58px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:250;
+/* --- 2) YENİ HUD: tcHudMini tasarım --- */
+#tcHudMini{
+  /* KONUM: sağ üst (app içinde) */
+  position:absolute !important;
+  top:12px !important;
+  right:12px !important;
+  z-index:999 !important;
 
-  width:260px;
-  padding:8px 10px;
-  border-radius:14px;
+  /* BOYUT: küçük */
+  width:170px !important;
+  padding:8px 9px !important;
+  border-radius:12px !important;
 
-  background:rgba(0,0,0,0.18);
-  backdrop-filter:blur(7px);
-  -webkit-backdrop-filter:blur(7px);
+  /* İSTEDİĞİN: çerçevesiz + şeffaf (transparan) */
+  border:none !important;
+  box-shadow:none !important;
 
-  border:none;
-  box-shadow:none;
+  background:rgba(0,0,0,0.10) !important;  /* DAHA ŞEFFAF */
+  backdrop-filter:blur(6px) !important;     /* hafif blur (istersen 0 yap) */
+  -webkit-backdrop-filter:blur(6px) !important;
 
-  color:#ffd54a;
-  font-size:11px;
-  font-weight:600;
-  line-height:1.15;
+  color:rgba(255,255,255,0.95) !important;
+  font-family: Arial, sans-serif !important;
 }
 
-/* HUD satırları (varsa) */
-.hud-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
-.hud-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
-.yton-line{display:flex;align-items:center;gap:6px;}
-.yton-line img{height:12px;width:auto;}
-.weapon-line{opacity:.9;}
+/* Yazılar daha küçük */
+#tcHudMini .row{ font-size:11px !important; margin-bottom:5px !important; }
+#tcHudMini .label{ font-size:10px !important; }
+#tcHudMini .muted{ font-size:10px !important; opacity:.9 !important; }
+#tcHudMini .twoCol{ font-size:10px !important; }
+#tcHudMini .yton{ font-size:10px !important; }
 
-/* ---------------- BARLAR ---------------- */
-.app .hud-card .hud-bar,
-.app .hud .hud-bar,
-.app .hud-card .bar,
-.app .hud .bar{
-  position:relative;
-  height:6px;
-  background:rgba(255,255,255,0.15);
-  border-radius:999px;
-  overflow:hidden;
-  margin:6px 0 10px;
+/* Barlar daha ince */
+#tcHudMini .bar{
+  height:6px !important;
+  margin:4px 0 8px !important;
+  background:rgba(255,255,255,0.14) !important;
+  border-radius:999px !important;
+  overflow:hidden !important;
+  position:relative !important;
 }
 
-/* Fill classları farklı olabiliyor */
-.hud-fill-energy, .energyFill, .fill.energyFill{height:100%;width:0%;background:#35ff9c;}
-.hud-fill-xp, .xpFill, .fill.xpFill{height:100%;width:0%;background:#ffd54a;}
-
-/* =========================================================
-   BAR ÜSTÜNE YAZI (ASIL ÇÖZÜM)
-   ========================================================= */
-
-/* 1) Text GENEL görünüm */
-#energyText,#xpText,#hudEnergyText,#hudXpText,
-.hud-bar-text,.bar-text{
-  display:block;
-  width:100%;
-  text-align:center;
-  font-size:10px;
-  font-weight:800;
-  color:rgba(255,255,255,0.96);
-  text-shadow:0 1px 2px rgba(0,0,0,0.85);
-  letter-spacing:0;
-  white-space:nowrap;
-  line-height:1;
-  z-index:6;
-}
-
-/* 2) Eğer text BARIN DIŞINDA ise:
-      Bara bindirmek için “bar üstüne çekiyoruz” (index yapısı) */
-#energyText,#xpText,#hudEnergyText,#hudXpText{
-  position:relative;
-  margin:0 0 -16px 0; /* kritik: text'i barın üstüne al */
-  pointer-events:none;
-}
-
-/* 3) Eğer text BARIN İÇİNDE ise:
-      absolute ile tam ortaya oturt (pvp yapısı) */
-.app .hud-card .hud-bar #energyText,
-.app .hud-card .hud-bar #xpText,
-.app .hud .hud-bar #energyText,
-.app .hud .hud-bar #xpText,
-.app .hud-card .bar #energyText,
-.app .hud-card .bar #xpText,
-.app .hud .bar #energyText,
-.app .hud .bar #xpText,
-.app .hud-card .hud-bar #hudEnergyText,
-.app .hud-card .hud-bar #hudXpText,
-.app .hud .hud-bar #hudEnergyText,
-.app .hud .hud-bar #hudXpText{
+/* Bar içi yazı (sadece bu kalsın) */
+#tcHudMini .barText{
   position:absolute !important;
   left:50% !important;
   top:50% !important;
   transform:translate(-50%,-50%) !important;
-  margin:0 !important;          /* dıştaki -16px'i iptal eder */
-  width:auto !important;
+
+  font-size:10px !important;
+  font-weight:900 !important;
+  color:rgba(255,255,255,0.95) !important;
+
+  text-shadow:0 1px 2px rgba(0,0,0,0.65) !important;
+  pointer-events:none !important;
+  white-space:nowrap !important;
 }
 
-/* 4) Motor zaten .hud-bar-text/.bar-text üretiyorsa (bar içinde) */
-.app .hud-card .hud-bar .hud-bar-text,
-.app .hud .hud-bar .hud-bar-text,
-.app .hud-card .bar .bar-text,
-.app .hud .bar .bar-text{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  margin:0;
-  width:auto;
-  pointer-events:none;
+/* Başka yerde aynı değerler görünmesin (yeni HUD içinde) */
+#tcHudMini #hudEnergyRight,
+#tcHudMini #hudXpRight{
+  display:none !important;
 }
 
-/* ---------------- Saat/Tarih + Online pill (varsa) ---------------- */
-.tc-topbar,.time-pill,.online-pill{
-  background:rgba(0,0,0,0.22) !important;
-  border:none !important;
-  box-shadow:none !important;
-  backdrop-filter:blur(7px) !important;
-  -webkit-backdrop-filter:blur(7px) !important;
-}
+/* Renk vurgular */
+#tcHudMini .gold{ color:gold !important; }
+#tcHudMini .green{ color:#35ff9c !important; }
 
-/* Menü z-index (bozmadan) */
-.side-menu,.sidebar,.tc-menu{z-index:260 !important;}
+/* App container absolute'ları doğru tutsun */
+.app{ position:relative !important; }
