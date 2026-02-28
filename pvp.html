@@ -8,278 +8,430 @@
 <link rel="stylesheet" href="css/global.css">
 
 <style>
-
 /* MENU ASLA YOK */
 .sidebar,.overlay,.menu-wrapper,.menu-slider{display:none!important}
 
 /* GERİ %50 KÜÇÜK */
 .back-btn{
-position:absolute;
-top:10px;
-left:10px;
-z-index:100;
-padding:4px 8px;          /* küçültüldü */
-font-size:11px;           /* küçültüldü */
-border-radius:10px;
-border:1px solid gold;
-background:rgba(0,0,0,0.4);
-color:gold;
-cursor:pointer;
-backdrop-filter:blur(6px);
+  position:absolute; top:10px; left:10px; z-index:200;
+  padding:4px 8px; font-size:11px;
+  border-radius:10px; border:1px solid gold;
+  background:rgba(0,0,0,0.35); color:gold;
+  cursor:pointer; backdrop-filter:blur(6px);
 }
+
+/* ÜST SAĞ: SAAT + ONLINE (KÜÇÜK) */
+.top-right{
+  position:absolute; top:10px; right:10px; z-index:200;
+  display:flex; gap:8px; align-items:center;
+}
+.chip{
+  padding:6px 10px;
+  border-radius:12px;
+  background:rgba(0,0,0,0.35);
+  color:gold;
+  border:1px solid rgba(255,215,0,0.45);
+  font-size:12px;
+  backdrop-filter:blur(6px);
+  display:flex; gap:6px; align-items:center;
+}
+.dot{
+  width:8px;height:8px;border-radius:999px;background:#23ff7a;
+  box-shadow:0 0 10px rgba(35,255,122,0.7);
+}
+
+/* LOGO (SOL ÜST) */
+.tc-logo{
+  position:absolute; top:10px; left:58px; z-index:200;
+  height:36px;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+
+/* HUD KART (İNCE / ZARİF) */
+.hud-card{
+  position:absolute;
+  top:54px;
+  left:50%;
+  transform:translateX(-50%);
+  width:340px;
+  padding:10px 12px;
+  border-radius:16px;
+  background:rgba(0,0,0,0.28);
+  color:gold;
+  z-index:150;
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,215,0,0.35);
+}
+.hud-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  font-weight:700;
+  margin-bottom:6px;
+}
+.hud-row .muted{opacity:.9;font-weight:600}
+.hud-bar{
+  height:7px;
+  background:rgba(255,255,255,0.14);
+  border-radius:999px;
+  overflow:hidden;
+  margin:4px 0 8px;
+}
+.hud-fill-energy{height:100%;width:0%;background:#34ff9b}
+.hud-fill-xp{height:100%;width:0%;background:#ffd54a}
+.hud-bottom{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  margin-top:2px;
+}
+.yton-line{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.yton-line img{height:14px; width:auto;}
+.weapon-line{opacity:.95}
 
 /* PVP CARD */
 .pvp-card{
-position:absolute;
-left:50%;
-top:50%;
-transform:translate(-50%,-50%);
-width:330px;
-background:rgba(0,0,0,0.45);
-border-radius:20px;
-padding:14px;
-color:white;
-z-index:20;
-backdrop-filter:blur(10px);
+  position:absolute;
+  left:50%;
+  top:56%;
+  transform:translate(-50%,-50%);
+  width:330px;
+  background:rgba(0,0,0,0.42);
+  border-radius:20px;
+  padding:14px;
+  color:white;
+  z-index:50;
+  backdrop-filter:blur(10px);
 }
-
 .pvp-title{
-text-align:center;
-color:gold;
-font-weight:800;
-margin-bottom:10px;
+  text-align:center;
+  color:gold;
+  font-weight:900;
+  margin-bottom:10px;
 }
-
 .pvp-row{
-display:flex;
-justify-content:space-between;
-font-size:12px;
-margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  margin-bottom:10px;
+  color:#fff;
+  opacity:.95;
 }
-
 .pvp-players{
-display:flex;
-gap:10px;
-margin-bottom:12px;
+  display:flex; gap:10px; margin-bottom:12px;
 }
-
 .pvp-side{
-flex:1;
-background:rgba(255,255,255,0.07);
-border-radius:14px;
-padding:8px;
+  flex:1;
+  background:rgba(255,255,255,0.07);
+  border-radius:14px;
+  padding:8px;
 }
-
-.pvp-name{font-weight:800;color:gold;font-size:13px}
-.pvp-mini{font-size:11px;opacity:.8;margin-top:6px}
+.pvp-name{font-weight:900;color:gold;font-size:13px}
+.pvp-mini{font-size:11px;opacity:.85;margin-top:6px}
 .pvp-hptext{font-size:11px;margin-top:6px}
-
 .pvp-bar{
-height:7px;
-background:rgba(255,255,255,0.15);
-border-radius:999px;
-overflow:hidden;
-margin-top:5px;
+  height:7px;
+  background:rgba(255,255,255,0.15);
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:5px;
 }
 .pvp-fill{height:100%;width:0%;background:#00ff99}
-
 .pvp-vs{
-width:30px;
-text-align:center;
-font-weight:900;
-color:gold;
-padding-top:20px;
+  width:30px; text-align:center;
+  font-weight:900; color:gold;
+  padding-top:20px;
 }
-
-.pvp-actions{
-display:flex;
-gap:8px;
-margin-top:8px;
-}
+.pvp-actions{display:flex;gap:8px;margin-top:8px}
 .pvp-btn{
-flex:1;
-border:none;
-border-radius:12px;
-padding:9px;
-font-weight:800;
-cursor:pointer;
-background:gold;
+  flex:1; border:none; border-radius:12px;
+  padding:9px; font-weight:900; cursor:pointer;
+  background:gold;
 }
-.pvp-btn:disabled{opacity:.4}
+.pvp-btn:disabled{opacity:.35}
 .pvp-btn.ghost{
-background:rgba(255,255,255,0.1);
-color:white;
-border:1px solid gold;
+  background:rgba(255,255,255,0.1);
+  color:white;
+  border:1px solid gold;
 }
+.pvp-log{margin-top:8px;max-height:70px;overflow:auto;font-size:11px}
 
-.pvp-log{
-margin-top:8px;
-max-height:70px;
-overflow:auto;
-font-size:11px;
-}
-
-/* LEADERBOARD TAM GÖRÜNÜR */
+/* LEADERBOARD: TAM ALTTA */
 .pvp-leaderboard{
-position:absolute;
-left:50%;
-bottom:10px;
-transform:translateX(-50%);
-width:350px;
-background:rgba(0,0,0,0.35);
-border-radius:16px;
-padding:10px;
-z-index:10;
-backdrop-filter:blur(8px);
+  position:absolute;
+  left:50%;
+  bottom:12px;
+  transform:translateX(-50%);
+  width:350px;
+  background:rgba(0,0,0,0.28);
+  border-radius:16px;
+  padding:10px;
+  z-index:40;
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,215,0,0.25);
 }
-
 .lb-head{
-display:flex;
-justify-content:space-between;
-color:gold;
-font-size:12px;
-margin-bottom:6px;
+  display:flex; justify-content:space-between;
+  color:gold; font-size:12px; margin-bottom:6px;
+  font-weight:800;
 }
-
-.lb-list{
-max-height:110px;
-overflow:auto;
-}
-
+.lb-list{max-height:110px;overflow:auto}
 .lb-item{
-display:flex;
-justify-content:space-between;
-background:rgba(255,255,255,0.08);
-padding:6px 10px;
-border-radius:10px;
-margin-bottom:6px;
-font-size:12px;
+  display:flex; justify-content:space-between;
+  background:rgba(255,255,255,0.08);
+  padding:6px 10px;
+  border-radius:10px;
+  margin-bottom:6px;
+  font-size:12px;
 }
-
 </style>
 </head>
 
 <body>
 
-<div class="app">
-<img class="bg" src="assets/background.jpg">
+<div class="app" id="app">
+  <img class="bg" src="assets/background.jpg" alt="bg">
+  <div class="back-btn" onclick="location.href='index.html'">← Geri</div>
 
-<div class="back-btn" onclick="location.href='index.html'">← Geri</div>
+  <!-- üst sağ chipler + logo + hud js ile basılacak -->
+  <div class="pvp-card">
+    <div class="pvp-title">PvP Arena</div>
 
-<div class="pvp-card">
-<div class="pvp-title">PvP Arena</div>
+    <div class="pvp-row">
+      <div>Durum</div>
+      <div id="status">Hazır</div>
+    </div>
 
-<div class="pvp-row">
-<div>Durum</div>
-<div id="status">Hazır</div>
+    <div class="pvp-players">
+      <div class="pvp-side">
+        <div class="pvp-name" id="meName">Player</div>
+        <div class="pvp-hptext" id="meHpText">HP:100/100</div>
+        <div class="pvp-bar"><div class="pvp-fill" id="meHpBar"></div></div>
+        <div class="pvp-mini" id="meStats"></div>
+      </div>
+
+      <div class="pvp-vs">VS</div>
+
+      <div class="pvp-side">
+        <div class="pvp-name" id="opName">Rakip</div>
+        <div class="pvp-hptext" id="opHpText">HP:-</div>
+        <div class="pvp-bar"><div class="pvp-fill" id="opHpBar"></div></div>
+        <div class="pvp-mini" id="opStats"></div>
+      </div>
+    </div>
+
+    <div class="pvp-actions">
+      <button class="pvp-btn" id="findBtn">Rakip Ara</button>
+      <button class="pvp-btn" id="startBtn" disabled>Savaş Başlat</button>
+      <button class="pvp-btn ghost" id="resetBtn">Sıfırla</button>
+    </div>
+
+    <div class="pvp-log" id="log"></div>
+  </div>
+
+  <div class="pvp-leaderboard">
+    <div class="lb-head">
+      <div>Leaderboard</div>
+      <div id="lbMe">ELO:1000</div>
+    </div>
+    <div class="lb-list" id="lbList"></div>
+  </div>
 </div>
 
-<div class="pvp-players">
-<div class="pvp-side">
-<div class="pvp-name" id="meName">Player</div>
-<div class="pvp-hptext" id="meHpText">HP:100/100</div>
-<div class="pvp-bar"><div class="pvp-fill" id="meHpBar"></div></div>
-<div class="pvp-mini" id="meStats"></div>
-</div>
-
-<div class="pvp-vs">VS</div>
-
-<div class="pvp-side">
-<div class="pvp-name" id="opName">Rakip</div>
-<div class="pvp-hptext" id="opHpText">HP:-</div>
-<div class="pvp-bar"><div class="pvp-fill" id="opHpBar"></div></div>
-<div class="pvp-mini" id="opStats"></div>
-</div>
-</div>
-
-<div class="pvp-actions">
-<button class="pvp-btn" id="findBtn">Rakip Ara</button>
-<button class="pvp-btn" id="startBtn" disabled>Savaş Başlat</button>
-<button class="pvp-btn ghost" id="resetBtn">Sıfırla</button>
-</div>
-
-<div class="pvp-log" id="log"></div>
-</div>
-
-<div class="pvp-leaderboard">
-<div class="lb-head">
-<div>Leaderboard</div>
-<div id="lbMe">ELO:1000</div>
-</div>
-<div class="lb-list" id="lbList"></div>
-</div>
-
-</div>
-
-<!-- MOTORLAR (HUD + LOGO BURADAN GELİR) -->
+<!-- MOTORLAR -->
 <script src="js/player.engine.js"></script>
 <script src="js/chat.engine.js"></script>
 
 <script>
+/* ====== ORTAK (LOGO + HUD + SAAT + ONLINE) GARANTİ ====== */
 
-/* HUD + LOGO GÖRÜNME SORUNU ÇÖZÜMÜ */
-window.addEventListener("load",()=>{
-if(window.player && window.player.initHud){
-window.player.initHud();
+function pad2(n){return String(n).padStart(2,"0");}
+function nowStr(){
+  const d=new Date();
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())} ${pad2(d.getDate())}.${pad2(d.getMonth()+1)}`;
 }
-});
 
-/* PVP BASİT MOTOR */
+function mountCommonUI(player){
+  const app=document.getElementById("app");
+
+  // üst sağ chipler
+  const top=document.createElement("div");
+  top.className="top-right";
+  top.innerHTML = `
+    <div class="chip" id="timeChip">${nowStr()}</div>
+    <div class="chip"><span class="dot"></span><span id="onlineChip">195</span></div>
+  `;
+  app.appendChild(top);
+
+  // logo
+  const logo=document.createElement("img");
+  logo.className="tc-logo";
+  logo.src="assets/logo.png";
+  logo.alt="logo";
+  app.appendChild(logo);
+
+  // hud
+  const hud=document.createElement("div");
+  hud.className="hud-card";
+  hud.innerHTML=`
+    <div class="hud-row">
+      <div>👤 <span id="hudName">Player01</span></div>
+      <div class="muted" id="hudWeapon">Tabanca (+10%)</div>
+    </div>
+
+    <div class="hud-row">
+      <div id="hudEnergyText">⚡ 0/100</div>
+      <div class="muted" id="hudEnergyTimer">+1 enerji: --:--</div>
+    </div>
+    <div class="hud-bar"><div class="hud-fill-energy" id="hudEnergyFill"></div></div>
+
+    <div class="hud-row">
+      <div id="hudXpText">XP 0/1000 (Lv 1)</div>
+      <div class="muted">Lv cap: 50</div>
+    </div>
+    <div class="hud-bar"><div class="hud-fill-xp" id="hudXpFill"></div></div>
+
+    <div class="hud-bottom">
+      <div class="yton-line">
+        <img src="assets/yton.png" alt="yton">
+        <span id="hudYton">1000</span>
+      </div>
+      <div class="weapon-line" id="hudBonus">Bonus: +10%</div>
+    </div>
+  `;
+  app.appendChild(hud);
+
+  // saat güncelle
+  setInterval(()=>{ 
+    const el=document.getElementById("timeChip");
+    if(el) el.textContent=nowStr();
+  },1000*5);
+
+  // player'dan doldur
+  renderHUDFromPlayer(player);
+}
+
+function renderHUDFromPlayer(player){
+  // player.engine.js zaten window.player’ı tutuyor
+  const name = player?.name ?? "Player01";
+  const energy = Number(player?.energy ?? 60);
+  const maxEnergy = Number(player?.maxEnergy ?? 100);
+  const xp = Number(player?.xp ?? 0);
+  const xpMax = Number(player?.xpMax ?? 1000);
+  const level = Number(player?.level ?? 1);
+
+  const w = player?.weapon ?? { name:"Tabanca", bonus:0.10 };
+  const bonusPct = Math.round((Number(w.bonus ?? 0.10))*100);
+
+  const eFill = Math.max(0, Math.min(100, (energy/maxEnergy)*100));
+  const xFill = Math.max(0, Math.min(100, (xp/xpMax)*100));
+
+  const yton = Number(player?.yton ?? 1000);
+
+  const set=(id,val)=>{const el=document.getElementById(id); if(el) el.textContent=val;}
+  const setw=(id,val)=>{const el=document.getElementById(id); if(el) el.style.width=val+"%";}
+
+  set("hudName", name);
+  set("hudEnergyText", `⚡ ${energy}/${maxEnergy}`);
+  set("hudXpText", `XP ${xp}/${xpMax} (Lv ${level})`);
+  set("hudYton", yton);
+  set("hudWeapon", `${w.name} (+${bonusPct}%)`);
+  set("hudBonus", `Bonus: +${bonusPct}%`);
+
+  setw("hudEnergyFill", eFill);
+  setw("hudXpFill", xFill);
+
+  // enerji timer (5 dk’da 1)
+  const next = Number(player?.nextEnergyAt ?? 0); // engine’in tuttuğu alan varsa
+  if(next){
+    const leftMs = Math.max(0, next - Date.now());
+    const m = Math.floor(leftMs/60000);
+    const s = Math.floor((leftMs%60000)/1000);
+    set("hudEnergyTimer", `+1 enerji: ${pad2(m)}:${pad2(s)}`);
+  }else{
+    set("hudEnergyTimer", `+1 enerji: 05:00`);
+  }
+}
+
+// window.player gelene kadar bekle (GARANTİ)
+(function waitPlayer(){
+  if(window.player){
+    // zaten mount edilmiş mi?
+    if(!document.querySelector(".hud-card")){
+      mountCommonUI(window.player);
+    }else{
+      renderHUDFromPlayer(window.player);
+    }
+    return;
+  }
+  setTimeout(waitPlayer, 50);
+})();
+
+/* ====== PVP (player yaratma YOK) ====== */
 const player = window.player;
 
 const $ = id=>document.getElementById(id);
-
-let meHp=100,opHp=100,opAtk=0;
+let meHp=100, opHp=100, opAtk=0;
 
 function log(t){
-const d=document.createElement("div");
-d.textContent=t;
-$("log").appendChild(d);
-$("log").scrollTop=9999;
+  const d=document.createElement("div");
+  d.textContent=t;
+  $("log").appendChild(d);
+  $("log").scrollTop=9999;
 }
-
-function bar(id,val){
-$(id).style.width=val+"%";
-}
+function bar(id,val){ $(id).style.width=Math.max(0,val)+"%"; }
 
 function find(){
-$("status").textContent="Aranıyor...";
-setTimeout(()=>{
-opAtk=8+Math.floor(Math.random()*6);
-opHp=100;
-$("opName").textContent="Rakip#"+Math.floor(Math.random()*900);
-$("opStats").textContent="ATK:"+opAtk;
-$("opHpText").textContent="HP:100/100";
-bar("opHpBar",100);
-$("status").textContent="Hazır";
-$("startBtn").disabled=false;
-},800);
+  $("status").textContent="Aranıyor...";
+  setTimeout(()=>{
+    opAtk=8+Math.floor(Math.random()*6);
+    opHp=100;
+    $("opName").textContent="Rakip#"+Math.floor(Math.random()*900);
+    $("opStats").textContent="ATK:"+opAtk;
+    $("opHpText").textContent="HP:100/100";
+    bar("opHpBar",100);
+    $("status").textContent="Hazır";
+    $("startBtn").disabled=false;
+    log("Rakip bulundu!");
+  },800);
 }
 
 function fight(){
-$("status").textContent="Savaş";
-const t=setInterval(()=>{
-opHp-=12;
-meHp-=opAtk;
-bar("opHpBar",opHp);
-bar("meHpBar",meHp);
-$("opHpText").textContent="HP:"+opHp+"/100";
-$("meHpText").textContent="HP:"+meHp+"/100";
-if(opHp<=0||meHp<=0){
-clearInterval(t);
-$("status").textContent=opHp<=0?"Kazandın":"Kaybettin";
-}
-},700);
+  $("status").textContent="Savaş";
+  log("Savaş başladı!");
+  const t=setInterval(()=>{
+    opHp-=12;
+    meHp-=opAtk;
+
+    bar("opHpBar",opHp);
+    bar("meHpBar",meHp);
+
+    $("opHpText").textContent="HP:"+Math.max(0,opHp)+"/100";
+    $("meHpText").textContent="HP:"+Math.max(0,meHp)+"/100";
+
+    if(opHp<=0||meHp<=0){
+      clearInterval(t);
+      $("status").textContent=opHp<=0?"Kazandın":"Kaybettin";
+      log(opHp<=0 ? "Kazandın!" : "Kaybettin!");
+    }
+  },700);
 }
 
 function reset(){
-meHp=100;opHp=100;
-bar("meHpBar",100);
-bar("opHpBar",0);
-$("opHpText").textContent="HP:-";
-$("status").textContent="Hazır";
-$("startBtn").disabled=true;
-$("log").innerHTML="";
+  meHp=100; opHp=100;
+  bar("meHpBar",100);
+  bar("opHpBar",0);
+  $("opHpText").textContent="HP:-";
+  $("status").textContent="Hazır";
+  $("startBtn").disabled=true;
+  $("log").innerHTML="";
+  log("Sıfırlandı.");
 }
 
 $("findBtn").onclick=find;
@@ -289,12 +441,11 @@ $("resetBtn").onclick=reset;
 /* Leaderboard demo */
 const demo=["Shadow","Viper","Razor","Ghost"];
 demo.forEach((n,i)=>{
-const d=document.createElement("div");
-d.className="lb-item";
-d.innerHTML="<span>#"+(i+1)+" "+n+"</span><span>"+(1100-i*30)+"</span>";
-$("lbList").appendChild(d);
+  const d=document.createElement("div");
+  d.className="lb-item";
+  d.innerHTML="<span>#"+(i+1)+" "+n+"</span><span>"+(1120-i*25)+"</span>";
+  $("lbList").appendChild(d);
 });
-
 </script>
 
 </body>
