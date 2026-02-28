@@ -2,31 +2,47 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TonCrime - Index (Topbar + Chat + Menu)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>TonCrime</title>
 
+  <!-- İstersen global.css kalsın ama beyaz ekran yapıyorsa şimdilik kapat -->
   <link rel="stylesheet" href="css/global.css" />
-
-  <!-- Beyaz ekranı engellemek için güvenli fallback (istersen kaldır) -->
-  <style>
-    html, body { height: 100%; margin: 0; }
-    body { background: #05060a; overflow: hidden; }
-    .app { position: relative; width: 100%; height: 100%; }
-  </style>
 </head>
 <body>
 
-  <!-- Slide Menu için gerekli -->
+  <!-- SLIDE MENU (tek adet) -->
   <div class="sidebar" id="sidebar"></div>
   <div class="overlay" id="overlay"></div>
 
-  <!-- Motorların basacağı alan -->
-  <div class="app" id="app"></div>
+  <!-- 0) ÖNCE TEMİZLİK -->
+  <script src="js/tc_bootstrap.js"></script>
 
-  <!-- MOTORLAR (SIRASI ÖNEMLİ) -->
+  <!-- 1) SONRA LAYOUT -->
+  <script src="js/tc_layout.engine.js"></script>
+
+  <!-- 2) DEMO: arkaplanı sahneye bas (senin city görselin) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // örnek: assets/background.jpg yolunu kendi dosyana göre değiştir
+      // TC_LAYOUT.setBackground("assets/city.jpg");
+
+      // test için: sahneye minik yazı basalım (motor çalışıyor mu)
+      const test = document.createElement("div");
+      test.style.position = "absolute";
+      test.style.left = "12px";
+      test.style.top = "12px";
+      test.style.color = "white";
+      test.style.fontSize = "14px";
+      test.textContent = "TC_LAYOUT OK";
+      window.TC_LAYOUT.mount(test);
+    });
+  </script>
+
+  <!-- 3) SONRA (çalıştığını görünce) bunları tekrar ekleyeceğiz:
   <script src="js/topbar.engine.js"></script>
   <script src="js/chat.engine.js"></script>
   <script src="js/menu.js"></script>
+  -->
 
 </body>
 </html>
