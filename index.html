@@ -1,49 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>TonCrime</title>
-
-  <!-- İstersen global.css kalsın ama beyaz ekran yapıyorsa şimdilik kapat -->
-  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="global.css" />
 </head>
 <body>
 
-  <!-- SLIDE MENU (tek adet) -->
-  <div class="sidebar" id="sidebar"></div>
-  <div class="overlay" id="overlay"></div>
-
-  <!-- 0) ÖNCE TEMİZLİK -->
+  <!-- Sadece motorlar -->
   <script src="js/tc_bootstrap.js"></script>
-
-  <!-- 1) SONRA LAYOUT -->
-  <script src="js/tc_layout.engine.js"></script>
-<!-- TOPBAR -->
-<script src="js/topbar.engine.js"></script>
-  <!-- 2) DEMO: arkaplanı sahneye bas (senin city görselin) -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // örnek: assets/background.jpg yolunu kendi dosyana göre değiştir
-      // TC_LAYOUT.setBackground("assets/city.jpg");
-
-      // test için: sahneye minik yazı basalım (motor çalışıyor mu)
-      const test = document.createElement("div");
-      test.style.position = "absolute";
-      test.style.left = "12px";
-      test.style.top = "12px";
-      test.style.color = "white";
-      test.style.fontSize = "14px";
-      test.textContent = "TC_LAYOUT OK";
-      window.TC_LAYOUT.mount(test);
-    });
-  </script>
-
-  <!-- 3) SONRA (çalıştığını görünce) bunları tekrar ekleyeceğiz:
+  <script src="js/tc_layout_engine.js"></script>
   <script src="js/topbar.engine.js"></script>
-  <script src="js/chat.engine.js"></script>
-  <script src="js/menu.js"></script>
-  -->
+
+  <!-- (Şimdilik) menü + chat: senin mevcut dosyaların varsa burada çağır -->
+  <!-- <script src="js/menu.js"></script> -->
+  <!-- <script src="js/chat.engine.js"></script> -->
 
 </body>
 </html>
