@@ -1,195 +1,103 @@
-/* ===================================================
-   TONCRIME GLOBAL LAYOUT ENGINE
-   Tek UI sistemi — tüm sayfalar buradan yönetilir
-   =================================================== */
+/* ======================================================
+   TONCRIME - LAYOUT ENGINE
+   (HTML bozmadan: full-bg + sayfa zemini sabitle)
+   ====================================================== */
+(() => {
+  const BG_SRC_FALLBACK = "assets/background.jpg";
 
-(function () {
+  function injectCSS() {
+    if (document.getElementById("tc-layout-css")) return;
 
-let layoutReady = false;
+    const style = document.createElement("style");
+    style.id = "tc-layout-css";
+    style.textContent = `
+      /* Beyaz boşluk/flash asla olmasın */
+      html, body{
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: #000 !important;
+        overflow-x: hidden;
+      }
 
-/* ===================================================
-   BUILD GLOBAL UI
-   =================================================== */
+      /* App mutlaka viewport'u kaplasın */
+      .app{
+        position: relative;
+        min-height: 100vh;
+        background: transparent !important;
+        overflow: hidden;
+      }
 
-function buildLayout() {
+      /* BG her zaman full screen */
+      .app > img.bg,
+      img.bg{
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        object-fit: cover !important;
+        z-index: -999 !important;
+        pointer-events: none !important;
+      }
 
-  if (layoutReady) return;
-  layoutReady = true;
+      /* BG üstüne hafif karartma (ekran tutarlı) */
+      .app::before{
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+        z-index: -998;
+        pointer-events: none;
+      }
 
-  document.body.style.margin = "0";
-  document.body.style.background = "#0f1115";
-  document.body.style.fontFamily = "Arial, sans-serif";
-  document.body.style.color = "#fff";
-
-  /* ---------- ROOT GRID ---------- */
-
-  document.body.innerHTML = `
-  <div id="tc-root">
-
-    <!-- SIDEBAR -->
-    <div id="tc-sidebar">
-      <h2>TonCrime</h2>
-
-      <button onclick="goPage('index.html')">🏠 Ana Sayfa</button>
-      <button onclick="goPage('missions.html')">🎯 Görevler</button>
-      <button onclick="goPage('coffeeshop.html')">☕ Coffee Shop</button>
-      <button onclick="goPage('nightclub.html')">🍾 Gece Kulübü</button>
-      <button onclick="goPage('hospital.html')">🏥 Hastane</button>
-      <button onclick="goPage('pvp.html')">⚔ PvP Arena</button>
-    </div>
-
-    <!-- MAIN -->
-    <div id="tc-main">
-
-      <!-- TOPBAR -->
-      <div id="tc-topbar">
-        <div id="tc-title">TonCrime</div>
-        <div id="tc-stats">yükleniyor...</div>
-      </div>
-
-      <!-- PAGE CONTENT -->
-      <div id="tc-content"></div>
-
-    </div>
-
-  </div>
-  `;
-
-  injectStyles();
-
-  movePageContent();
-}
-
-/* ===================================================
-   MOVE HTML INTO CONTENT AREA
-   =================================================== */
-
-function movePageContent() {
-
-  const content = document.getElementById("tc-content");
-
-  const old = document.querySelector("#app")
-        || document.querySelector("main")
-        || document.querySelector(".container");
-
-  if (old) {
-    content.appendChild(old);
-    old.style.display = "block";
+      /* Menü/HUD/topbar vs. z-index güvenliği */
+      .tc-topbar, .hud, .hud-card, .side-menu, .sidebar, .tc-menu{
+        position: relative;
+        z-index: 50;
+      }
+    `;
+    document.head.appendChild(style);
   }
-}
 
-/* ===================================================
-   GLOBAL NAVIGATION
-   =================================================== */
+  function ensureAppRoot() {
+    let app = document.querySelector(".app");
+    if (!app) {
+      app = document.createElement("div");
+      app.className = "app";
 
-window.goPage = function (page) {
-  window.location.href = page + "?v=" + Date.now();
-};
+      // body içindekileri app içine al (bozmadan)
+      const nodes = Array.from(document.body.childNodes);
+      for (const n of nodes) app.appendChild(n);
+      document.body.appendChild(app);
+    }
+    return app;
+  }
 
-/* ===================================================
-   UPDATE USER STATS (ENGINE CALLS THIS)
-   =================================================== */
+  function ensureBackground(app) {
+    let bg = app.querySelector("img.bg") || document.querySelector("img.bg");
+    if (!bg) {
+      bg = document.createElement("img");
+      bg.className = "bg";
+      bg.alt = "bg";
+      bg.src = BG_SRC_FALLBACK;
+      app.prepend(bg);
+    }
 
-window.renderTopStats = function(user){
+    // src boşsa fallback ver
+    if (!bg.getAttribute("src") || bg.getAttribute("src").trim() === "") {
+      bg.src = BG_SRC_FALLBACK;
+    }
+  }
 
-  const el = document.getElementById("tc-stats");
-  if(!el || !user) return;
+  function boot() {
+    injectCSS();
+    const app = ensureAppRoot();
+    ensureBackground(app);
+  }
 
-  el.innerHTML =
-    `Lv ${user.level}
-     | XP ${user.xp}
-     | ⚡ ${user.energy}
-     | 💰 ${Number(user.yton).toFixed(2)}`;
-};
-
-/* ===================================================
-   STYLE INJECTION
-   =================================================== */
-
-function injectStyles(){
-
-const css = document.createElement("style");
-
-css.innerHTML = `
-
-#tc-root{
-  display:flex;
-  height:100vh;
-}
-
-/* SIDEBAR */
-
-#tc-sidebar{
-  width:220px;
-  background:#15181f;
-  padding:20px;
-  box-sizing:border-box;
-  border-right:1px solid #222;
-}
-
-#tc-sidebar h2{
-  color:gold;
-  margin-bottom:20px;
-}
-
-#tc-sidebar button{
-  width:100%;
-  margin:6px 0;
-  padding:10px;
-  background:#1f2430;
-  border:none;
-  color:white;
-  cursor:pointer;
-  border-radius:6px;
-}
-
-#tc-sidebar button:hover{
-  background:#2a3142;
-}
-
-/* MAIN AREA */
-
-#tc-main{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
-/* TOPBAR */
-
-#tc-topbar{
-  height:60px;
-  background:#15181f;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 20px;
-  border-bottom:1px solid #222;
-}
-
-#tc-title{
-  color:gold;
-  font-size:20px;
-  font-weight:bold;
-}
-
-/* CONTENT */
-
-#tc-content{
-  flex:1;
-  padding:20px 40px; /* <<< SOL BOŞLUK BURADA */
-  overflow:auto;
-}
-
-`;
-
-document.head.appendChild(css);
-}
-
-/* ===================================================
-   AUTO START
-   =================================================== */
-
-document.addEventListener("DOMContentLoaded", buildLayout);
-
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();
