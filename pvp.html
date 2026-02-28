@@ -1,213 +1,67 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PvP Arena</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TonCrime - PvP</title>
 
-<style>
-body{
-  margin:0;
-  background:black;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-  font-family:Arial;
-}
-
-.app{
-  width:390px;
-  height:690px;
-  position:relative;
-  overflow:hidden;
-  border-radius:20px;
-}
-
-.bg{
-  position:absolute;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.logo{
-  position:absolute;
-  top:15px;
-  left:15px;
-  height:50px;
-  z-index:5;
-}
-
-.hud{
-  position:absolute;
-  top:15px;
-  right:15px;
-  width:220px;
-  background:rgba(0,0,0,0.75);
-  padding:12px;
-  border-radius:16px;
-  color:white;
-  font-size:12px;
-  z-index:5;
-}
-
-.bar{
-  height:6px;
-  background:#333;
-  border-radius:8px;
-  margin:4px 0 8px 0;
-  overflow:hidden;
-}
-
-.fill{
-  height:100%;
-}
-
-.energyFill{ background:#00ff88; }
-.xpFill{ background:#ffaa00; }
-
-.centerBox{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  width:85%;
-  background:rgba(0,0,0,0.85);
-  padding:20px;
-  border-radius:15px;
-  text-align:center;
-  color:white;
-}
-
-button{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  background:gold;
-  border:none;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-.answer{
-  background:#333;
-  padding:8px;
-  margin-top:8px;
-  cursor:pointer;
-  border-radius:6px;
-}
-</style>
+  <!-- Sende zaten var -->
+  <link rel="stylesheet" href="css/global.css" />
 </head>
 <body>
 
-<div class="app">
-
-<img src="assets/background.jpg" class="bg">
-<img src="assets/logo.png" class="logo">
-
-<div class="hud">
-  <div id="energyText"></div>
-  <div class="bar"><div class="fill energyFill" id="energyBar"></div></div>
-
-  <div id="xpText"></div>
-  <div class="bar"><div class="fill xpFill" id="xpBar"></div></div>
-
-  <div style="display:flex;align-items:center;gap:6px;">
-    <img src="assets/yton.png" height="14">
-    <span id="ytonText"></span>
+  <div class="app">
+    <img class="bg" src="assets/background.jpg" alt="bg">
+    <!-- logo, hud, time, online, chat, menu: motorlar ekliyor -->
   </div>
-</div>
 
-<div class="centerBox" id="content">
-  Rakip aranıyor...
-  <button onclick="startMatch()">Maç Başlat</button>
-</div>
+  <!-- PVP KARTI -->
+  <div class="pvp-card" id="pvpCard">
+    <div class="pvp-title">PvP Arena</div>
 
-</div>
+    <div class="pvp-row">
+      <div class="pvp-label">Durum</div>
+      <div class="pvp-value" id="pvpStatus">Hazır</div>
+    </div>
 
-<!-- PLAYER ENGINE HER ZAMAN ÖNCE -->
-<script src="engine/player.engine.js"></script>
+    <div class="pvp-players">
+      <div class="pvp-side">
+        <div class="pvp-name" id="meName">Sen</div>
+        <div class="pvp-hptext" id="meHpText">HP: 100/100</div>
+        <div class="pvp-bar">
+          <div class="pvp-fill" id="meHpBar"></div>
+        </div>
+        <div class="pvp-mini" id="meStats">ATK: 10 • Bonus: +0%</div>
+      </div>
 
-<script>
+      <div class="pvp-vs">VS</div>
 
-/* ===========================
-   PvP CORE - PLAYER OVERRIDE YOK
-=========================== */
+      <div class="pvp-side">
+        <div class="pvp-name" id="opName">Rakip</div>
+        <div class="pvp-hptext" id="opHpText">HP: -</div>
+        <div class="pvp-bar">
+          <div class="pvp-fill" id="opHpBar"></div>
+        </div>
+        <div class="pvp-mini" id="opStats">ATK: -</div>
+      </div>
+    </div>
 
-const player = window.player;
+    <div class="pvp-actions">
+      <button class="pvp-btn" id="findBtn">Rakip Ara</button>
+      <button class="pvp-btn" id="startBtn" disabled>Maçı Başlat</button>
+      <button class="pvp-btn ghost" id="resetBtn">Sıfırla</button>
+    </div>
 
-/* SORULAR */
-const questions=[
-  {q:"5 x 6 kaçtır?", a:["20","30","25","35"], correct:1},
-  {q:"12 + 8 kaçtır?", a:["18","20","22","16"], correct:1},
-  {q:"9 x 3 kaçtır?", a:["27","21","24","18"], correct:0}
-];
+    <div class="pvp-log" id="pvpLog"></div>
+  </div>
 
-let currentQuestion;
-let startTime;
+  <!-- MOTORLAR (SIRASI ÖNEMLİ) -->
+  <script src="js/player.engine.js"></script>
+  <script src="js/chat.engine.js"></script>
+  <script src="js/menu.js"></script>
 
-function startMatch(){
-  currentQuestion = questions[Math.floor(Math.random()*questions.length)];
-  const box = document.getElementById("content");
-
-  box.innerHTML = "<div>"+currentQuestion.q+"</div>";
-
-  currentQuestion.a.forEach((ans,i)=>{
-    box.innerHTML +=
-      "<div class='answer' onclick='submitAnswer("+i+")'>"+ans+"</div>";
-  });
-
-  startTime = Date.now();
-}
-
-function submitAnswer(i){
-
-  const responseTime = (Date.now() - startTime)/1000;
-
-  let playerPower = 20 + (player.weapon.bonus*100);
-
-  if(i === currentQuestion.correct){
-    playerPower += (10 - responseTime);
-  }
-
-  let botPower = 20 + Math.random()*15;
-
-  if(playerPower > botPower){
-    win();
-  } else {
-    lose();
-  }
-
-  window.savePlayer();
-  window.updateHUD();
-}
-
-function win(){
-  player.xp += 50;
-  player.yton += 10;
-
-  document.getElementById("content").innerHTML =
-    "<div style='color:lime;font-size:18px;'>Kazandın!</div>" +
-    "<div>+50 XP +10 YTON</div>" +
-    "<button onclick='location.reload()'>Tekrar</button>";
-}
-
-function lose(){
-  player.energy -= 10;
-  if(player.energy < 0) player.energy = 0;
-
-  document.getElementById("content").innerHTML =
-    "<div style='color:red;font-size:18px;'>Kaybettin!</div>" +
-    "<div>-10 Enerji</div>" +
-    "<button onclick='location.reload()'>Tekrar</button>";
-}
-
-document.addEventListener("DOMContentLoaded",()=>{
-  updateHUD();
-});
-
-</script>
+  <!-- PVP MOTOR -->
+  <script src="js/pvp.engine.js"></script>
 
 </body>
 </html>
