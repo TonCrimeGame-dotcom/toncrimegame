@@ -5,40 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TonCrime - Index</title>
 
-  <!-- Senin mevcut global stilin -->
   <link rel="stylesheet" href="css/global.css" />
 </head>
 <body>
 
-  <!-- SENİN YAPIN: bg + app -->
   <div class="app">
-    <!-- background zaten sende var: BIRAKIYORUZ -->
-    <img class="bg" src="assets/background.jpg" alt="bg" />
-
-    <!--
-      Buraya elle logo/hud/menu/chat koymuyoruz.
-      Motorlar (player/chat/menu/topbar vs) zaten DOM’u kendileri basıyor.
-      Layout engine de hepsini kilitli telefon ekranına topluyor.
-    -->
+    <!-- SENİN BG'N (KALSIN) -->
+    <img class="bg" src="assets/background.jpg" alt="bg">
+    <!-- Motorlar: topbar + chat + menu DOM'u buraya basacak -->
   </div>
 
   <!-- MOTORLAR (SIRASI ÖNEMLİ) -->
-  <!-- 1) Ekranı kilitleyen motor EN ÖNCE -->
-  <script src="js/layout.engine.js"></script>
-
-  <!-- 2) Player globali / ortak state -->
   <script src="js/player.engine.js"></script>
 
-  <!-- 3) Chat motoru -->
+  <!-- ✅ TOPBAR MOTORU (BUNU EKLEMİYORDUK, ŞİMDİ EKLİ) -->
+  <script src="js/topbar.engine.js"></script>
+
   <script src="js/chat.engine.js"></script>
-
-  <!-- 4) Index menüsü (slide menü burada) -->
   <script src="js/menu.js"></script>
-
-  <!-- Not: Eğer sende ayrı topbar/hud engine dosyası varsa,
-       onu da menu.js’ten önce değil, player’dan sonra koy:
-       <script src="js/topbar.engine.js"></script>
-  -->
 
 </body>
 </html>
