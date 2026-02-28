@@ -56,7 +56,7 @@
       </div>
     `;
 
-    window.TC_LAYOUT.stage.appendChild(topbar);
+   document.body.appendChild(topbar); 
     injectCSS();
   }
 
