@@ -116,3 +116,105 @@ position:absolute;
   opacity:0.85;
   font-size:10px;
 }
+/* ===========================
+   TONCRIME - OVERRIDE PATCH
+   (HTML BOZMADAN)
+   =========================== */
+
+/* Logo %100 büyüsün (2x) */
+.tc-logo{
+  height: 52px !important; /* eski 26px ise 2x */
+  top: 10px !important;
+  left: 18px !important;
+  z-index: 300 !important;
+}
+
+/* HUD daha küçük + çerçevesiz + transparan */
+.hud-card{
+  transform: translateX(-50%) scale(0.60) !important; /* %60 küçült */
+  transform-origin: top center !important;
+
+  border: none !important;
+  box-shadow: none !important;
+
+  background: rgba(0,0,0,0.18) !important; /* daha transparan */
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+
+  border-radius: 14px !important;
+}
+
+/* HUD iç boşluklar ve yazılar daha zarif */
+.hud-card *{
+  letter-spacing: 0.2px;
+}
+
+.hud-card .hud-title,
+.hud-card .hud-row,
+.hud-card .hud-meta{
+  opacity: 0.95;
+}
+
+/* BAR'lar daha ince */
+.hud-card .bar,
+.hud-card .hud-bar{
+  height: 6px !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,0.14) !important;
+  overflow: hidden !important;
+}
+
+/* Doluluk */
+.hud-card .fill,
+.hud-card .energyFill,
+.hud-card .xpFill{
+  border-radius: 999px !important;
+}
+
+/* ✅ HTML'e dokunmadan "bar içinde yazı" hissi:
+   Mevcut text elemanlarını barın üstüne bindiriyoruz.
+   (id'ler sende farklıysa, aşağıya ek isimlerini yazarsın, ben patchlerim) */
+#energyText, #xpText, #hudEnergyText, #hudXpText{
+  display: block !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: rgba(255,255,255,0.95) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8) !important;
+  line-height: 1 !important;
+  margin: 0 0 4px 0 !important;
+}
+
+/* Eğer text + bar ayrı satırdaysa, text'i bara bindirmek için:
+   bar container'ı relative yapıp text'i absolute alıyoruz.
+   (class isimleri sende farklı olabilir; bozmamak için hafif uygulanır) */
+.hud-card .bar,
+.hud-card .hud-bar{
+  position: relative !important;
+}
+
+.hud-card .bar #energyText,
+.hud-card .bar #xpText,
+.hud-card .hud-bar #hudEnergyText,
+.hud-card .hud-bar #hudXpText{
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%,-50%) !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+
+/* Saat/Tarih ve Online daha zarif */
+.tc-topbar, .time-pill, .online-pill{
+  background: rgba(0,0,0,0.22) !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+
+/* Menü taşma/ekran dışı ikon varsa güvenli sınır */
+.side-menu, .sidebar, .tc-menu{
+  z-index: 260 !important;
+}
