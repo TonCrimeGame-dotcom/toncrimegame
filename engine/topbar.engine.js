@@ -1,149 +1,79 @@
-(function () {
+(() => {
+  // Tek kaynak: state
+  const defaultState = {
+    username: "Player01",
+    weapon: "Tabanca",
+    bonus: "+10%",
+    energy: { cur: 85, max: 100 },
+    xp: { cur: 118, max: 1000 },
+    yton: 1031
+  };
 
-  function waitForLayout(callback) {
-    let tries = 0;
-    const timer = setInterval(() => {
-      tries++;
-      if (window.TC_LAYOUT && window.TC_LAYOUT.stage) {
-        clearInterval(timer);
-        callback();
-      }
-      if (tries > 100) clearInterval(timer);
-    }, 50);
+  function getState() {
+    return Object.assign({}, defaultState, window.TC_STATE || {});
   }
 
-  function createTopbar() {
+  function ensureTopbar() {
+    const stage = document.getElementById("tc-stage");
+    if (!stage) return null;
 
-    if (document.getElementById("tc-topbar")) return;
+    let tb = document.getElementById("tc-topbar");
+    if (!tb) {
+      tb = document.createElement("div");
+      tb.id = "tc-topbar";
+      stage.appendChild(tb);
+    }
+    return tb;
+  }
 
-    const topbar = document.createElement("div");
-    topbar.id = "tc-topbar";
+  function pct(cur, max) {
+    if (!max) return 0;
+    const v = (cur / max) * 100;
+    return Math.max(0, Math.min(100, v));
+  }
 
-    topbar.innerHTML = `
-      <div class="tb-left">
-        <div class="tb-username">Player01</div>
-        <div class="tb-weapon">Tabanca <span>(+10%)</span></div>
+  function render() {
+    const tb = ensureTopbar();
+    if (!tb) return;
+
+    const s = getState();
+
+    tb.innerHTML = `
+      <div class="tc-tb-block tc-left">
+        <div>${s.username}</div>
+        <div class="tc-sub">${s.weapon} <span class="tc-bonus">(${s.bonus})</span></div>
       </div>
 
-      <div class="tb-center">
-        <img src="assets/logo.png" class="tb-logo" />
+      <div class="tc-tb-block tc-logo-wrap">
+        <img class="tc-logo" src="assets/logo.png" alt="TonCrime" />
       </div>
 
-      <div class="tb-right">
-        <div class="tb-bars">
-
-          <div class="tb-row">
-            <span>Enerji</span>
-            <span>95/100</span>
-          </div>
-          <div class="tb-bar">
-            <div class="tb-fill energy" style="width:95%"></div>
-          </div>
-
-          <div class="tb-row">
-            <span>XP</span>
-            <span>118/1000</span>
-          </div>
-          <div class="tb-bar">
-            <div class="tb-fill xp" style="width:11.8%"></div>
-          </div>
-
+      <div class="tc-tb-block tc-right">
+        <div class="tc-row">
+          <div>Enerji</div>
+          <div class="tc-bar"><div class="tc-fill" style="width:${pct(s.energy.cur, s.energy.max)}%"></div></div>
+          <div>${s.energy.cur}/${s.energy.max}</div>
         </div>
 
-        <div class="tb-yton">
-          YTON <span>1031</span>
+        <div class="tc-row">
+          <div>XP</div>
+          <div class="tc-bar"><div class="tc-fill xp" style="width:${pct(s.xp.cur, s.xp.max)}%"></div></div>
+          <div>${s.xp.cur}/${s.xp.max}</div>
         </div>
+
+        <div class="tc-yton">YTON ${s.yton}</div>
       </div>
     `;
-
-   document.body.appendChild(topbar); 
-    injectCSS();
   }
 
-  function injectCSS() {
-    if (document.getElementById("tc-topbar-style")) return;
+  // State güncelleyebilmen için:
+  // window.TC_STATE = {...}; window.dispatchEvent(new Event("tc:state"));
+  window.addEventListener("tc:state", render);
 
-    const style = document.createElement("style");
-    style.id = "tc-topbar-style";
-    style.textContent = `
-#tc-topbar{
-  position:absolute;
-  top:10px;
-  left:0;
-  right:0;
-  display:grid;
-  grid-template-columns:1fr auto 1fr;
-  align-items:start;
-  padding:0 15px;
-  z-index:50;
-}
+  // İlk render
+  render();
 
-.tb-left{
-  font-size:12px;
-  color:#eee;
-  font-weight:700;
-}
-
-.tb-weapon span{
-  color:#35ff9c;
-}
-
-.tb-center{
-  display:flex;
-  justify-content:center;
-}
-
-.tb-logo{
-  height:44px; /* 2 bar yüksekliği */
-  width:auto;
-}
-
-.tb-right{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
-  gap:6px;
-}
-
-.tb-bars{
-  width:160px;
-}
-
-.tb-row{
-  display:flex;
-  justify-content:space-between;
-  font-size:11px;
-  font-weight:700;
-  color:#fff;
-}
-
-.tb-bar{
-  height:7px;
-  background:rgba(255,255,255,0.15);
-  border-radius:10px;
-  overflow:hidden;
-  margin-bottom:6px;
-}
-
-.tb-fill.energy{
-  height:100%;
-  background:#35ff9c;
-}
-
-.tb-fill.xp{
-  height:100%;
-  background:#ffd54a;
-}
-
-.tb-yton{
-  font-size:12px;
-  font-weight:900;
-  color:#ffd54a;
-}
-`;
-    document.head.appendChild(style);
-  }
-
-  waitForLayout(createTopbar);
-
+  // Debug: dışarıdan hızlı test
+  window.TC = window.TC || {};
+  window.TC.renderTopbar = render;
 })();
