@@ -11,56 +11,58 @@
 
   <div class="app">
     <img class="bg" src="assets/background.jpg" alt="bg">
+
     <!-- logo, hud, time, online, chat, menu: motorlar ekliyor -->
-  </div>
 
-  <!-- PVP KARTI -->
-  <div class="pvp-card" id="pvpCard">
-    <div class="pvp-title">PvP Arena</div>
+    <!-- PVP KARTI (ARTIK APP İÇİNDE) -->
+    <div class="pvp-card" id="pvpCard">
+      <div class="pvp-title">PvP Arena</div>
 
-    <div class="pvp-row">
-      <div class="pvp-label">Durum</div>
-      <div class="pvp-value" id="pvpStatus">Hazır</div>
-    </div>
-
-    <div class="pvp-players">
-      <div class="pvp-side">
-        <div class="pvp-name" id="meName">Sen</div>
-        <div class="pvp-hptext" id="meHpText">HP: 100/100</div>
-        <div class="pvp-bar">
-          <div class="pvp-fill" id="meHpBar"></div>
-        </div>
-        <div class="pvp-mini" id="meStats">ATK: 10 • Bonus: +0%</div>
+      <div class="pvp-row">
+        <div class="pvp-label">Durum</div>
+        <div class="pvp-value" id="pvpStatus">Hazır</div>
       </div>
 
-      <div class="pvp-vs">VS</div>
-
-      <div class="pvp-side">
-        <div class="pvp-name" id="opName">Rakip</div>
-        <div class="pvp-hptext" id="opHpText">HP: -</div>
-        <div class="pvp-bar">
-          <div class="pvp-fill" id="opHpBar"></div>
+      <div class="pvp-players">
+        <div class="pvp-side">
+          <div class="pvp-name" id="meName">Sen</div>
+          <div class="pvp-hptext" id="meHpText">HP: 100/100</div>
+          <div class="pvp-bar">
+            <div class="pvp-fill" id="meHpBar"></div>
+          </div>
+          <div class="pvp-mini" id="meStats">ATK: 10 • Bonus: +0%</div>
         </div>
-        <div class="pvp-mini" id="opStats">ATK: -</div>
+
+        <div class="pvp-vs">VS</div>
+
+        <div class="pvp-side">
+          <div class="pvp-name" id="opName">Rakip</div>
+          <div class="pvp-hptext" id="opHpText">HP: -</div>
+          <div class="pvp-bar">
+            <div class="pvp-fill" id="opHpBar"></div>
+          </div>
+          <div class="pvp-mini" id="opStats">ATK: -</div>
+        </div>
       </div>
+
+      <div class="pvp-actions">
+        <button class="pvp-btn" id="findBtn">Rakip Ara</button>
+        <button class="pvp-btn" id="startBtn" disabled>Maçı Başlat</button>
+        <button class="pvp-btn ghost" id="resetBtn">Sıfırla</button>
+      </div>
+
+      <div class="pvp-log" id="pvpLog"></div>
     </div>
 
-    <div class="pvp-actions">
-      <button class="pvp-btn" id="findBtn">Rakip Ara</button>
-      <button class="pvp-btn" id="startBtn" disabled>Maçı Başlat</button>
-      <button class="pvp-btn ghost" id="resetBtn">Sıfırla</button>
+    <!-- LEADERBOARD (ARTIK APP İÇİNDE) -->
+    <div class="pvp-leaderboard" id="pvpLeaderboard">
+      <div class="lb-head">
+        <div class="lb-title">Leaderboard</div>
+        <div class="lb-me" id="lbMe">ELO: - • W/L: -</div>
+      </div>
+      <div class="lb-list" id="lbList"></div>
     </div>
 
-    <div class="pvp-log" id="pvpLog"></div>
-  </div>
-
-  <!-- LEADERBOARD PANEL -->
-  <div class="pvp-leaderboard" id="pvpLeaderboard">
-    <div class="lb-head">
-      <div class="lb-title">Leaderboard</div>
-      <div class="lb-me" id="lbMe">ELO: - • W/L: -</div>
-    </div>
-    <div class="lb-list" id="lbList"></div>
   </div>
 
   <!-- MOTORLAR (SIRASI ÖNEMLİ) -->
@@ -74,4 +76,4 @@
   <script src="js/pvp.engine.js"></script>
 
 </body>
-</html>
+                             </html>
