@@ -1,93 +1,149 @@
-/* =========================================
-   TOPBAR ONLY LOGO PATCH (DOM'A DOKUNMAZ)
-   - Barları / yazıları SİLMEZ
-   - Sadece logo: ortala + büyüt
-   ========================================= */
 (function () {
-  const STYLE_ID = "tc_topbar_logo_patch_v1";
 
-  function getScale() {
-    // html style attribute içinde --tc-scale var (senin ekranda görünüyor)
-    const v = getComputedStyle(document.documentElement).getPropertyValue("--tc-scale").trim();
-    const n = parseFloat(v);
-    return Number.isFinite(n) && n > 0 ? n : 1;
+  function waitForLayout(callback) {
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries++;
+      if (window.TC_LAYOUT && window.TC_LAYOUT.stage) {
+        clearInterval(timer);
+        callback();
+      }
+      if (tries > 100) clearInterval(timer);
+    }, 50);
   }
 
-  function inject() {
-    if (document.getElementById(STYLE_ID)) return;
+  function createTopbar() {
 
-    const scale = getScale();
+    if (document.getElementById("tc-topbar")) return;
 
-    // 2 bar yüksekliği hissi için: base 44px iyi (40-48 arası)
-    // scale varsa gerçek px = base / scale (çünkü sen sayfayı scale küçültüyorsun)
-    const logoH = Math.round(44 / scale);
+    const topbar = document.createElement("div");
+    topbar.id = "tc-topbar";
 
-    const css = `
-/* Topbar container'ı hangisi olursa olsun bozma:
-   sadece "logo" elemanını hedefleyeceğiz. */
+    topbar.innerHTML = `
+      <div class="tb-left">
+        <div class="tb-username">Player01</div>
+        <div class="tb-weapon">Tabanca <span>(+10%)</span></div>
+      </div>
 
-/* 1) LOGO'yu bul (farklı class/id ihtimalleri) */
-#tcTopbar img, 
-#tc-topbar img,
-.tc-topbar img,
-.topbar img,
-img.tc-logo,
-img#tcLogo,
-img#logo,
-img[alt*="TON"],
-img[src*="assets/logo"]{
-  height: ${logoH}px !important;
-  width: auto !important;
-  max-height: none !important;
-  max-width: none !important;
-  object-fit: contain !important;
-  filter: drop-shadow(0 3px 10px rgba(0,0,0,.55)) !important;
-}
+      <div class="tb-center">
+        <img src="assets/logo.png" class="tb-logo" />
+      </div>
 
-/* 2) LOGO'yu TAM ORTA'ya al (ama barları ezme)
-   - Sadece logo'nun parent'ını ortalamaya çalışır
-   - Barların sağ/sol yerleşimi korunur */
-#tcTopbar,
-#tc-topbar,
-.tc-topbar,
-.topbar{
-  position: relative !important;
-}
+      <div class="tb-right">
+        <div class="tb-bars">
 
-/* logo'nun en yakın kapsayıcısını merkezle */
-#tcTopbar img,
-#tc-topbar img,
-.tc-topbar img,
-.topbar img{
-  position: absolute !important;
-  left: 50% !important;
-  top: 8px !important;
-  transform: translateX(-50%) !important;
-  z-index: 5 !important;
-}
+          <div class="tb-row">
+            <span>Enerji</span>
+            <span>95/100</span>
+          </div>
+          <div class="tb-bar">
+            <div class="tb-fill energy" style="width:95%"></div>
+          </div>
 
-/* Sağdaki bar grubunun üstüne binmesin diye:
-   topbar’ın üst padding'ini azıcık arttırır (barlar durur) */
-#tcTopbar,
-#tc-topbar,
-.tc-topbar,
-.topbar{
-  padding-top: ${Math.round((logoH + 10) * 0.35)}px !important;
-}
-    `.trim();
+          <div class="tb-row">
+            <span>XP</span>
+            <span>118/1000</span>
+          </div>
+          <div class="tb-bar">
+            <div class="tb-fill xp" style="width:11.8%"></div>
+          </div>
+
+        </div>
+
+        <div class="tb-yton">
+          YTON <span>1031</span>
+        </div>
+      </div>
+    `;
+
+    window.TC_LAYOUT.stage.appendChild(topbar);
+    injectCSS();
+  }
+
+  function injectCSS() {
+    if (document.getElementById("tc-topbar-style")) return;
 
     const style = document.createElement("style");
-    style.id = STYLE_ID;
-    style.textContent = css;
+    style.id = "tc-topbar-style";
+    style.textContent = `
+#tc-topbar{
+  position:absolute;
+  top:10px;
+  left:0;
+  right:0;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:start;
+  padding:0 15px;
+  z-index:50;
+}
+
+.tb-left{
+  font-size:12px;
+  color:#eee;
+  font-weight:700;
+}
+
+.tb-weapon span{
+  color:#35ff9c;
+}
+
+.tb-center{
+  display:flex;
+  justify-content:center;
+}
+
+.tb-logo{
+  height:44px; /* 2 bar yüksekliği */
+  width:auto;
+}
+
+.tb-right{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+}
+
+.tb-bars{
+  width:160px;
+}
+
+.tb-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:11px;
+  font-weight:700;
+  color:#fff;
+}
+
+.tb-bar{
+  height:7px;
+  background:rgba(255,255,255,0.15);
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:6px;
+}
+
+.tb-fill.energy{
+  height:100%;
+  background:#35ff9c;
+}
+
+.tb-fill.xp{
+  height:100%;
+  background:#ffd54a;
+}
+
+.tb-yton{
+  font-size:12px;
+  font-weight:900;
+  color:#ffd54a;
+}
+`;
     document.head.appendChild(style);
   }
 
-  // DOM hazır olunca bas
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", inject);
-  } else {
-    inject();
-  }
+  waitForLayout(createTopbar);
 
-  // Sayfa içinde render tekrar olursa style zaten duruyor
 })();
