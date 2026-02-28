@@ -1,13 +1,13 @@
 /* =========================
    TonCrime - PLAYER ENGINE
-   HUD: sağ üst mini barlar + enerji timer + silah bonus
-   Tek dosya / stabil
+   MINI HUD (sağ üst) + enerji timer + silah bonus
+   Eski HUD'u gizler
    ========================= */
 
 (() => {
   // ---------- CONFIG ----------
   const ENERGY_MAX = 100;           // sabit
-  const ENERGY_REGEN_SEC = 300;     // 5 dk = 300 sn
+  const ENERGY_REGEN_SEC = 300;     // 5 dk
   const XP_MAX_DEFAULT = 1000;
   const LEVEL_CAP = 50;
 
@@ -31,7 +31,6 @@
     bonus: 0.10
   };
 
-  // regen timer state
   player._regen = player._regen && typeof player._regen === "object" ? player._regen : {};
   player._regen.nextEnergyAt = Number.isFinite(+player._regen.nextEnergyAt)
     ? +player._regen.nextEnergyAt
@@ -41,27 +40,53 @@
     try { localStorage.setItem("player", JSON.stringify(player)); } catch {}
   }
 
+  // ---------- DOM HELPERS ----------
+  const $ = (id) => document.getElementById(id);
+
+  function hideOldHud() {
+    // Eski HUD altta kalıyorsa tamamen gizle
+    const styleId = "tcHideOldHud";
+    if (document.getElementById(styleId)) return;
+    const s = document.createElement("style");
+    s.id = styleId;
+    s.textContent = `
+      /* Eski HUD'ları gizle (mini HUD varken) */
+      .hud, .hud-card, #hud, #hudCard, #hud-card, #hudBox,
+      .tc-hud, .tcHud, .player-hud, .playerHud,
+      #energyText, #xpText, #ytonText, #weaponText,
+      .energyText, .xpText, .ytonText, .weaponText {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
   // ---------- HUD DOM ----------
   function ensureHUD() {
     if (document.getElementById("tcHudMini")) return;
 
-    // style (tek yerden kontrol)
     const style = document.createElement("style");
     style.textContent = `
-      /* HUD MINI - sağ üst */
+      /* MINI HUD - sağ üst (KÜÇÜLTÜLMÜŞ) */
       #tcHudMini{
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        z-index: 999;
-        width: 240px;
-        padding: 10px 10px 9px;
-        border-radius: 14px;
-        background: rgba(0,0,0,0.22);
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+
+        width: 168px;              /* küçüldü */
+        padding: 7px 8px 7px;      /* küçüldü */
+        border-radius: 12px;
+
+        background: rgba(0,0,0,0.20);
         -webkit-backdrop-filter: blur(8px);
         backdrop-filter: blur(8px);
-        box-shadow: none;
         border: none;
+        box-shadow: none;
+
         font-family: Arial, sans-serif;
         color: rgba(255,255,255,0.95);
         user-select: none;
@@ -71,50 +96,49 @@
         display:flex;
         align-items:center;
         justify-content:space-between;
-        gap:10px;
-        margin-bottom: 7px;
-        font-weight: 700;
-        font-size: 12px;
+        gap:8px;
+        margin-bottom: 6px;
+        font-weight: 800;
+        font-size: 10px;           /* küçüldü */
+        line-height: 1.1;
       }
 
       #tcHudMini .tcName{
         display:flex;
         align-items:center;
-        gap:6px;
-        opacity: 0.95;
+        gap:5px;
         min-width: 0;
+        opacity: 0.95;
       }
       #tcHudMini .tcName span{
         white-space:nowrap;
         overflow:hidden;
         text-overflow:ellipsis;
-        max-width: 140px;
+        max-width: 92px;
       }
 
       #tcHudMini .tcLv{
         color: #ffd54a;
-        font-weight: 800;
-        font-size: 11px;
-        opacity: 0.95;
+        font-weight: 900;
+        font-size: 10px;           /* küçüldü */
+        white-space: nowrap;
       }
 
-      .tcBarWrap{
-        margin: 6px 0;
-      }
+      .tcBarWrap{ margin: 5px 0; }
 
       .tcBarLabel{
         display:flex;
         align-items:center;
         justify-content:space-between;
-        margin-bottom: 4px;
-        font-size: 11px;
-        font-weight: 800;
+        margin-bottom: 3px;
+        font-size: 9px;            /* küçüldü */
+        font-weight: 900;
         color: rgba(255,255,255,0.92);
       }
 
       .tcBar{
         position: relative;
-        height: 8px;
+        height: 7px;               /* küçüldü */
         border-radius: 999px;
         background: rgba(255,255,255,0.12);
         overflow: hidden;
@@ -128,52 +152,44 @@
       .tcFillEnergy{ background: #35ff9c; }
       .tcFillXp{ background: #ffd54a; }
 
+      /* BAR İÇİ YAZI */
       .tcBarText{
         position:absolute;
         left:50%;
         top:50%;
         transform: translate(-50%,-50%);
-        font-size: 10px;
+        font-size: 9px;            /* küçüldü */
         font-weight: 900;
-        color: rgba(0,0,0,0.85);
-        text-shadow: none;
+        color: rgba(0,0,0,0.80);
         pointer-events: none;
         line-height: 1;
         white-space: nowrap;
       }
 
-      /* timer + silah */
       #tcHudMini .tcMeta{
-        margin-top: 8px;
+        margin-top: 7px;
         display:flex;
         flex-direction: column;
-        gap: 6px;
-        font-size: 11px;
-        font-weight: 800;
+        gap: 5px;
+        font-size: 9px;            /* küçüldü */
+        font-weight: 900;
       }
+
       #tcHudMini .tcTimer{
         color: #ffd54a;
         opacity: 0.95;
       }
-      #tcHudMini .tcWeapon{
-        display:flex;
-        justify-content:space-between;
-        gap: 10px;
-        color: rgba(255,255,255,0.92);
-        opacity: 0.95;
-      }
-      #tcHudMini .tcWeapon b{
-        color: #ffd54a;
-      }
+
+      #tcHudMini .tcWeapon,
       #tcHudMini .tcYton{
         display:flex;
         justify-content:space-between;
-        gap: 10px;
+        gap: 8px;
         opacity: 0.95;
       }
-      #tcHudMini .tcYton b{
-        color: #35ff9c;
-      }
+
+      #tcHudMini .tcWeapon b{ color: #ffd54a; }
+      #tcHudMini .tcYton b{ color: #35ff9c; }
     `;
     document.head.appendChild(style);
 
@@ -181,10 +197,8 @@
     hud.id = "tcHudMini";
     hud.innerHTML = `
       <div class="tcRowTop">
-        <div class="tcName">
-          <span>👤 <span id="tcPlayerName"></span></span>
-        </div>
-        <div class="tcLv">Lv <span id="tcPlayerLevel"></span> / ${LEVEL_CAP}</div>
+        <div class="tcName"><span>👤 <span id="tcPlayerName"></span></span></div>
+        <div class="tcLv">Lv <span id="tcPlayerLevel"></span>/${LEVEL_CAP}</div>
       </div>
 
       <div class="tcBarWrap">
@@ -211,12 +225,10 @@
 
       <div class="tcMeta">
         <div class="tcTimer">+1 enerji: <span id="tcRegenTimer"></span></div>
-
         <div class="tcWeapon">
           <span>Silah: <b id="tcWeaponName"></b></span>
-          <span>Bonus: <b id="tcWeaponBonus"></b></span>
+          <span><b id="tcWeaponBonus"></b></span>
         </div>
-
         <div class="tcYton">
           <span>YTON</span>
           <span><b id="tcYton"></b></span>
@@ -224,15 +236,16 @@
       </div>
     `;
 
-    // app içine koy (senin indexte .app var)
+    // app içine koy
     const app = document.querySelector(".app") || document.body;
     app.appendChild(hud);
+
+    // mini hud geldiği anda eski hud kapansın
+    hideOldHud();
   }
 
   // ---------- UPDATE LOGIC ----------
-  function clamp(n, a, b) {
-    return Math.max(a, Math.min(b, n));
-  }
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
   function fmtMMSS(sec) {
     sec = Math.max(0, Math.floor(sec));
@@ -242,7 +255,6 @@
   }
 
   function tickEnergyRegen() {
-    // energy tam ise timer'ı ileri at
     player.maxEnergy = ENERGY_MAX;
 
     if (player.energy >= player.maxEnergy) {
@@ -252,8 +264,6 @@
     }
 
     const now = Date.now();
-
-    // geride kaldıysa birden fazla enerji verebilir
     while (now >= player._regen.nextEnergyAt && player.energy < player.maxEnergy) {
       player.energy += 1;
       player.energy = clamp(player.energy, 0, player.maxEnergy);
@@ -270,25 +280,21 @@
     ensureHUD();
     tickEnergyRegen();
 
-    // level cap kilidi (50)
     if (player.level > LEVEL_CAP) player.level = LEVEL_CAP;
 
     const energy = clamp(player.energy, 0, player.maxEnergy);
     const xp = clamp(player.xp, 0, player.xpMax);
 
-    // texts
-    const $ = (id) => document.getElementById(id);
-
     if ($("tcPlayerName")) $("tcPlayerName").textContent = player.name;
     if ($("tcPlayerLevel")) $("tcPlayerLevel").textContent = String(player.level);
 
-    // energy bar
+    // energy
     const ePct = player.maxEnergy ? (energy / player.maxEnergy) * 100 : 0;
     if ($("tcEnergyFill")) $("tcEnergyFill").style.width = `${ePct}%`;
     if ($("tcEnergyBarText")) $("tcEnergyBarText").textContent = `${energy}/${player.maxEnergy}`;
     if ($("tcEnergySmall")) $("tcEnergySmall").textContent = `${energy}/${player.maxEnergy}`;
 
-    // xp bar
+    // xp
     const xPct = player.xpMax ? (xp / player.xpMax) * 100 : 0;
     if ($("tcXpFill")) $("tcXpFill").style.width = `${xPct}%`;
     if ($("tcXpBarText")) $("tcXpBarText").textContent = `${xp}/${player.xpMax}`;
@@ -302,7 +308,7 @@
     const wName = String(player.weapon?.name ?? "Tabanca");
     const wBonus = Number(player.weapon?.bonus ?? 0);
     if ($("tcWeaponName")) $("tcWeaponName").textContent = wName;
-    if ($("tcWeaponBonus")) $("tcWeaponBonus").textContent = `+${Math.round(wBonus * 100)}%`;
+    if ($("tcWeaponBonus")) $("tcWeaponBonus").textContent = `Bonus: +${Math.round(wBonus * 100)}%`;
 
     // yton
     if ($("tcYton")) $("tcYton").textContent = String(Math.floor(player.yton));
@@ -310,14 +316,14 @@
     save();
   }
 
-  // ---------- PUBLIC HELPERS (istersen kullanırsın) ----------
+  // ---------- PUBLIC HELPERS ----------
   window.tcPlayer = {
     addXp(amount = 0) {
       amount = Number(amount) || 0;
       if (amount <= 0) return;
-      if (player.level >= LEVEL_CAP) return; // level cap kilidi
-      player.xp += amount;
+      if (player.level >= LEVEL_CAP) return;
 
+      player.xp += amount;
       while (player.xp >= player.xpMax && player.level < LEVEL_CAP) {
         player.xp -= player.xpMax;
         player.level += 1;
@@ -346,6 +352,6 @@
   document.addEventListener("DOMContentLoaded", () => {
     ensureHUD();
     updateHUD();
-    setInterval(updateHUD, 250); // smooth timer + bar update
+    setInterval(updateHUD, 250);
   });
 })();
