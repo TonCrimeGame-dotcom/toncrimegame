@@ -1,40 +1,54 @@
 /* ================================
-   TOPBAR IMG FIX (DEV COIN BUG)
-   - genel img{width:100%} varsa ezer
+   DEV COIN FIX (GLOBAL)
+   - Sayfaya dev coin düşmesini engeller
+   - Sadece coin/yton img'lerini sınırlar
    ================================ */
 
-.tc-topbar,
-.tc-topbar *{
-  box-sizing: border-box;
-}
+/* Coin/YTON görsellerini her yerde kilitle */
+img[src*="coin"],
+img[src*="Coin"],
+img[src*="yton"],
+img[src*="YTON"],
+img[class*="coin"],
+img[id*="coin"],
+img[class*="yton"],
+img[id*="yton"]{
+  /* Dev coin genelde position/fixed/absolute + huge width ile gelir */
+  position: static !important;
+  inset: auto !important;
+  left: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
 
-/* Topbar içindeki TÜM resimler asla büyümesin */
-.tc-topbar img{
   width: auto !important;
-  height: auto !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: contain !important;
-}
+  height: 20px !important;         /* coin ikon boyutu */
+  max-width: 20px !important;
+  max-height: 20px !important;
 
-/* Ortadaki LOGO sabit */
-.tc-topbar .tc-center img,
-.tc-topbar .tc-logo,
-.tc-topbar img.tc-logo{
-  height: 46px !important;
-  width: auto !important;
-  display: block !important;
-}
-
-/* Sağdaki COIN/YTON ikonları sabit küçük */
-.tc-topbar .tc-right img,
-.tc-topbar img.coin,
-.tc-topbar img.yton,
-.tc-topbar img[class*="coin"],
-.tc-topbar img[id*="coin"],
-.tc-topbar img[src*="coin"],
-.tc-topbar img[src*="yton"]{
-  height: 18px !important;
-  width: auto !important;
   display: inline-block !important;
+  object-fit: contain !important;
+  transform: none !important;
+  z-index: 5 !important;
+}
+
+/* Topbar içindeki coin biraz daha zarif */
+.tc-topbar img[src*="coin"],
+.tc-topbar img[src*="yton"],
+.tc-topbar img[class*="coin"],
+.tc-topbar img[class*="yton"]{
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.45));
+}
+
+/* Eğer yine dev çıkarsa, bu coin bir container ile geliyordur: container'ı da güvene al */
+[class*="coin"],
+[id*="coin"],
+[class*="yton"],
+[id*="yton"]{
+  max-width: 24px !important;
+  max-height: 24px !important;
+  overflow: hidden !important;
 }
