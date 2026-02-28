@@ -1,112 +1,40 @@
-/* ============================= */
-/* RESET – BEYAZ BOŞLUK ÖLDÜR   */
-/* ============================= */
+/* ================================
+   TOPBAR IMG FIX (DEV COIN BUG)
+   - genel img{width:100%} varsa ezer
+   ================================ */
 
-html, body{
-  margin:0 !important;
-  padding:0 !important;
-  height:100%;
-  overflow-x:hidden;
+.tc-topbar,
+.tc-topbar *{
+  box-sizing: border-box;
 }
 
-/* ============================= */
-/* FULL BACKGROUND              */
-/* ============================= */
-
-.app{
-  position:relative;
-  min-height:100vh;
+/* Topbar içindeki TÜM resimler asla büyümesin */
+.tc-topbar img{
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
 }
 
-.bg{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100vw;
-  height:100vh;
-  object-fit:cover;
-  z-index:-1;
+/* Ortadaki LOGO sabit */
+.tc-topbar .tc-center img,
+.tc-topbar .tc-logo,
+.tc-topbar img.tc-logo{
+  height: 46px !important;
+  width: auto !important;
+  display: block !important;
 }
 
-/* ============================= */
-/* SABİT TOPBAR (ÜSTTE)         */
-/* ============================= */
-
-.tc-topbar{
-  position:fixed !important;
-  top:0 !important;
-  left:0 !important;
-  width:100%;
-  height:90px;
-
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-
-  padding:15px 40px;
-  box-sizing:border-box;
-
-  z-index:9999;
-}
-
-/* içerik üstte başlasın */
-.app{
-  padding-top:90px;
-}
-
-/* ============================= */
-/* SOL BLOK                     */
-/* ============================= */
-
-.tc-left{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  font-size:14px;
-  color:white;
-}
-
-/* ============================= */
-/* ORTA LOGO                    */
-/* ============================= */
-
-.tc-center{
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-}
-
-.tc-center img{
-  height:48px;
-}
-
-/* ============================= */
-/* SAĞ BLOK                     */
-/* ============================= */
-
-.tc-right{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
-  gap:6px;
-  font-size:13px;
-  color:white;
-}
-
-/* BAR */
-.tc-bar{
-  width:160px;
-  height:6px;
-  background:rgba(255,255,255,0.25);
-  border-radius:999px;
-  overflow:hidden;
-}
-
-.tc-fill{
-  height:100%;
-  background:#35ff9c;
-}
-
-.tc-fill-xp{
-  background:#ffd54a;
+/* Sağdaki COIN/YTON ikonları sabit küçük */
+.tc-topbar .tc-right img,
+.tc-topbar img.coin,
+.tc-topbar img.yton,
+.tc-topbar img[class*="coin"],
+.tc-topbar img[id*="coin"],
+.tc-topbar img[src*="coin"],
+.tc-topbar img[src*="yton"]{
+  height: 18px !important;
+  width: auto !important;
+  display: inline-block !important;
 }
