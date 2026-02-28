@@ -1,54 +1,63 @@
-/* ================================
-   DEV COIN FIX (GLOBAL)
-   - Sayfaya dev coin düşmesini engeller
-   - Sadece coin/yton img'lerini sınırlar
-   ================================ */
+/* =========================================
+   TONCRIME - HARD LOCK BACKGROUND + LAYERS
+   (Beyaz ekran / background kayma fix)
+   ========================================= */
 
-/* Coin/YTON görsellerini her yerde kilitle */
-img[src*="coin"],
-img[src*="Coin"],
-img[src*="yton"],
-img[src*="YTON"],
-img[class*="coin"],
-img[id*="coin"],
-img[class*="yton"],
-img[id*="yton"]{
-  /* Dev coin genelde position/fixed/absolute + huge width ile gelir */
-  position: static !important;
-  inset: auto !important;
-  left: auto !important;
-  top: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-
-  width: auto !important;
-  height: 20px !important;         /* coin ikon boyutu */
-  max-width: 20px !important;
-  max-height: 20px !important;
-
-  display: inline-block !important;
-  object-fit: contain !important;
-  transform: none !important;
-  z-index: 5 !important;
+/* 1) Sayfa asla beyaz olmasın */
+html, body{
+  width:100%;
+  height:100%;
+  margin:0 !important;
+  padding:0 !important;
+  background:#000 !important;
+  overflow:hidden !important;
 }
 
-/* Topbar içindeki coin biraz daha zarif */
-.tc-topbar img[src*="coin"],
-.tc-topbar img[src*="yton"],
-.tc-topbar img[class*="coin"],
-.tc-topbar img[class*="yton"]{
-  height: 18px !important;
-  max-width: 18px !important;
-  max-height: 18px !important;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,.45));
+/* 2) Uygulama katmanı kesin sabit */
+.app{
+  position:relative !important;
+  width:100vw !important;
+  height:100vh !important;
+  overflow:hidden !important;
+  background:transparent !important;
 }
 
-/* Eğer yine dev çıkarsa, bu coin bir container ile geliyordur: container'ı da güvene al */
-[class*="coin"],
-[id*="coin"],
-[class*="yton"],
-[id*="yton"]{
-  max-width: 24px !important;
-  max-height: 24px !important;
-  overflow: hidden !important;
+/* 3) Background görseli her zaman cover + arkada */
+.app .bg,
+.bg{
+  position:fixed !important;
+  inset:0 !important;           /* top/right/bottom/left = 0 */
+  width:100vw !important;
+  height:100vh !important;
+  object-fit:cover !important;
+  object-position:center !important;
+  z-index:-10 !important;
+  pointer-events:none !important;
+  display:block !important;
+}
+
+/* 4) Sidebar / overlay varsa: beyazı kapatmasın */
+#overlay,
+.overlay,
+.sidebar-overlay,
+.tc-overlay{
+  background:transparent !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+/* 5) Yanlışlıkla beyaz basan container olursa sıfırla */
+.sidebar,
+#sidebar,
+.tc-sidebar{
+  background:transparent !important;
+}
+
+/* 6) Topbar / HUD her zaman önde kalsın (kaybolmasın) */
+.tc-topbar,
+.topbar,
+.hud,
+.hud-card{
+  position:fixed !important;
+  z-index:9999 !important;
 }
