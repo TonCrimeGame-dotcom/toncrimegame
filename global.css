@@ -1,63 +1,147 @@
-/* =========================================
-   TONCRIME - HARD LOCK BACKGROUND + LAYERS
-   (Beyaz ekran / background kayma fix)
-   ========================================= */
+:root{
+  /* Telegram miniapp tasarım ölçüsü */
+  --tc-design-w: 390;
+  --tc-design-h: 844;
 
-/* 1) Sayfa asla beyaz olmasın */
+  /* layout engine bunu hesaplayacak */
+  --tc-scale: 1;
+
+  /* safe area */
+  --tc-safe-top: env(safe-area-inset-top, 0px);
+  --tc-safe-right: env(safe-area-inset-right, 0px);
+  --tc-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tc-safe-left: env(safe-area-inset-left, 0px);
+}
+
 html, body{
-  width:100%;
-  height:100%;
-  margin:0 !important;
-  padding:0 !important;
-  background:#000 !important;
-  overflow:hidden !important;
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #050a1a;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
-/* 2) Uygulama katmanı kesin sabit */
-.app{
-  position:relative !important;
-  width:100vw !important;
-  height:100vh !important;
-  overflow:hidden !important;
-  background:transparent !important;
+/* TC SHELL: tüm uygulama bunun içinde */
+#tc-shell{
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
 }
 
-/* 3) Background görseli her zaman cover + arkada */
-.app .bg,
-.bg{
-  position:fixed !important;
-  inset:0 !important;           /* top/right/bottom/left = 0 */
-  width:100vw !important;
-  height:100vh !important;
-  object-fit:cover !important;
-  object-position:center !important;
-  z-index:-10 !important;
-  pointer-events:none !important;
-  display:block !important;
+/* Stage: “tasarım boyutunda” bir kutu; scale ile büyüyüp küçülür */
+#tc-stage{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--tc-design-w) * 1px);
+  height: calc(var(--tc-design-h) * 1px);
+  transform: translate(-50%, -50%) scale(var(--tc-scale));
+  transform-origin: center center;
+  overflow: hidden;
+  border-radius: 14px;
+  background: radial-gradient(120% 120% at 50% 30%, rgba(255,255,255,0.06), rgba(0,0,0,0) 55%) , #050a1a;
 }
 
-/* 4) Sidebar / overlay varsa: beyazı kapatmasın */
-#overlay,
-.overlay,
-.sidebar-overlay,
-.tc-overlay{
-  background:transparent !important;
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+/* Sayfa içerikleri bunun içine basılacak */
+#tc-app{
+  position: absolute;
+  inset: 0;
 }
 
-/* 5) Yanlışlıkla beyaz basan container olursa sıfırla */
-.sidebar,
-#sidebar,
-.tc-sidebar{
-  background:transparent !important;
+/* TOPBAR: stage’in içinde üstte sabit */
+#tc-topbar{
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: calc(10px + var(--tc-safe-top));
+  height: 78px; /* 2 bar yüksekliği hedefi */
+  display: grid;
+  grid-template-columns: 1.15fr 0.7fr 1.15fr;
+  gap: 10px;
+  align-items: stretch;
+  pointer-events: none; /* içerik tıklanmasın */
 }
 
-/* 6) Topbar / HUD her zaman önde kalsın (kaybolmasın) */
-.tc-topbar,
-.topbar,
-.hud,
-.hud-card{
-  position:fixed !important;
-  z-index:9999 !important;
+/* Topbar blokları “çerçevesiz, şeffaf” */
+.tc-tb-block{
+  background: transparent;
+  color: rgba(255,255,255,0.95);
+  border-radius: 0;
+  padding: 0;
+  pointer-events: none;
 }
+
+/* Sol alan */
+.tc-left{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+.tc-sub{
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0.92;
+}
+.tc-bonus{
+  color: #63ffd5;
+}
+
+/* Orta logo */
+.tc-logo-wrap{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tc-logo{
+  height: 78px;     /* iki bar yüksekliğinde SABİT */
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.55));
+}
+
+/* Sağ alan: barlar + yton */
+.tc-right{
+  display: grid;
+  grid-template-rows: 1fr 1fr auto;
+  gap: 6px;
+  align-content: center;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+.tc-row{
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+.tc-bar{
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+  overflow: hidden;
+}
+.tc-fill{
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(99,255,213,0.95), rgba(99,255,213,0.6));
+}
+.tc-fill.xp{
+  background: linear-gradient(90deg, rgba(255,210,88,0.95), rgba(255,210,88,0.55));
+}
+.tc-yton{
+  display: flex;
+  justify-content: flex-end;
+  font-weight: 900;
+  font-size: 13px;
+  color: rgba(255,255,255,0.95);
+                                          }
