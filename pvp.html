@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TonCrime - PvP</title>
 
-  <!-- Sende zaten var -->
   <link rel="stylesheet" href="css/global.css" />
 </head>
 <body>
@@ -55,12 +54,23 @@
     <div class="pvp-log" id="pvpLog"></div>
   </div>
 
+  <!-- LEADERBOARD PANEL -->
+  <div class="pvp-leaderboard" id="pvpLeaderboard">
+    <div class="lb-head">
+      <div class="lb-title">Leaderboard</div>
+      <div class="lb-me" id="lbMe">ELO: - • W/L: -</div>
+    </div>
+    <div class="lb-list" id="lbList"></div>
+  </div>
+
   <!-- MOTORLAR (SIRASI ÖNEMLİ) -->
   <script src="js/player.engine.js"></script>
   <script src="js/chat.engine.js"></script>
   <script src="js/menu.js"></script>
 
-  <!-- PVP MOTOR -->
+  <!-- RANK ENGINE önce -->
+  <script src="js/pvp.rank.engine.js"></script>
+  <!-- PVP ENGINE sonra -->
   <script src="js/pvp.engine.js"></script>
 
 </body>
