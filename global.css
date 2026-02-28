@@ -32,7 +32,6 @@ html, body{
   overflow: hidden;
 }
 
-/* Stage: “tasarım boyutunda” bir kutu; scale ile büyüyüp küçülür */
 #tc-stage{
   position: absolute;
   left: 50%;
@@ -43,7 +42,10 @@ html, body{
   transform-origin: center center;
   overflow: hidden;
   border-radius: 14px;
-  background: radial-gradient(120% 120% at 50% 30%, rgba(255,255,255,0.06), rgba(0,0,0,0) 55%) , #050a1a;
+
+  background:
+    linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+    url("assets/background.jpg") center center / cover no-repeat;
 }
 
 /* Sayfa içerikleri bunun içine basılacak */
