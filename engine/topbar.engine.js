@@ -1,50 +1,78 @@
-/* =========================
-   TOPBAR ENGINE PATCH (ONLY)
-   - Logo SABIT büyük
-   - Tam ORTA
-   - 2 bar yüksekliği kadar
-   - Konum sabit (kıpırdamaz)
-   ========================= */
-
+/* =========================================
+   TOPBAR ONLY LOGO PATCH (DOM'A DOKUNMAZ)
+   - Barları / yazıları SİLMEZ
+   - Sadece logo: ortala + büyüt
+   ========================================= */
 (function () {
-  const TOPBAR_ID = "tc-topbar";
-  const STYLE_ID  = "tc-topbar-style";
-  const LOGO_SRC  = "assets/logo.png";
+  const STYLE_ID = "tc_topbar_logo_patch_v1";
 
-  function ensureTopbarCSS() {
+  function getScale() {
+    // html style attribute içinde --tc-scale var (senin ekranda görünüyor)
+    const v = getComputedStyle(document.documentElement).getPropertyValue("--tc-scale").trim();
+    const n = parseFloat(v);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+  function inject() {
     if (document.getElementById(STYLE_ID)) return;
 
+    const scale = getScale();
+
+    // 2 bar yüksekliği hissi için: base 44px iyi (40-48 arası)
+    // scale varsa gerçek px = base / scale (çünkü sen sayfayı scale küçültüyorsun)
+    const logoH = Math.round(44 / scale);
+
     const css = `
-/* TOPBAR: sabit + ortalanmış container */
-#${TOPBAR_ID}{
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(420px, calc(100vw - 24px));
-  z-index: 9999;
+/* Topbar container'ı hangisi olursa olsun bozma:
+   sadece "logo" elemanını hedefleyeceğiz. */
 
-  display: grid;
-  grid-template-columns: 1fr auto 1fr; /* sol | logo | sağ */
-  align-items: start;
-  gap: 10px;
-
-  pointer-events: none;
+/* 1) LOGO'yu bul (farklı class/id ihtimalleri) */
+#tcTopbar img, 
+#tc-topbar img,
+.tc-topbar img,
+.topbar img,
+img.tc-logo,
+img#tcLogo,
+img#logo,
+img[alt*="TON"],
+img[src*="assets/logo"]{
+  height: ${logoH}px !important;
+  width: auto !important;
+  max-height: none !important;
+  max-width: none !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 3px 10px rgba(0,0,0,.55)) !important;
 }
-#${TOPBAR_ID} > *{ pointer-events: auto; }
 
-/* Sol / Orta / Sağ hizalar */
-#${TOPBAR_ID} .tb-left{ justify-self: start; text-align:left; }
-#${TOPBAR_ID} .tb-center{ justify-self: center; display:flex; justify-content:center; }
-#${TOPBAR_ID} .tb-right{ justify-self: end; text-align:right; }
+/* 2) LOGO'yu TAM ORTA'ya al (ama barları ezme)
+   - Sadece logo'nun parent'ını ortalamaya çalışır
+   - Barların sağ/sol yerleşimi korunur */
+#tcTopbar,
+#tc-topbar,
+.tc-topbar,
+.topbar{
+  position: relative !important;
+}
 
-/* LOGO: sabit büyük (2 bar yüksekliği) */
-#${TOPBAR_ID} .tb-logo{
-  height: 42px;   /* 2 bar hissi: 40-46 arası oynat */
-  width: auto;
-  display: block;
-  transform: none !important;
-  filter: drop-shadow(0 3px 10px rgba(0,0,0,0.55));
+/* logo'nun en yakın kapsayıcısını merkezle */
+#tcTopbar img,
+#tc-topbar img,
+.tc-topbar img,
+.topbar img{
+  position: absolute !important;
+  left: 50% !important;
+  top: 8px !important;
+  transform: translateX(-50%) !important;
+  z-index: 5 !important;
+}
+
+/* Sağdaki bar grubunun üstüne binmesin diye:
+   topbar’ın üst padding'ini azıcık arttırır (barlar durur) */
+#tcTopbar,
+#tc-topbar,
+.tc-topbar,
+.topbar{
+  padding-top: ${Math.round((logoH + 10) * 0.35)}px !important;
 }
     `.trim();
 
@@ -54,45 +82,12 @@
     document.head.appendChild(style);
   }
 
-  function ensureTopbarDOM() {
-    let root = document.getElementById(TOPBAR_ID);
-    if (root) return root;
-
-    root = document.createElement("div");
-    root.id = TOPBAR_ID;
-
-    // Sadece iskelet: sol / orta (logo) / sağ
-    root.innerHTML = `
-      <div class="tb-left" id="tbLeft"></div>
-
-      <div class="tb-center">
-        <img class="tb-logo" id="tbLogo" src="${LOGO_SRC}" alt="TonCrime">
-      </div>
-
-      <div class="tb-right" id="tbRight"></div>
-    `;
-
-    document.body.appendChild(root);
-    return root;
-  }
-
-  // Eğer sende zaten topbar basan bir fonksiyon varsa,
-  // aşağıdaki init’i o fonksiyonun en sonuna çağır.
-  function initTopbar() {
-    ensureTopbarCSS();
-    ensureTopbarDOM();
-  }
-
-  // Sayfa yüklenince garanti et
+  // DOM hazır olunca bas
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initTopbar);
+    document.addEventListener("DOMContentLoaded", inject);
   } else {
-    initTopbar();
+    inject();
   }
 
-  // Eğer SPA gibi yeniden basılıyorsa:
-  // periyodik kontrol (hafif)
-  setInterval(() => {
-    if (!document.getElementById(TOPBAR_ID)) initTopbar();
-  }, 1000);
+  // Sayfa içinde render tekrar olursa style zaten duruyor
 })();
