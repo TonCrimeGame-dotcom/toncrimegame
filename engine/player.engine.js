@@ -1,357 +1,371 @@
-/* =========================
-   TonCrime - PLAYER ENGINE
-   MINI HUD (sağ üst) + enerji timer + silah bonus
-   Eski HUD'u gizler
-   ========================= */
+/* ================================
+   TonCrime - player.engine.js
+   ✅ Tek parça (tam dosya)
+   ✅ window.player tek kaynak
+   ✅ HUD oyun alanına ( .app ) göre sağ-üstte hizalı (absolute)
+   ================================ */
 
-(() => {
-  // ---------- CONFIG ----------
-  const ENERGY_MAX = 100;           // sabit
-  const ENERGY_REGEN_SEC = 300;     // 5 dk
-  const XP_MAX_DEFAULT = 1000;
-  const LEVEL_CAP = 50;
+(function () {
+  "use strict";
 
-  // ---------- SAFE GLOBAL PLAYER ----------
-  const saved = (() => {
-    try { return JSON.parse(localStorage.getItem("player") || "null"); }
-    catch { return null; }
-  })();
+  /* ---------- HELPERS ---------- */
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const fmtMMSS = (sec) => `${pad2(Math.floor(sec / 60))}:${pad2(sec % 60)}`;
 
-  const player = (window.player = saved && typeof saved === "object" ? saved : {});
-  player.name = String(player.name ?? "Player01");
-  player.energy = Number.isFinite(+player.energy) ? +player.energy : 60;
-  player.maxEnergy = ENERGY_MAX; // sabit
-  player.xp = Number.isFinite(+player.xp) ? +player.xp : 0;
-  player.xpMax = Number.isFinite(+player.xpMax) ? +player.xpMax : XP_MAX_DEFAULT;
-  player.level = Number.isFinite(+player.level) ? +player.level : 1;
-  player.yton = Number.isFinite(+player.yton) ? +player.yton : 1000;
-
-  player.weapon = player.weapon && typeof player.weapon === "object" ? player.weapon : {
-    name: "Tabanca",
-    bonus: 0.10
-  };
-
-  player._regen = player._regen && typeof player._regen === "object" ? player._regen : {};
-  player._regen.nextEnergyAt = Number.isFinite(+player._regen.nextEnergyAt)
-    ? +player._regen.nextEnergyAt
-    : (Date.now() + ENERGY_REGEN_SEC * 1000);
-
-  function save() {
-    try { localStorage.setItem("player", JSON.stringify(player)); } catch {}
+  function getAppRoot() {
+    // HTML bozmadan: önce .app, yoksa body
+    return document.querySelector(".app") || document.body;
   }
 
-  // ---------- DOM HELPERS ----------
-  const $ = (id) => document.getElementById(id);
-
-  function hideOldHud() {
-    // Eski HUD altta kalıyorsa tamamen gizle
-    const styleId = "tcHideOldHud";
-    if (document.getElementById(styleId)) return;
-    const s = document.createElement("style");
-    s.id = styleId;
-    s.textContent = `
-      /* Eski HUD'ları gizle (mini HUD varken) */
-      .hud, .hud-card, #hud, #hudCard, #hud-card, #hudBox,
-      .tc-hud, .tcHud, .player-hud, .playerHud,
-      #energyText, #xpText, #ytonText, #weaponText,
-      .energyText, .xpText, .ytonText, .weaponText {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-      }
-    `;
-    document.head.appendChild(s);
+  function ensureAppPositioning(app) {
+    // HUD absolute çalışsın diye container relative olmalı
+    const cs = getComputedStyle(app);
+    if (cs.position === "static") app.style.position = "relative";
   }
 
-  // ---------- HUD DOM ----------
-  function ensureHUD() {
-    if (document.getElementById("tcHudMini")) return;
+  /* ---------- PLAYER (SINGLE SOURCE OF TRUTH) ---------- */
+  const LS_KEY = "player";
+
+  function loadPlayer() {
+    let p = null;
+    try {
+      p = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+    } catch (_) {
+      p = null;
+    }
+
+    // Varsayılanlar (merkez motor burada)
+    const player = {
+      name: p?.name ?? "Player01",
+      level: Number.isFinite(p?.level) ? Number(p.level) : 1,
+      levelCap: 50,
+      xp: Number.isFinite(p?.xp) ? Number(p.xp) : 0,
+      xpMax: Number.isFinite(p?.xpMax) ? Number(p.xpMax) : 1000,
+
+      // Enerji: max sabit (reklama teşvik)
+      energy: Number.isFinite(p?.energy) ? Number(p.energy) : 60,
+      maxEnergy: 100, // SABİT
+
+      // Ekonomi
+      yton: Number.isFinite(p?.yton) ? Number(p.yton) : 1000,
+
+      // Silah bonusu
+      weapon: p?.weapon ?? { name: "Tabanca", bonus: 0.10 },
+
+      // Enerji timer state
+      // nextEnergyAt: unix ms (1 enerji eklenecek zaman)
+      nextEnergyAt: Number.isFinite(p?.nextEnergyAt) ? Number(p.nextEnergyAt) : 0,
+      energyIntervalSec: 300, // 5 dk
+    };
+
+    // Normalize
+    player.level = clamp(player.level, 1, player.levelCap);
+    player.energy = clamp(player.energy, 0, player.maxEnergy);
+    player.xp = clamp(player.xp, 0, player.xpMax);
+    player.yton = Math.max(0, player.yton);
+
+    // Timer ilk kez kuruluyorsa:
+    if (!player.nextEnergyAt) {
+      player.nextEnergyAt = Date.now() + player.energyIntervalSec * 1000;
+    }
+
+    return player;
+  }
+
+  function savePlayer() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(window.player));
+    } catch (_) {}
+  }
+
+  // Global oyuncu
+  window.player = loadPlayer();
+  window.savePlayer = savePlayer; // diğer motorlar için
+
+  /* ---------- ENERGY REGEN TICK ---------- */
+  function tickEnergy() {
+    const p = window.player;
+    if (!p) return;
+
+    // enerji full ise sayaç yine çalışabilir ama "reklama teşvik" için sabit max
+    // full iken de nextEnergyAt ileri taşınır ki sayaç düzgün aksın
+    const now = Date.now();
+
+    // Eğer zamanı geçmişse, birden fazla enerji eklenmesini engellemek için while
+    while (now >= p.nextEnergyAt) {
+      if (p.energy < p.maxEnergy) p.energy += 1;
+      p.energy = clamp(p.energy, 0, p.maxEnergy);
+      p.nextEnergyAt += p.energyIntervalSec * 1000;
+    }
+
+    savePlayer();
+  }
+
+  /* ---------- HUD UI ---------- */
+  const HUD_ID = "tcHudMini";
+
+  function injectStyles() {
+    if (document.getElementById("tcPlayerHudStyle")) return;
 
     const style = document.createElement("style");
+    style.id = "tcPlayerHudStyle";
     style.textContent = `
-      /* MINI HUD - sağ üst (KÜÇÜLTÜLMÜŞ) */
-      #tcHudMini{
-        position: fixed;
-        top: 10px;
-        right: 10px;
-        z-index: 9999;
+      /* ===== TonCrime HUD Mini (APP'e göre hizalı) ===== */
+      #${HUD_ID}{
+        position:absolute;
+        top:12px;
+        right:12px;
 
-        width: 168px;              /* küçüldü */
-        padding: 7px 8px 7px;      /* küçüldü */
-        border-radius: 12px;
+        width:170px;
+        padding:8px 9px;
+        border-radius:14px;
 
-        background: rgba(0,0,0,0.20);
-        -webkit-backdrop-filter: blur(8px);
-        backdrop-filter: blur(8px);
-        border: none;
-        box-shadow: none;
+        background:rgba(0,0,0,0.22);
+        backdrop-filter:blur(10px);
+        -webkit-backdrop-filter:blur(10px);
 
         font-family: Arial, sans-serif;
-        color: rgba(255,255,255,0.95);
-        user-select: none;
+        color:rgba(255,255,255,0.95);
+        z-index:260;
+
+        box-shadow:none;
+        border:none;
       }
 
-      #tcHudMini .tcRowTop{
+      #${HUD_ID} .row{
         display:flex;
         align-items:center;
         justify-content:space-between;
         gap:8px;
-        margin-bottom: 6px;
-        font-weight: 800;
-        font-size: 10px;           /* küçüldü */
-        line-height: 1.1;
+        margin-bottom:6px;
+        font-size:12px;
+        font-weight:700;
       }
 
-      #tcHudMini .tcName{
-        display:flex;
-        align-items:center;
-        gap:5px;
-        min-width: 0;
-        opacity: 0.95;
+      #${HUD_ID} .muted{
+        opacity:.9;
+        font-weight:600;
+        font-size:11px;
       }
-      #tcHudMini .tcName span{
-        white-space:nowrap;
+
+      #${HUD_ID} .label{
+        font-size:11px;
+        font-weight:800;
+        opacity:.95;
+        letter-spacing:.2px;
+      }
+
+      #${HUD_ID} .bar{
+        position:relative;
+        height:7px;
+        border-radius:999px;
+        background:rgba(255,255,255,0.14);
         overflow:hidden;
-        text-overflow:ellipsis;
-        max-width: 92px;
+        margin:4px 0 10px;
       }
 
-      #tcHudMini .tcLv{
-        color: #ffd54a;
-        font-weight: 900;
-        font-size: 10px;           /* küçüldü */
-        white-space: nowrap;
+      #${HUD_ID} .fill{
+        height:100%;
+        border-radius:999px;
+        width:0%;
       }
 
-      .tcBarWrap{ margin: 5px 0; }
+      #${HUD_ID} .fill.energy{ background:#35ff9c; }
+      #${HUD_ID} .fill.xp{ background:#ffd54a; }
 
-      .tcBarLabel{
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        margin-bottom: 3px;
-        font-size: 9px;            /* küçüldü */
-        font-weight: 900;
-        color: rgba(255,255,255,0.92);
-      }
-
-      .tcBar{
-        position: relative;
-        height: 7px;               /* küçüldü */
-        border-radius: 999px;
-        background: rgba(255,255,255,0.12);
-        overflow: hidden;
-      }
-
-      .tcFill{
-        height: 100%;
-        width: 0%;
-        border-radius: 999px;
-      }
-      .tcFillEnergy{ background: #35ff9c; }
-      .tcFillXp{ background: #ffd54a; }
-
-      /* BAR İÇİ YAZI */
-      .tcBarText{
+      #${HUD_ID} .barText{
         position:absolute;
         left:50%;
         top:50%;
-        transform: translate(-50%,-50%);
-        font-size: 9px;            /* küçüldü */
-        font-weight: 900;
-        color: rgba(0,0,0,0.80);
-        pointer-events: none;
-        line-height: 1;
-        white-space: nowrap;
+        transform:translate(-50%,-50%);
+        font-size:10px;
+        font-weight:900;
+        color:#fff;
+        text-shadow:0 1px 2px rgba(0,0,0,0.7);
+        pointer-events:none;
+        white-space:nowrap;
       }
 
-      #tcHudMini .tcMeta{
-        margin-top: 7px;
-        display:flex;
-        flex-direction: column;
-        gap: 5px;
-        font-size: 9px;            /* küçüldü */
-        font-weight: 900;
+      #${HUD_ID} .divider{
+        height:1px;
+        background:rgba(255,255,255,0.08);
+        margin:8px 0;
       }
 
-      #tcHudMini .tcTimer{
-        color: #ffd54a;
-        opacity: 0.95;
-      }
-
-      #tcHudMini .tcWeapon,
-      #tcHudMini .tcYton{
+      #${HUD_ID} .twoCol{
         display:flex;
         justify-content:space-between;
-        gap: 8px;
-        opacity: 0.95;
+        gap:10px;
+        font-size:11px;
+        font-weight:800;
       }
 
-      #tcHudMini .tcWeapon b{ color: #ffd54a; }
-      #tcHudMini .tcYton b{ color: #35ff9c; }
+      #${HUD_ID} .gold{ color:gold; }
+      #${HUD_ID} .green{ color:#35ff9c; }
+      #${HUD_ID} .yton{
+        display:flex; align-items:center; justify-content:space-between;
+        font-size:11px; font-weight:900;
+      }
     `;
     document.head.appendChild(style);
-
-    const hud = document.createElement("div");
-    hud.id = "tcHudMini";
-    hud.innerHTML = `
-      <div class="tcRowTop">
-        <div class="tcName"><span>👤 <span id="tcPlayerName"></span></span></div>
-        <div class="tcLv">Lv <span id="tcPlayerLevel"></span>/${LEVEL_CAP}</div>
-      </div>
-
-      <div class="tcBarWrap">
-        <div class="tcBarLabel">
-          <span>Enerji</span>
-          <span id="tcEnergySmall"></span>
-        </div>
-        <div class="tcBar">
-          <div class="tcFill tcFillEnergy" id="tcEnergyFill"></div>
-          <div class="tcBarText" id="tcEnergyBarText"></div>
-        </div>
-      </div>
-
-      <div class="tcBarWrap">
-        <div class="tcBarLabel">
-          <span>XP</span>
-          <span id="tcXpSmall"></span>
-        </div>
-        <div class="tcBar">
-          <div class="tcFill tcFillXp" id="tcXpFill"></div>
-          <div class="tcBarText" id="tcXpBarText"></div>
-        </div>
-      </div>
-
-      <div class="tcMeta">
-        <div class="tcTimer">+1 enerji: <span id="tcRegenTimer"></span></div>
-        <div class="tcWeapon">
-          <span>Silah: <b id="tcWeaponName"></b></span>
-          <span><b id="tcWeaponBonus"></b></span>
-        </div>
-        <div class="tcYton">
-          <span>YTON</span>
-          <span><b id="tcYton"></b></span>
-        </div>
-      </div>
-    `;
-
-    // app içine koy
-    const app = document.querySelector(".app") || document.body;
-    app.appendChild(hud);
-
-    // mini hud geldiği anda eski hud kapansın
-    hideOldHud();
   }
 
-  // ---------- UPDATE LOGIC ----------
-  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  function ensureHud() {
+    const app = getAppRoot();
+    ensureAppPositioning(app);
+    injectStyles();
 
-  function fmtMMSS(sec) {
-    sec = Math.max(0, Math.floor(sec));
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
+    let hud = document.getElementById(HUD_ID);
+    if (!hud) {
+      hud = document.createElement("div");
+      hud.id = HUD_ID;
+      hud.innerHTML = `
+        <div class="row">
+          <div class="label" id="hudName">Player</div>
+          <div class="label gold" id="hudLevel">Lv 1/50</div>
+        </div>
 
-  function tickEnergyRegen() {
-    player.maxEnergy = ENERGY_MAX;
+        <div class="twoCol">
+          <span class="label">Enerji</span>
+          <span class="label" id="hudEnergyRight">0/100</span>
+        </div>
+        <div class="bar">
+          <div class="fill energy" id="hudEnergyFill"></div>
+          <div class="barText" id="hudEnergyText">0/100</div>
+        </div>
 
-    if (player.energy >= player.maxEnergy) {
-      player.energy = player.maxEnergy;
-      player._regen.nextEnergyAt = Date.now() + ENERGY_REGEN_SEC * 1000;
-      return;
+        <div class="twoCol">
+          <span class="label">XP</span>
+          <span class="label" id="hudXpRight">0/1000</span>
+        </div>
+        <div class="bar">
+          <div class="fill xp" id="hudXpFill"></div>
+          <div class="barText" id="hudXpText">0/1000</div>
+        </div>
+
+        <div class="muted green" id="hudEnergyTimer">+1 enerji: 05:00</div>
+
+        <div class="divider"></div>
+
+        <div class="twoCol">
+          <span class="label">Silah: <span class="gold" id="hudWeaponName">Tabanca</span></span>
+          <span class="label gold" id="hudWeaponBonus">Bonus: +10%</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="yton">
+          <span class="label">YTON</span>
+          <span class="label green" id="hudYton">0</span>
+        </div>
+      `;
+      app.appendChild(hud);
     }
-
-    const now = Date.now();
-    while (now >= player._regen.nextEnergyAt && player.energy < player.maxEnergy) {
-      player.energy += 1;
-      player.energy = clamp(player.energy, 0, player.maxEnergy);
-      player._regen.nextEnergyAt += ENERGY_REGEN_SEC * 1000;
-    }
-
-    if (player.energy >= player.maxEnergy) {
-      player.energy = player.maxEnergy;
-      player._regen.nextEnergyAt = Date.now() + ENERGY_REGEN_SEC * 1000;
-    }
+    return hud;
   }
 
-  function updateHUD() {
-    ensureHUD();
-    tickEnergyRegen();
+  function updateHud() {
+    const p = window.player;
+    if (!p) return;
 
-    if (player.level > LEVEL_CAP) player.level = LEVEL_CAP;
+    ensureHud();
 
-    const energy = clamp(player.energy, 0, player.maxEnergy);
-    const xp = clamp(player.xp, 0, player.xpMax);
+    // Name + level
+    const hudName = document.getElementById("hudName");
+    const hudLevel = document.getElementById("hudLevel");
+    if (hudName) hudName.textContent = p.name;
+    if (hudLevel) hudLevel.textContent = `Lv ${p.level}/${p.levelCap}`;
 
-    if ($("tcPlayerName")) $("tcPlayerName").textContent = player.name;
-    if ($("tcPlayerLevel")) $("tcPlayerLevel").textContent = String(player.level);
+    // Energy
+    const eFill = document.getElementById("hudEnergyFill");
+    const eText = document.getElementById("hudEnergyText");
+    const eRight = document.getElementById("hudEnergyRight");
+    const ePct = (p.energy / p.maxEnergy) * 100;
 
-    // energy
-    const ePct = player.maxEnergy ? (energy / player.maxEnergy) * 100 : 0;
-    if ($("tcEnergyFill")) $("tcEnergyFill").style.width = `${ePct}%`;
-    if ($("tcEnergyBarText")) $("tcEnergyBarText").textContent = `${energy}/${player.maxEnergy}`;
-    if ($("tcEnergySmall")) $("tcEnergySmall").textContent = `${energy}/${player.maxEnergy}`;
+    if (eFill) eFill.style.width = `${clamp(ePct, 0, 100)}%`;
+    const eLabel = `${p.energy}/${p.maxEnergy}`;
+    if (eText) eText.textContent = eLabel;
+    if (eRight) eRight.textContent = eLabel;
 
-    // xp
-    const xPct = player.xpMax ? (xp / player.xpMax) * 100 : 0;
-    if ($("tcXpFill")) $("tcXpFill").style.width = `${xPct}%`;
-    if ($("tcXpBarText")) $("tcXpBarText").textContent = `${xp}/${player.xpMax}`;
-    if ($("tcXpSmall")) $("tcXpSmall").textContent = `${xp}/${player.xpMax}`;
+    // XP
+    const xFill = document.getElementById("hudXpFill");
+    const xText = document.getElementById("hudXpText");
+    const xRight = document.getElementById("hudXpRight");
+    const xPct = (p.xp / p.xpMax) * 100;
 
-    // regen timer
-    const leftSec = Math.ceil((player._regen.nextEnergyAt - Date.now()) / 1000);
-    if ($("tcRegenTimer")) $("tcRegenTimer").textContent = fmtMMSS(leftSec);
+    if (xFill) xFill.style.width = `${clamp(xPct, 0, 100)}%`;
+    const xLabel = `${p.xp}/${p.xpMax}`;
+    if (xText) xText.textContent = xLabel;
+    if (xRight) xRight.textContent = xLabel;
 
-    // weapon
-    const wName = String(player.weapon?.name ?? "Tabanca");
-    const wBonus = Number(player.weapon?.bonus ?? 0);
-    if ($("tcWeaponName")) $("tcWeaponName").textContent = wName;
-    if ($("tcWeaponBonus")) $("tcWeaponBonus").textContent = `Bonus: +${Math.round(wBonus * 100)}%`;
+    // Timer
+    const tEl = document.getElementById("hudEnergyTimer");
+    const secLeft = Math.max(0, Math.ceil((p.nextEnergyAt - Date.now()) / 1000));
+    if (tEl) tEl.textContent = `+1 enerji: ${fmtMMSS(secLeft)}`;
 
-    // yton
-    if ($("tcYton")) $("tcYton").textContent = String(Math.floor(player.yton));
+    // Weapon
+    const wName = document.getElementById("hudWeaponName");
+    const wBonus = document.getElementById("hudWeaponBonus");
+    if (wName) wName.textContent = p.weapon?.name ?? "Tabanca";
+    const b = Number.isFinite(p.weapon?.bonus) ? p.weapon.bonus : 0.10;
+    if (wBonus) wBonus.textContent = `Bonus: +${Math.round(b * 100)}%`;
 
-    save();
+    // YTON
+    const yEl = document.getElementById("hudYton");
+    if (yEl) yEl.textContent = String(p.yton);
   }
 
-  // ---------- PUBLIC HELPERS ----------
+  /* ---------- PUBLIC API (opsiyonel) ---------- */
   window.tcPlayer = {
-    addXp(amount = 0) {
-      amount = Number(amount) || 0;
-      if (amount <= 0) return;
-      if (player.level >= LEVEL_CAP) return;
-
-      player.xp += amount;
-      while (player.xp >= player.xpMax && player.level < LEVEL_CAP) {
-        player.xp -= player.xpMax;
-        player.level += 1;
-      }
-      if (player.level >= LEVEL_CAP) {
-        player.level = LEVEL_CAP;
-        player.xp = clamp(player.xp, 0, player.xpMax);
-      }
-      updateHUD();
+    addXp(amount) {
+      const p = window.player;
+      if (!p) return;
+      p.xp = clamp(p.xp + Math.max(0, amount), 0, p.xpMax);
+      savePlayer();
+      updateHud();
     },
-    spendEnergy(cost = 1) {
-      cost = Math.max(0, Number(cost) || 0);
-      if (player.energy < cost) return false;
-      player.energy -= cost;
-      player.energy = clamp(player.energy, 0, player.maxEnergy);
-      updateHUD();
+    spendEnergy(amount) {
+      const p = window.player;
+      if (!p) return false;
+      const a = Math.max(0, amount);
+      if (p.energy < a) return false;
+      p.energy -= a;
+      savePlayer();
+      updateHud();
       return true;
     },
+    addYton(amount) {
+      const p = window.player;
+      if (!p) return;
+      p.yton = Math.max(0, p.yton + (Number(amount) || 0));
+      savePlayer();
+      updateHud();
+    },
     setWeapon(name, bonus) {
-      player.weapon = { name: String(name || "Tabanca"), bonus: Number(bonus) || 0 };
-      updateHUD();
-    }
+      const p = window.player;
+      if (!p) return;
+      p.weapon = { name: name || "Tabanca", bonus: Number(bonus) || 0.10 };
+      savePlayer();
+      updateHud();
+    },
   };
 
-  // ---------- INIT ----------
-  document.addEventListener("DOMContentLoaded", () => {
-    ensureHUD();
-    updateHUD();
-    setInterval(updateHUD, 250);
-  });
+  /* ---------- INIT ---------- */
+  function boot() {
+    ensureHud();
+    updateHud();
+
+    // Enerji motoru (her saniye)
+    setInterval(() => {
+      tickEnergy();
+      updateHud();
+    }, 1000);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();
