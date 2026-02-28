@@ -70,7 +70,26 @@ position:absolute;
   height:100%;
   background:#ffd54a;
 }
+/* BAR İÇİ YAZI */
+.hud-bar{
+  position:relative;
+  height:6px;
+  background:rgba(255,255,255,0.15);
+  border-radius:999px;
+  overflow:hidden;
+  margin:4px 0 8px;
+}
 
+.hud-bar-text{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:9px;
+  font-weight:700;
+  color:white;
+  pointer-events:none;
+}
 
 /* ALT SATIR (YTON + BONUS) */
 .hud-bottom{
