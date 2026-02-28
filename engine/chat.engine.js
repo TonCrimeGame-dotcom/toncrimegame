@@ -1,228 +1,89 @@
-/* ===================================================
-   TONCRIME SOCIAL CHAT ENGINE
-=================================================== */
+(() => {
+  const CHAT_KEY = "tc_chat_v1";
+  const OPEN_KEY = "tc_chat_open_v1";
 
-GAME.chat = {
-  location:null,
-  mode:"location", // location | clan
-  subscribed:false
-};
-
-/* ===================================================
-   LOCATION ENTER
-=================================================== */
-
-async function enterBuilding(location){
-
-  if(!GAME.user) return;
-
-  GAME.chat.location = location;
-  GAME.chat.mode="location";
-
-  await updateLocation(location);
-
-  await sendSystemMessage(
-    GAME.user.nickname+" içeri girdi"
-  );
-
-  loadRoomUsers();
-  loadChatHistory();
-}
-
-/* ===================================================
-   SAFE AREA (CLAN CHAT)
-=================================================== */
-
-async function enterClanChat(){
-
-  GAME.chat.mode="clan";
-  GAME.chat.location=null;
-
-  await updateLocation("safe_zone");
-
-  loadClanChat();
-}
-
-/* ===================================================
-   SEND MESSAGE
-=================================================== */
-
-async function sendChat(){
-
-  const input=document.getElementById("chatInput");
-  if(!input) return;
-
-  const text=input.value.trim();
-  if(!text) return;
-
-  const payload={
-    user_id:GAME.user.id,
-    nickname:GAME.user.nickname,
-    message:text
-  };
-
-  if(GAME.chat.mode==="location"){
-    payload.location=GAME.chat.location;
-  }else{
-    payload.clan_id=GAME.user.clan_id;
+  function loadChat() {
+    try { return JSON.parse(localStorage.getItem(CHAT_KEY) || "[]"); }
+    catch { return []; }
+  }
+  function saveChat(list) {
+    localStorage.setItem(CHAT_KEY, JSON.stringify(list.slice(-200)));
   }
 
-  await db.from("city_chat").insert(payload);
+  function buildChat() {
+    const app = document.querySelector(".app");
+    if (!app) return;
 
-  input.value="";
-}
+    if (document.querySelector(".tc-chat")) return;
 
-/* ===================================================
-   SYSTEM MESSAGE
-=================================================== */
+    const box = document.createElement("div");
+    box.className = "tc-chat";
+    box.id = "tcChat";
+    box.innerHTML = `
+      <div class="tc-chat-handle" id="tcChatHandle">CHAT</div>
+      <div class="tc-chat-panel">
+        <div class="tc-chat-messages" id="tcChatMessages"></div>
+        <div class="tc-chat-input">
+          <input id="tcChatInput" type="text" placeholder="Mesaj..." autocomplete="off">
+          <button id="tcChatSend">Gönder</button>
+        </div>
+      </div>
+    `;
+    app.appendChild(box);
 
-async function sendSystemMessage(msg){
+    // restore open state
+    const open = localStorage.getItem(OPEN_KEY) === "1";
+    if (open) box.classList.add("open");
 
-  await db.from("city_chat").insert({
-    user_id:"system",
-    nickname:"SYSTEM",
-    location:GAME.chat.location,
-    message:msg,
-    system:true
-  });
-}
+    const handle = document.getElementById("tcChatHandle");
+    handle.addEventListener("click", () => toggleChat());
 
-/* ===================================================
-   LOAD CHAT
-=================================================== */
+    document.getElementById("tcChatSend").addEventListener("click", sendMessage);
+    document.getElementById("tcChatInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
 
-async function loadChatHistory(){
-
-  let query=db
-    .from("city_chat")
-    .select("*")
-    .order("created_at",{ascending:false})
-    .limit(30);
-
-  if(GAME.chat.mode==="location"){
-    query=query.eq("location",GAME.chat.location);
-  }else{
-    query=query.eq("clan_id",GAME.user.clan_id);
+    render();
   }
 
-  const {data}=await query;
+  function toggleChat(force) {
+    const box = document.getElementById("tcChat");
+    if (!box) return;
+    const willOpen = (typeof force === "boolean") ? force : !box.classList.contains("open");
+    box.classList.toggle("open", willOpen);
+    localStorage.setItem(OPEN_KEY, willOpen ? "1" : "0");
+  }
 
-  renderChat(data.reverse());
-}
+  function render() {
+    const area = document.getElementById("tcChatMessages");
+    if (!area) return;
+    const list = loadChat();
+    area.innerHTML = "";
+    for (const m of list) {
+      const div = document.createElement("div");
+      div.textContent = `${m.u}: ${m.t}`;
+      area.appendChild(div);
+    }
+    area.scrollTop = area.scrollHeight;
+  }
 
-/* ===================================================
-   RENDER CHAT
-=================================================== */
+  function sendMessage() {
+    const input = document.getElementById("tcChatInput");
+    if (!input) return;
+    const txt = input.value.trim();
+    if (!txt) return;
 
-function renderChat(messages){
+    const p = window.player || { username: "Player01" };
+    const list = loadChat();
+    list.push({ u: p.username, t: txt, ts: Date.now() });
+    saveChat(list);
+    input.value = "";
+    render();
+    toggleChat(true); // gönderince açık kalsın
+  }
 
-  const box=document.getElementById("chatBox");
-  if(!box) return;
+  // expose if needed
+  window.tcChat = { toggleChat };
 
-  box.innerHTML="";
-
-  messages.forEach(m=>{
-
-    const color=m.system?"#888":"#fff";
-
-    box.innerHTML+=`
-      <div style="color:${color}">
-        <b>${m.nickname}:</b> ${m.message}
-      </div>`;
-  });
-
-  box.scrollTop=box.scrollHeight;
-}
-
-/* ===================================================
-   LOAD USERS IN BUILDING
-=================================================== */
-
-async function loadRoomUsers(){
-
-  if(GAME.chat.mode!=="location") return;
-
-  const {data}=await db
-    .from("player_presence")
-    .select("user_id,nickname")
-    .eq("location",GAME.chat.location)
-    .eq("online",true);
-
-  const list=document.getElementById("roomUsers");
-  if(!list) return;
-
-  list.innerHTML="";
-
-  data.forEach(u=>{
-
-    if(u.user_id===GAME.user.id) return;
-
-    list.innerHTML+=`
-      <div class="roomUser"
-           onclick="locationAttack('${u.user_id}')">
-        ⚔ ${u.nickname}
-      </div>`;
-  });
-}
-
-/* ===================================================
-   LOCATION PVP ATTACK
-   (NO WEAPON INFO)
-=================================================== */
-
-function locationAttack(targetId){
-
-  startPvpAttack({
-    target:targetId,
-    hiddenStats:true
-  });
-
-}
-
-/* ===================================================
-   REALTIME SUBSCRIBE
-=================================================== */
-
-function subscribeChat(){
-
-  if(GAME.chat.subscribed) return;
-
-  GAME.chat.subscribed=true;
-
-  db.channel("chat-live")
-    .on(
-      "postgres_changes",
-      {
-        event:"INSERT",
-        schema:"public",
-        table:"city_chat"
-      },
-      payload=>{
-        const msg=payload.new;
-
-        if(
-          GAME.chat.mode==="location" &&
-          msg.location===GAME.chat.location
-        ){
-          loadChatHistory();
-        }
-
-        if(
-          GAME.chat.mode==="clan" &&
-          msg.clan_id===GAME.user.clan_id
-        ){
-          loadChatHistory();
-        }
-      }
-    )
-    .subscribe();
-}
-
-/* ===================================================
-   AUTO INIT
-=================================================== */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  subscribeChat
-);
+  document.addEventListener("DOMContentLoaded", buildChat);
+})();
