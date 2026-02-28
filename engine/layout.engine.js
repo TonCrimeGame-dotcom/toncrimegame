@@ -1,200 +1,195 @@
-/* ======================================================
-   TONCRIME - LAYOUT ENGINE (LOCKED VIEWPORT)
-   - Full background cover (fixed)
-   - Phone-like locked viewport (9:16) centered
-   - Stable scale + fonts
-   - HTML'e dokunmadan wrapper oluşturur
-   ====================================================== */
 (() => {
-  const BG_SRC_FALLBACK = "assets/background.jpg";
-  const ASPECT_W = 9;
-  const ASPECT_H = 16;
+  const DESIGN_W = 390;   // iPhone 12/13 miniapp için güzel taban
+  const DESIGN_H = 844;   // 9:16 sahne (390x844)
 
-  function injectCSS() {
-    if (document.getElementById("tc-layout-css")) return;
+  function ensureBaseCSS() {
+    if (document.getElementById("tc-layout-base-css")) return;
 
+    const css = `
+:root{
+  --tc-design-w:${DESIGN_W};
+  --tc-design-h:${DESIGN_H};
+  --tc-scale:1;
+  --tc-safe-top: env(safe-area-inset-top, 0px);
+  --tc-safe-right: env(safe-area-inset-right, 0px);
+  --tc-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tc-safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* SAYFA KİLİDİ */
+html, body{
+  width:100%;
+  height:100%;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  background:#05060a;           /* asla beyaz olmasın */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* KAPSAYICI: ortala + siyah arkaplan */
+#tc-shell{
+  position:fixed;
+  inset:0;
+  display:grid;
+  place-items:center;
+  background:#05060a;
+}
+
+/* SAHNE: 9:16 sabit tasarım, scale ile sığar */
+#tc-stage{
+  width: calc(var(--tc-design-w) * 1px);
+  height: calc(var(--tc-design-h) * 1px);
+  transform: scale(var(--tc-scale));
+  transform-origin: top left;
+  position:relative;
+  overflow:hidden;
+
+  /* İstersen sahnenin kenarlarını gör diye aç:
+  border-radius: 22px;
+  box-shadow: 0 20px 70px rgba(0,0,0,0.65);
+  */
+}
+
+/* SAHNE İÇİ ROOT: tüm motorlar buraya basacak */
+#tc-root{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+}
+
+/* Safe area padding helper */
+.tc-safe{
+  position:absolute;
+  inset:0;
+  padding:
+    calc(8px + var(--tc-safe-top))
+    calc(8px + var(--tc-safe-right))
+    calc(8px + var(--tc-safe-bottom))
+    calc(8px + var(--tc-safe-left));
+  box-sizing:border-box;
+}
+
+/* Debug kapat */
+#tc-debug{
+  position:absolute;
+  left:10px;
+  bottom:10px;
+  z-index:9999;
+  font-size:12px;
+  opacity:.75;
+  display:none;
+}
+`;
     const style = document.createElement("style");
-    style.id = "tc-layout-css";
-    style.textContent = `
-      /* 1) Beyaz flash / üst bant asla olmasın */
-      html, body{
-        height:100%;
-        margin:0;
-        padding:0;
-        background:#000 !important;
-        overflow:hidden;
-      }
-
-      /* 2) Tam ekran sahne (arka plan için) */
-      .app{
-        position:relative;
-        min-height:100vh;
-        width:100vw;
-        overflow:hidden;
-        background:transparent !important;
-      }
-
-      /* 3) BG her zaman full screen */
-      .app > img.bg,
-      img.bg{
-        position:fixed !important;
-        inset:0 !important;
-        width:100vw !important;
-        height:100vh !important;
-        object-fit:cover !important;
-        z-index:-999 !important;
-        pointer-events:none !important;
-      }
-
-      /* 4) Dış alan karartma (sabit atmosfer) */
-      .tc-stage{
-        position:fixed;
-        inset:0;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        background:rgba(0,0,0,0.60);
-        z-index:0;
-      }
-
-      /* 5) Telefon ekranı (KİLİTLİ ORAN) */
-      .tc-viewport{
-        position:relative;
-        aspect-ratio:${ASPECT_W}/${ASPECT_H};
-        height:min(92vh, 820px);      /* masaüstü: çok büyümesin */
-        width:auto;
-        max-width:min(92vw, 460px);   /* masaüstü: stabil genişlik */
-        border-radius:26px;
-        overflow:hidden;
-
-        /* içerik tutarlılığı */
-        background:transparent;
-        transform:translateZ(0);
-      }
-
-      /* 6) “ekran çerçevesi” gibi hafif glow (istersen kapatırız) */
-      .tc-viewport::after{
-        content:"";
-        position:absolute;
-        inset:0;
-        border-radius:26px;
-        pointer-events:none;
-        box-shadow:
-          0 0 0 1px rgba(255,255,255,0.06) inset,
-          0 18px 60px rgba(0,0,0,0.55);
-      }
-
-      /* 7) İçerikler sadece viewport içinde akacak */
-      .tc-content{
-        position:absolute;
-        inset:0;
-        overflow:hidden;
-      }
-
-      /* 8) Yazı/ölçek sabitleme: her sayfada aynı hissiyat */
-      .tc-viewport{
-        /* viewport genişliğine bağlı stabil font */
-        font-size: clamp(12px, 1.35vh, 15px);
-      }
-
-      /* 9) Eski "sayfa ortalama" kodları taşmasın */
-      body > *:not(.app){ display:none !important; }
-
-      /* 10) HUD/topbar/menu z-index güvenliği (viewport içinde) */
-      .tc-content .tc-topbar,
-      .tc-content .hud,
-      .tc-content .hud-card,
-      .tc-content .side-menu,
-      .tc-content .sidebar,
-      .tc-content .tc-menu{
-        position:relative;
-        z-index:50;
-      }
-
-      /* 11) Menü solda ise viewport dışına taşmasın */
-      .tc-content .side-menu,
-      .tc-content .sidebar,
-      .tc-content .tc-menu{
-        max-height:100%;
-      }
-    `;
+    style.id = "tc-layout-base-css";
+    style.textContent = css;
     document.head.appendChild(style);
   }
 
-  function ensureAppRoot() {
-    let app = document.querySelector(".app");
-    if (!app) {
-      app = document.createElement("div");
-      app.className = "app";
+  function buildDOM() {
+    // Eski sayfalardaki .app vs. varsa bozmasın ama kullanmayacağız.
+    // Biz kendi kilitli root'umuzu kuracağız.
+    let shell = document.getElementById("tc-shell");
+    if (shell) return;
 
-      // body içindeki her şeyi app içine al (bozmadan)
-      const nodes = Array.from(document.body.childNodes);
-      for (const n of nodes) app.appendChild(n);
-      document.body.appendChild(app);
-    }
-    return app;
+    shell = document.createElement("div");
+    shell.id = "tc-shell";
+
+    const stage = document.createElement("div");
+    stage.id = "tc-stage";
+
+    const root = document.createElement("div");
+    root.id = "tc-root";
+    root.className = "tc-safe"; // safe-area padding
+
+    const dbg = document.createElement("div");
+    dbg.id = "tc-debug";
+
+    stage.appendChild(root);
+    stage.appendChild(dbg);
+    shell.appendChild(stage);
+
+    // Body'ye ekle
+    document.body.appendChild(shell);
+
+    // Dış motorların kullanması için global referans
+    window.TC_LAYOUT = window.TC_LAYOUT || {};
+    window.TC_LAYOUT.root = root;
+    window.TC_LAYOUT.stage = stage;
   }
 
-  function ensureBackground(app) {
-    let bg = app.querySelector("img.bg") || document.querySelector("img.bg");
-    if (!bg) {
-      bg = document.createElement("img");
-      bg.className = "bg";
-      bg.alt = "bg";
-      bg.src = BG_SRC_FALLBACK;
-      app.prepend(bg);
-    }
-    if (!bg.getAttribute("src") || bg.getAttribute("src").trim() === "") {
-      bg.src = BG_SRC_FALLBACK;
+  function calcScale() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Sahne boyutuna sığacak scale
+    const sx = vw / DESIGN_W;
+    const sy = vh / DESIGN_H;
+    const scale = Math.min(sx, sy);
+
+    // Çok büyütüp desktopta piksel piksel olmasın diye üst limit istersen koy:
+    const capped = Math.min(scale, 1.15); // mobilde 1'e yakın, desktopta hafif büyüsün
+    document.documentElement.style.setProperty("--tc-scale", String(capped));
+
+    // Debug
+    const dbg = document.getElementById("tc-debug");
+    if (dbg) dbg.textContent = `vw:${vw} vh:${vh} scale:${capped.toFixed(3)}`;
+  }
+
+  function lockResize() {
+    let t = null;
+    const onResize = () => {
+      clearTimeout(t);
+      t = setTimeout(calcScale, 50);
+    };
+    window.addEventListener("resize", onResize, { passive: true });
+    window.addEventListener("orientationchange", onResize, { passive: true });
+    // Telegram webview bazen visualViewport oynatır:
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onResize, { passive: true });
     }
   }
 
-  function lockViewport(app) {
-    // Sahne + viewport yoksa oluştur
-    let stage = app.querySelector(".tc-stage");
-    if (!stage) {
-      stage = document.createElement("div");
-      stage.className = "tc-stage";
-      app.appendChild(stage);
-    }
+  function exposeMountHelpers() {
+    // Motorlar buraya basacak: window.TC_LAYOUT.mount(node) veya mountHTML(html)
+    window.TC_LAYOUT = window.TC_LAYOUT || {};
 
-    let viewport = stage.querySelector(".tc-viewport");
-    if (!viewport) {
-      viewport = document.createElement("div");
-      viewport.className = "tc-viewport";
-      stage.appendChild(viewport);
-    }
+    window.TC_LAYOUT.clear = () => {
+      const root = window.TC_LAYOUT.root;
+      if (!root) return;
+      root.innerHTML = "";
+    };
 
-    let content = viewport.querySelector(".tc-content");
-    if (!content) {
-      content = document.createElement("div");
-      content.className = "tc-content";
-      viewport.appendChild(content);
-    }
+    window.TC_LAYOUT.mount = (node) => {
+      const root = window.TC_LAYOUT.root;
+      if (!root) return;
+      root.appendChild(node);
+    };
 
-    // app içindeki içerikleri tc-content içine taşı (bg hariç)
-    const children = Array.from(app.childNodes);
-    for (const node of children) {
-      if (!(node instanceof Element)) continue;
-      if (node.classList.contains("bg")) continue;
-      if (node.classList.contains("tc-stage")) continue;
-      content.appendChild(node);
-    }
-
-    // Eğer içerikler zaten content içindeyse dokunma
-    // (ikinci çalışmada bozulma olmasın)
+    window.TC_LAYOUT.mountHTML = (html) => {
+      const root = window.TC_LAYOUT.root;
+      if (!root) return;
+      const wrap = document.createElement("div");
+      wrap.innerHTML = html;
+      while (wrap.firstChild) root.appendChild(wrap.firstChild);
+    };
   }
 
-  function boot() {
-    injectCSS();
-    const app = ensureAppRoot();
-    ensureBackground(app);
-    lockViewport(app);
+  function init() {
+    ensureBaseCSS();
+    buildDOM();
+    exposeMountHelpers();
+    calcScale();
+    lockResize();
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
+    document.addEventListener("DOMContentLoaded", init);
   } else {
-    boot();
+    init();
   }
 })();
