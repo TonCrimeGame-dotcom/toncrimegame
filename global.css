@@ -1,196 +1,271 @@
-/* =========================
-   TONCRIME GLOBAL UI
-========================= */
+:root{
+  --gold:#d8b85a;
+  --panel: rgba(0,0,0,.58);
+  --panel2: rgba(0,0,0,.72);
+  --text:#f2e8c6;
+  --muted:#bfb6a0;
+  --radius:18px;
+}
 
+*{box-sizing:border-box}
+html,body{height:100%}
 body{
   margin:0;
   background:#000;
-  font-family:Georgia, serif;
+  font-family: Georgia, serif;
   display:flex;
   justify-content:center;
   align-items:center;
-  height:100vh;
+  min-height:100vh;
 }
 
-/* TELEGRAM FRAME */
 .app{
   width:390px;
   height:690px;
   position:relative;
   overflow:hidden;
   border-radius:22px;
-  box-shadow:0 0 40px rgba(0,0,0,0.8);
+  box-shadow:0 0 40px rgba(0,0,0,.85);
+  background:#000;
 }
 
-/* BACKGROUND */
 .bg{
   position:absolute;
+  inset:0;
   width:100%;
   height:100%;
   object-fit:cover;
+  filter: saturate(1.05) contrast(1.05);
 }
 
-/* LOGO */
-.logo{
+/* TOP LEFT LOGO */
+.tc-logo{
   position:absolute;
-  top:15px;
-  left:15px;
-  height:60px;
+  top:12px;
+  left:12px;
+  height:64px;
   z-index:30;
+  pointer-events:none;
 }
 
-/* =========================
-   USER HUD PANEL
-========================= */
-
-.hud{
+/* TOP RIGHT: TIME + ONLINE */
+.tc-topright{
   position:absolute;
-  top:15px;
-  right:15px;
-  width:220px;
-  padding:14px;
-  border-radius:20px;
-  background:rgba(0,0,0,0.45);
-  backdrop-filter:blur(10px);
-  color:white;
-  font-size:13px;
+  top:12px;
+  right:12px;
   z-index:30;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  color:var(--text);
+  font-size:12px;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
+}
+.tc-pill{
+  background:rgba(0,0,0,.45);
+  border:1px solid rgba(255,215,0,.45);
+  padding:6px 10px;
+  border-radius:999px;
+  backdrop-filter: blur(6px);
 }
 
-.hud div{
-  margin-bottom:4px;
+/* HUD PANEL (PLAYER MOTOR) */
+.tc-hud{
+  position:absolute;
+  top:70px;
+  left:50%;
+  transform:translateX(-50%);
+  width:320px;
+  z-index:25;
+  background:rgba(0,0,0,.45);
+  border:1px solid rgba(255,215,0,.35);
+  border-radius:16px;
+  padding:10px 12px;
+  backdrop-filter: blur(8px);
+  color:var(--text);
+}
+.tc-hud-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  font-size:14px;
+  font-weight:700;
+}
+.tc-sub{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:600;
 }
 
-/* BAR BASE */
-.bar{
-  height:8px;
-  background:rgba(255,255,255,0.15);
-  border-radius:12px;
-  margin:6px 0 12px 0;
+.tc-bar{
+  margin-top:8px;
+  background:rgba(255,255,255,.12);
+  border-radius:999px;
+  height:10px;
   overflow:hidden;
 }
-
-.fill{
+.tc-fill{
   height:100%;
   width:0%;
-  border-radius:12px;
-  transition:0.3s;
+  border-radius:999px;
+  transition:width .25s ease;
 }
+.tc-fill.energy{ background: #37ffb0; }
+.tc-fill.xp{ background: #ffcc55; }
 
-/* ENERGY BAR */
-#energyBar{
-  background:linear-gradient(90deg,#00ff88,#00ffaa);
+.tc-hud-mini{
+  margin-top:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
 }
-
-/* XP BAR */
-#xpBar{
-  background:linear-gradient(90deg,#ffaa00,#ff5500);
-}
-
-/* YTON */
-.yton-row{
+.tc-yton{
   display:flex;
   align-items:center;
   gap:6px;
-  margin-top:6px;
 }
+.tc-yton img{height:14px; width:auto}
 
-.yton-row img{
-  height:16px;
-}
-
-/* =========================
-   SLIDE MENU
-========================= */
-
-.menu-wrapper{
+/* SLIDE MENU CENTER */
+.tc-slider-wrap{
   position:absolute;
-  bottom:110px;
+  left:0;
+  right:0;
+  top:50%;
+  transform:translateY(-35%);
+  z-index:15;
+  padding:0 12px;
+}
+
+.tc-slider{
+  display:flex;
+  gap:14px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  padding:10px 38px;
+}
+.tc-slider::-webkit-scrollbar{height:0}
+
+.tc-card{
+  flex:0 0 auto;
+  width:170px;
+  height:250px;
+  border-radius:18px;
+  overflow:hidden;
+  border:2px solid rgba(255,215,0,.55);
+  box-shadow:0 8px 20px rgba(0,0,0,.55);
+  scroll-snap-align:center;
+  position:relative;
+  cursor:pointer;
+  background:#000;
+}
+.tc-card img{
   width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  transform:scale(1.01);
+}
+.tc-card .label{
+  position:absolute;
+  left:0; right:0;
+  bottom:0;
+  padding:10px 10px 12px;
+  background:linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0));
+  color:var(--gold);
+  font-weight:900;
+  text-align:center;
+  text-shadow:0 2px 6px rgba(0,0,0,.8);
+}
+
+/* slider arrows */
+.tc-arrow{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:rgba(0,0,0,.45);
+  border:1px solid rgba(255,215,0,.55);
+  color:var(--gold);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:20;
+  user-select:none;
+}
+.tc-arrow.left{ left:10px; }
+.tc-arrow.right{ right:10px; }
+
+/* CHAT: BOTTOM SHEET (YUKARI AÇILIR / AŞAĞI KAPANIR) */
+.tc-chat{
+  position:absolute;
+  left:0; right:0;
+  bottom:0;
+  z-index:40;
+  transform:translateY(78%);
+  transition:transform .25s ease;
+}
+.tc-chat.open{ transform:translateY(0%); }
+
+.tc-chat-handle{
+  text-align:center;
+  padding:10px 0 6px;
+  color:var(--gold);
+  font-weight:900;
+  letter-spacing:.5px;
+  cursor:pointer;
+  user-select:none;
+  text-shadow:0 2px 6px rgba(0,0,0,.8);
+}
+.tc-chat-panel{
+  margin:0 12px 12px;
+  border-radius:18px;
+  border:1px solid rgba(255,215,0,.35);
+  background:rgba(0,0,0,.55);
+  backdrop-filter: blur(8px);
   overflow:hidden;
 }
-
-.menu-slider{
-  display:flex;
-  gap:18px;
-  padding-left:20px;
+.tc-chat-messages{
+  height:140px;
+  padding:10px;
+  overflow:auto;
+  color:#fff;
+  font-size:12px;
 }
-
-.menu-card{
-  min-width:150px;
-  text-align:center;
-  cursor:pointer;
-}
-
-.menu-card img{
-  width:150px;
-  height:210px;
-  border-radius:20px;
-  border:2px solid gold;
-  object-fit:cover;
-  transition:0.3s;
-}
-
-.menu-card img:hover{
-  transform:scale(1.05);
-}
-
-.menu-card span{
-  display:block;
-  margin-top:6px;
-  color:gold;
-  font-weight:bold;
-}
-
-/* =========================
-   CHAT SYSTEM
-========================= */
-
-.chat{
-  position:absolute;
-  bottom:15px;
-  left:50%;
-  transform:translateX(-50%);
-  width:360px;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(8px);
-  border-radius:20px;
-  padding:8px;
+.tc-chat-input{
   display:flex;
   gap:8px;
-  z-index:40;
+  padding:10px;
+  border-top:1px solid rgba(255,215,0,.25);
+  background:rgba(0,0,0,.35);
 }
-
-.chat input{
+.tc-chat-input input{
   flex:1;
-  padding:10px 12px;
-  border:none;
+  height:34px;
+  border-radius:10px;
+  border:1px solid rgba(255,215,0,.25);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  padding:0 10px;
   outline:none;
-  border-radius:14px;
-  background:rgba(255,255,255,0.12);
-  color:white;
-  font-size:14px;
 }
-
-.chat input::placeholder{
-  color:rgba(255,255,255,0.6);
-}
-
-.chat button{
-  padding:10px 16px;
+.tc-chat-input button{
+  height:34px;
+  padding:0 14px;
+  border-radius:10px;
   border:none;
-  border-radius:14px;
-  background:gold;
-  font-weight:bold;
+  background:var(--gold);
   cursor:pointer;
+  font-weight:800;
 }
 
-/* =========================
-   MOBILE FIX
-========================= */
-
-@media(max-width:420px){
-  .app{
-    border-radius:0;
-  }
-}
+/* SAFE Z-ORDER */
+.tc-slider-wrap{ pointer-events:auto; }
+.tc-chat{ pointer-events:auto; }
