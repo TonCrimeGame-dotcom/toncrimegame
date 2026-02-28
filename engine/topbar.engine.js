@@ -180,17 +180,18 @@
     // stage içine bas
     window.TC_LAYOUT.stage.appendChild(el);
 
-    // default logo yolu (kendi dosyana göre değiştir)
-    // ör: "img/logo.png" / "assets/logo.png"
+    // ✅ Logo yolu sabit
     const logo = el.querySelector("#tbLogo");
-    logo.src = "img/toncrime_logo.png";
+    logo.src = "assets/logo.png";
 
     // dışarıdan güncellemek için API
     window.TC_TOPBAR = {
       setUser(name){ document.getElementById("tbUser").textContent = name ?? ""; },
       setWeapon(name, bonusText){
-        document.getElementById("tbWeapon").childNodes[0].textContent = (name ?? "") + " ";
-        document.getElementById("tbBonus").textContent = bonusText ?? "";
+        const weaponEl = document.getElementById("tbWeapon");
+        const bonusEl = document.getElementById("tbBonus");
+        weaponEl.childNodes[0].textContent = (name ?? "") + " ";
+        bonusEl.textContent = bonusText ?? "";
       },
       setEnergy(cur, max){
         const ratio = max ? clamp01(cur / max) : 0;
@@ -219,7 +220,6 @@
   }
 
   function init() {
-    // TC_LAYOUT biraz sonra gelirse diye retry
     let tries = 0;
     const timer = setInterval(() => {
       tries++;
@@ -227,7 +227,7 @@
         clearInterval(timer);
         mountTopbar();
       }
-      if (tries > 60) clearInterval(timer); // 3sn
+      if (tries > 80) clearInterval(timer); // 4sn
     }, 50);
   }
 
