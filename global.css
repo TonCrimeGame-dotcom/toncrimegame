@@ -147,3 +147,46 @@ html, body{
   font-size: 13px;
   color: rgba(255,255,255,0.95);
                                           }
+#tc-menu{
+  position:absolute;
+  top:0;
+  left:-260px;
+  width:260px;
+  height:100%;
+  background:rgba(10,15,30,0.98);
+  transition:0.3s ease;
+  z-index:100;
+  padding:20px;
+}
+
+#tc-menu.open{
+  left:0;
+}
+
+#tc-menu-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  opacity:0;
+  pointer-events:none;
+  transition:0.3s;
+  z-index:90;
+}
+
+#tc-menu-overlay.open{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.menu-header{
+  font-size:20px;
+  font-weight:900;
+  margin-bottom:20px;
+}
+
+.menu-item{
+  padding:14px 0;
+  font-weight:700;
+  cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+}
