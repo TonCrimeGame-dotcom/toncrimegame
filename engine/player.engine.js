@@ -3,7 +3,7 @@
    - window.player tek kaynak
    - Enerji regen (5dk +1)
    - HUD + Logo + Saat/Tarih + Online
-   - ✅ Enerji/XP yazısı BARIN İÇİNDE (bar-text)
+   - ✅ SADECE BAR İÇİ YAZI (üst satır label yok)
    ========================================================= */
 
 (function () {
@@ -20,7 +20,7 @@
 
   // Enerji
   player.energy = Number.isFinite(+player.energy) ? +player.energy : 60;
-  player.maxEnergy = 100; // SABİT (reklama teşvik)
+  player.maxEnergy = 100; // SABİT
   // XP / Level
   player.xp = Number.isFinite(+player.xp) ? +player.xp : 0;
   player.xpMax = Number.isFinite(+player.xpMax) ? +player.xpMax : 1000;
@@ -48,8 +48,6 @@
   const ENERGY_INTERVAL_MS = 5 * 60 * 1000; // 5 dakika
   function regenTick() {
     const now = Date.now();
-
-    // kaç adet 5dk geçti?
     const passed = now - player.lastEnergyTs;
     if (passed <= 0) return;
 
@@ -58,7 +56,6 @@
       const before = player.energy;
       player.energy = Math.min(player.maxEnergy, player.energy + gained);
       player.lastEnergyTs += gained * ENERGY_INTERVAL_MS;
-
       if (player.energy !== before) save();
     }
   }
@@ -80,14 +77,11 @@
 
   // ---------- UI BUILD (HTML'e dokunmadan) ----------
   function ensureAppRoot() {
-    const app = document.querySelector(".app");
-    if (!app) return null;
-    return app;
+    return document.querySelector(".app") || null;
   }
 
   function ensureLogo(app) {
     if (document.querySelector(".tc-logo")) return;
-
     const img = document.createElement("img");
     img.className = "tc-logo";
     img.src = "assets/logo.png";
@@ -96,39 +90,38 @@
   }
 
   function ensureTopbar(app) {
-    // saat/tarih + online (motor ekliyor)
-    if (!document.querySelector(".tc-topbar")) {
-      const wrap = document.createElement("div");
-      wrap.className = "tc-topbar";
-      wrap.style.position = "absolute";
-      wrap.style.top = "8px";
-      wrap.style.left = "50%";
-      wrap.style.transform = "translateX(-50%)";
-      wrap.style.zIndex = "280";
-      wrap.style.display = "flex";
-      wrap.style.gap = "10px";
-      wrap.style.alignItems = "center";
-      app.appendChild(wrap);
+    if (document.querySelector(".tc-topbar")) return;
 
-      const time = document.createElement("div");
-      time.className = "time-pill";
-      time.style.padding = "6px 10px";
-      time.style.borderRadius = "999px";
-      time.style.color = "#fff";
-      time.style.fontWeight = "700";
-      time.style.fontSize = "12px";
-      wrap.appendChild(time);
+    const wrap = document.createElement("div");
+    wrap.className = "tc-topbar";
+    wrap.style.position = "absolute";
+    wrap.style.top = "8px";
+    wrap.style.left = "50%";
+    wrap.style.transform = "translateX(-50%)";
+    wrap.style.zIndex = "280";
+    wrap.style.display = "flex";
+    wrap.style.gap = "10px";
+    wrap.style.alignItems = "center";
+    app.appendChild(wrap);
 
-      const online = document.createElement("div");
-      online.className = "online-pill";
-      online.style.padding = "6px 10px";
-      online.style.borderRadius = "999px";
-      online.style.color = "#fff";
-      online.style.fontWeight = "700";
-      online.style.fontSize = "12px";
-      online.innerHTML = `🟢 <span id="tcOnlineNum">195</span>`;
-      wrap.appendChild(online);
-    }
+    const time = document.createElement("div");
+    time.className = "time-pill";
+    time.style.padding = "6px 10px";
+    time.style.borderRadius = "999px";
+    time.style.color = "#fff";
+    time.style.fontWeight = "700";
+    time.style.fontSize = "12px";
+    wrap.appendChild(time);
+
+    const online = document.createElement("div");
+    online.className = "online-pill";
+    online.style.padding = "6px 10px";
+    online.style.borderRadius = "999px";
+    online.style.color = "#fff";
+    online.style.fontWeight = "700";
+    online.style.fontSize = "12px";
+    online.innerHTML = `🟢 <span id="tcOnlineNum">195</span>`;
+    wrap.appendChild(online);
   }
 
   function ensureHUD(app) {
@@ -138,8 +131,6 @@
       hud.className = "hud-card";
       app.appendChild(hud);
     }
-
-    // HUD içini bir kere kur
     if (hud.dataset.built === "1") return;
 
     hud.dataset.built = "1";
@@ -149,24 +140,24 @@
         <div><span id="tcWeapon"></span> (<span id="tcWeaponBonus"></span>)</div>
       </div>
 
-      <div class="hud-row" style="color:#fff; opacity:.95;">
-        <div id="tcEnergyLabel"></div>
-        <div style="color:#ffd54a;">+1 enerji: <span id="tcEnergyTimer"></span></div>
+      <div class="hud-row" style="color:#ffd54a; opacity:.95;">
+        <div></div>
+        <div>+1 enerji: <span id="tcEnergyTimer"></span></div>
       </div>
 
-      <!-- ✅ ENERGY BAR (TEXT INSIDE) -->
-      <div class="hud-bar">
+      <!-- ✅ ENERGY BAR (TEXT INSIDE ONLY) -->
+      <div class="hud-bar" id="tcEnergyBar">
         <div class="hud-fill-energy" id="tcEnergyFill"></div>
         <span class="hud-bar-text" id="tcEnergyBarText"></span>
       </div>
 
       <div class="hud-row" style="color:#fff; opacity:.95;">
-        <div id="tcXpLabel"></div>
+        <div></div>
         <div style="color:#ffd54a;">Lv cap: <span id="tcLevelCap"></span></div>
       </div>
 
-      <!-- ✅ XP BAR (TEXT INSIDE) -->
-      <div class="hud-bar">
+      <!-- ✅ XP BAR (TEXT INSIDE ONLY) -->
+      <div class="hud-bar" id="tcXpBar">
         <div class="hud-fill-xp" id="tcXpFill"></div>
         <span class="hud-bar-text" id="tcXpBarText"></span>
       </div>
@@ -184,6 +175,30 @@
         <div id="tcLevelCapInfo" style="color:#fff;"></div>
       </div>
     `;
+
+    // ✅ DÜZGÜN BOYUTLANDIRMA (sayfa fark etmez)
+    const style = document.createElement("style");
+    style.textContent = `
+      .hud-bar{ position:relative; }
+      .hud-bar-text{
+        position:absolute;
+        left:50%;
+        top:50%;
+        transform:translate(-50%,-50%);
+        font-size:12px;
+        font-weight:800;
+        color:rgba(255,255,255,0.95);
+        text-shadow:0 2px 6px rgba(0,0,0,0.85);
+        pointer-events:none;
+        white-space:nowrap;
+        letter-spacing:.2px;
+        z-index:5;
+      }
+      @media (max-width:420px){
+        .hud-bar-text{ font-size:11px; }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   function pad2(n) { return String(n).padStart(2, "0"); }
@@ -202,12 +217,10 @@
     const nameEl = document.getElementById("tcName");
     const weaponEl = document.getElementById("tcWeapon");
     const weaponBonusEl = document.getElementById("tcWeaponBonus");
-    const energyLabel = document.getElementById("tcEnergyLabel");
     const energyTimer = document.getElementById("tcEnergyTimer");
     const energyFill = document.getElementById("tcEnergyFill");
     const energyBarText = document.getElementById("tcEnergyBarText");
 
-    const xpLabel = document.getElementById("tcXpLabel");
     const xpFill = document.getElementById("tcXpFill");
     const xpBarText = document.getElementById("tcXpBarText");
 
@@ -224,20 +237,17 @@
     weaponEl.textContent = player.weapon.name;
     weaponBonusEl.textContent = `+${wBonusPct}%`;
 
-    const energyText = `Enerji: ⚡${player.energy}/${player.maxEnergy}`;
-    energyLabel.textContent = energyText;
     energyTimer.textContent = nextEnergyIn();
 
+    // ENERGY
     const ePct = (player.maxEnergy > 0) ? (player.energy / player.maxEnergy) * 100 : 0;
     energyFill.style.width = `${Math.max(0, Math.min(100, ePct))}%`;
-    energyBarText.textContent = energyText; // ✅ BARIN İÇİNDE
+    energyBarText.textContent = `Enerji: ⚡${player.energy}/${player.maxEnergy}`;
 
-    const xpText = `XP: ${player.xp}/${player.xpMax} (Lv ${player.level})`;
-    xpLabel.textContent = xpText;
-
+    // XP
     const xPct = (player.xpMax > 0) ? (player.xp / player.xpMax) * 100 : 0;
     xpFill.style.width = `${Math.max(0, Math.min(100, xPct))}%`;
-    xpBarText.textContent = xpText; // ✅ BARIN İÇİNDE
+    xpBarText.textContent = `XP: ${player.xp}/${player.xpMax} (Lv ${player.level})`;
 
     levelCap.textContent = player.levelCap;
     ytonEl.textContent = String(player.yton);
@@ -256,13 +266,8 @@
     ensureTopbar(app);
     ensureHUD(app);
 
-    // ilk çizim
     updateHUD();
-
-    // her saniye (timer düzgün aksın)
-    setInterval(() => {
-      updateHUD();
-    }, 1000);
+    setInterval(updateHUD, 1000);
 
     save();
   });
