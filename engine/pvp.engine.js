@@ -6,14 +6,13 @@
 const player = window.player;
 
 (function () {
-  // Güvenlik: window.player yoksa kırmadan uyar
   if (!player) {
     console.error("[PVP] window.player bulunamadı. player.engine.js window.player set etmeli.");
     alert("Hata: Player motoru yüklenmedi (window.player yok).");
     return;
   }
 
-  /* ===== CSS (global.css'e dokunmadan PVP'yi garanti göstermek için) ===== */
+  /* ===== CSS ===== */
   const style = document.createElement("style");
   style.textContent = `
     .pvp-card{
@@ -126,7 +125,6 @@ const player = window.player;
   `;
   document.head.appendChild(style);
 
-  /* ===== Helpers ===== */
   const $ = (id) => document.getElementById(id);
 
   const statusEl = $("pvpStatus");
@@ -156,12 +154,7 @@ const player = window.player;
   function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 
   function savePlayer() {
-    // player.engine.js’in kullandığı format ile uyumlu: localStorage 'player'
-    try {
-      localStorage.setItem("player", JSON.stringify(player));
-    } catch (e) {
-      console.warn("[PVP] player save error", e);
-    }
+    try { localStorage.setItem("player", JSON.stringify(player)); } catch (e) {}
   }
 
   function weaponBonusPct() {
@@ -169,8 +162,15 @@ const player = window.player;
     return isFinite(b) ? b : 0;
   }
 
+  const state = {
+    me: null,
+    op: null,
+    finding: false,
+    fighting: false,
+    tick: null
+  };
+
   function initMe() {
-    // Varsayılanlar player.engine.js’te olmalı; burada sadece okunur
     const username = player.username || "Player01";
     const atkBase = Number(player.atkBase ?? 10);
     const bonus = weaponBonusPct();
@@ -205,15 +205,6 @@ const player = window.player;
     }
   }
 
-  /* ===== PvP State ===== */
-  const state = {
-    me: null,
-    op: null,
-    finding: false,
-    fighting: false,
-    tick: null
-  };
-
   const names = ["Shadow", "Viper", "Razor", "NightFox", "Kobra", "Ghost", "Bishop", "Havoc", "Zero", "Titan"];
 
   function findOpponent() {
@@ -223,14 +214,12 @@ const player = window.player;
     statusEl.textContent = "Rakip aranıyor...";
     log("🔎 Rakip aranıyor...");
 
-    // 2 sn sonra rakip bul
     setTimeout(() => {
       const n = names[Math.floor(Math.random() * names.length)] + "#" + Math.floor(100 + Math.random() * 900);
       const lvl = clamp(Number(player.level ?? 1) + (Math.random() < 0.5 ? 0 : 1), 1, 50);
 
-      // Rakip gücü level’e göre
-      const opHpMax = 90 + lvl * 3;          // 93..240
-      const opAtk = 8 + Math.floor(lvl / 2); // 8..33
+      const opHpMax = 90 + lvl * 3;
+      const opAtk = 8 + Math.floor(lvl / 2);
 
       state.op = { name: n, level: lvl, hpMax: opHpMax, hp: opHpMax, atk: opAtk };
 
@@ -254,43 +243,32 @@ const player = window.player;
     statusEl.textContent = "Savaş başladı!";
     log("⚔️ Maç başladı!");
 
-    // enerji maliyeti (istersen)
     if (typeof player.energy === "number") {
       player.energy = Math.max(0, player.energy - 5);
       savePlayer();
     }
 
-    // turn-based: her 900ms bir tur
     state.tick = setInterval(() => {
       if (!state.fighting) return;
 
-      // Sen vur
       const myDmg = calcDamage(state.me.atk, state.me.bonus);
       state.op.hp = clamp(state.op.hp - myDmg, 0, state.op.hpMax);
       log(`🟢 Sen vurdun: -${myDmg} HP`);
       renderBars();
 
-      if (state.op.hp <= 0) {
-        finish(true);
-        return;
-      }
+      if (state.op.hp <= 0) { finish(true); return; }
 
-      // Rakip vur
       const opDmg = calcDamage(state.op.atk, 0);
       state.me.hp = clamp(state.me.hp - opDmg, 0, state.me.hpMax);
       log(`🔴 Rakip vurdu: -${opDmg} HP`);
       renderBars();
 
-      if (state.me.hp <= 0) {
-        finish(false);
-        return;
-      }
+      if (state.me.hp <= 0) { finish(false); return; }
     }, 900);
   }
 
   function calcDamage(baseAtk, bonus) {
-    // Basit ama düzgün: bonus + rastgele
-    const roll = 0.85 + Math.random() * 0.35; // 0.85..1.20
+    const roll = 0.85 + Math.random() * 0.35;
     const dmg = Math.round(baseAtk * roll * (1 + (bonus || 0)));
     return clamp(dmg, 1, 999);
   }
@@ -304,14 +282,13 @@ const player = window.player;
       statusEl.textContent = "Kazandın!";
       log("🏆 Kazandın!");
 
-      const rewardYton = 30 + Math.floor(Math.random() * 40); // 30-69
-      const rewardXp = 80 + Math.floor(Math.random() * 60);   // 80-139
+      const rewardYton = 30 + Math.floor(Math.random() * 40);
+      const rewardXp = 80 + Math.floor(Math.random() * 60);
 
-      // ÖDÜLLER (player.engine.js bunları gösteriyor olmalı)
       player.yton = Number(player.yton ?? 0) + rewardYton;
       player.xp = Number(player.xp ?? 0) + rewardXp;
 
-      // level cap 50 kilidi (senin kuralın)
+      // level cap 50 kilidi (kural)
       player.level = clamp(Number(player.level ?? 1), 1, 50);
 
       savePlayer();
@@ -323,13 +300,22 @@ const player = window.player;
       statusEl.textContent = "Kaybettin!";
       log("💀 Kaybettin!");
 
-      // Ceza
       player.energy = Math.max(0, Number(player.energy ?? 0) - 10);
       savePlayer();
       log("⚡ Ceza: -10 enerji (kaydedildi).");
     }
 
-    // Butonları aç
+    // RANK: burada entegre
+    if (window.PvPRank && typeof window.PvPRank.recordMatch === "function") {
+      const res = window.PvPRank.recordMatch({
+        win,
+        opponentName: state.op?.name,
+        opponentLevel: state.op?.level
+      });
+      const sign = res.delta >= 0 ? "+" : "";
+      log(`📈 ELO ${sign}${res.delta} (rakipELO ~ ${res.opElo})`);
+    }
+
     findBtn.disabled = false;
     startBtn.disabled = true;
   }
@@ -350,14 +336,16 @@ const player = window.player;
     initMe();
     renderBars();
     log("↺ PvP sıfırlandı.");
+
+    if (window.PvPRank && typeof window.PvPRank.render === "function") {
+      window.PvPRank.render();
+    }
   }
 
-  /* ===== Bind ===== */
   findBtn.addEventListener("click", findOpponent);
   startBtn.addEventListener("click", startFight);
   resetBtn.addEventListener("click", resetPvp);
 
-  /* ===== Init ===== */
   initMe();
   resetPvp();
 })();
