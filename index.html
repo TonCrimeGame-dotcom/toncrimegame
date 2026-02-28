@@ -19,6 +19,7 @@
       --tc-muted: rgba(255,255,255,0.65);
 
       --tc-topbar-h: 92px; /* 2 bar yüksekliği hissi için */
+      --tc-logo-scale: 1.30; /* LOGO %30 BÜYÜT */
     }
 
     html, body{
@@ -32,6 +33,7 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
     }
 
     /* Ekran: ortada sabit sahne + ölçek */
@@ -67,7 +69,7 @@
       right:0;
       height: var(--tc-topbar-h);
       z-index: 260;
-      pointer-events:none; /* sadece içteki butonlar pointer alacak */
+      pointer-events:none; /* sadece içte pointer açık */
     }
 
     .tc-topbar-inner{
@@ -118,19 +120,21 @@
       color: rgba(120,255,190,0.95);
     }
 
-    /* Logo: tam ortada, büyük, 2 bar yüksekliği (topbar-h içinde) */
+    /* Logo: tam ortada, büyük, 2 bar yüksekliği + %30 büyüt */
     .tc-logo-wrap{
       height: calc(var(--tc-topbar-h) - 20px);
       display:flex;
       align-items:center;
       justify-content:center;
       pointer-events:none;
+      overflow:visible;
     }
     .tc-logo{
-      height: 100%;
+      height: calc(100% * var(--tc-logo-scale));
       width: auto;
       object-fit: contain;
       filter: drop-shadow(0 10px 18px rgba(0,0,0,0.45));
+      transform: translateY(2px); /* çok az aşağı, daha “ortalı” görünür */
     }
 
     .tc-rightstats{
@@ -192,23 +196,27 @@
     }
 
     /* ===================== MENU BUTTON + MENU ===================== */
-    /* Menü butonu topbar üstünde ama topbar pointer-events none olduğu için ayrıca pointer açık */
+    /* 1) MENÜ BUTONU ORTADA (TOPBAR ALTINDA) */
     #tc-menu-btn{
       position:absolute;
-      top: calc(var(--tc-topbar-h) + 12px);
-      left:12px;
+      top: calc(var(--tc-topbar-h) + 10px);
+      left:50%;
+      transform: translateX(-50%);
       z-index: 300;
       background: rgba(0,0,0,0.55);
       border:1px solid rgba(255,255,255,0.12);
       color:var(--tc-text);
-      padding:10px 12px;
+      padding:10px 14px;
       border-radius:12px;
       font-weight:900;
       cursor:pointer;
       user-select:none;
       pointer-events:auto;
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
-    #tc-menu-btn:active{ transform: scale(0.98); }
+    #tc-menu-btn:active{ transform: translateX(-50%) scale(0.98); }
 
     #tc-menu-overlay{
       position:absolute;
@@ -219,6 +227,8 @@
       transition: 200ms ease;
       z-index: 280;
     }
+
+    /* 1) MENU SLIDE */
     #tc-menu{
       position:absolute;
       top:0;
@@ -276,7 +286,7 @@
     /* Debug küçük bilgi */
     #tc-debug{
       position:absolute;
-      top: calc(var(--tc-topbar-h) + 12px);
+      top: calc(var(--tc-topbar-h) + 10px);
       right:12px;
       z-index: 300;
       font-size:12px;
@@ -289,7 +299,8 @@
       pointer-events:none;
     }
 
-    /* ===================== CHAT (Aynen korundu) ===================== */
+    /* ===================== CHAT ===================== */
+    /* 2) CHAT AÇ/KAPA GARANTİ */
     #tc-chat{
       position:absolute;
       left:0;
@@ -300,7 +311,9 @@
       border-top:1px solid rgba(255,255,255,0.10);
       z-index:120;
       overflow:hidden;
-      transition: 260ms ease;
+      transition: height 260ms ease;
+      will-change: height;
+      pointer-events:auto;
     }
     #tc-chat.open{ height:260px; }
 
@@ -313,6 +326,7 @@
       cursor:pointer;
       user-select:none;
       letter-spacing:1px;
+      pointer-events:auto;
     }
     .tc-chat-body{
       height: calc(260px - 52px);
@@ -356,7 +370,7 @@
     }
     .tc-chat-send:active{ transform: scale(0.98); }
 
-    /* ===================== LEADERBOARD (Aynen korundu) ===================== */
+    /* ===================== LEADERBOARD ===================== */
     #tc-lb{
       position:absolute;
       inset:0;
@@ -420,22 +434,22 @@
   <div id="tc-root">
     <div id="tc-stage">
 
-      <!-- TOPBAR (YENİ) -->
+      <!-- TOPBAR -->
       <div id="tc-topbar" aria-label="Topbar">
         <div class="tc-topbar-inner">
-          <!-- Sol: kullanıcı + silah/bonus -->
+          <!-- Sol -->
           <div class="tc-topbox tc-leftinfo">
             <div class="tc-user" id="tc-user">Player01</div>
             <div class="tc-weapon" id="tc-weapon">Tabanca</div>
             <div class="tc-bonus" id="tc-bonus">(+10%)</div>
           </div>
 
-          <!-- Orta: büyük logo -->
+          <!-- Orta logo -->
           <div class="tc-logo-wrap">
             <img class="tc-logo" src="assets/logo.png" alt="TonCrime Logo" />
           </div>
 
-          <!-- Sağ: barlar + yton -->
+          <!-- Sağ -->
           <div class="tc-topbox tc-rightstats">
             <div class="tc-statrow">
               <div>Enerji</div>
@@ -461,11 +475,11 @@
         </div>
       </div>
 
-      <!-- içerik pad (şimdilik boş, sonradan sayfalar buraya gelir) -->
+      <!-- içerik alanı -->
       <div id="tc-content-pad"></div>
 
-      <!-- MENU BUTTON -->
-      <div id="tc-menu-btn">☰ Menü</div>
+      <!-- MENU BUTTON (ORTA) -->
+      <div id="tc-menu-btn"><span>☰</span><span>Menü</span></div>
 
       <!-- MENU -->
       <div id="tc-menu-overlay"></div>
@@ -550,7 +564,7 @@
         }[m]));
       }
 
-      // ========= TOPBAR DATA (şimdilik demo, sonra engine bağlanır) =========
+      // ========= TOPBAR DATA (demo) =========
       const state = {
         user: "Player01",
         weapon: "Tabanca",
@@ -616,15 +630,23 @@
       overlay.addEventListener("click", closeMenu);
       closeBtn.addEventListener("click", closeMenu);
 
-      // ========= CHAT =========
+      // ========= CHAT (2) AÇ/KAPA GARANTİ =========
       const chat = document.getElementById("tc-chat");
       const chatToggle = document.getElementById("tc-chat-toggle");
       const chatBody = document.getElementById("tc-chat-body");
       const chatInput = document.getElementById("tc-chat-input");
       const chatSend = document.getElementById("tc-chat-send");
 
-      function toggleChat(){ chat.classList.toggle("open"); }
-      chatToggle.addEventListener("click", toggleChat);
+      function openChat(){ chat.classList.add("open"); }
+      function closeChat(){ chat.classList.remove("open"); }
+      function toggleChat(){
+        if (chat.classList.contains("open")) closeChat();
+        else openChat();
+      }
+
+      // click + touchstart (mobil garanti)
+      chatToggle.addEventListener("click", (e) => { e.preventDefault(); toggleChat(); });
+      chatToggle.addEventListener("touchstart", (e) => { e.preventDefault(); toggleChat(); }, { passive:false });
 
       function addMsg(name, text){
         const p = document.createElement("div");
@@ -640,9 +662,12 @@
         if (!v) return;
         addMsg(state.user, v);
         chatInput.value = "";
+        if (!chat.classList.contains("open")) openChat();
       }
 
-      chatSend.addEventListener("click", sendChat);
+      chatSend.addEventListener("click", (e)=>{ e.preventDefault(); sendChat(); });
+      chatSend.addEventListener("touchstart", (e)=>{ e.preventDefault(); sendChat(); }, { passive:false });
+
       chatInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") sendChat();
       });
@@ -674,28 +699,4 @@
 
       function renderLB(){
         lbList.innerHTML = "";
-        data.forEach((row, i) => {
-          const div = document.createElement("div");
-          div.className = "tc-lb-row";
-          div.innerHTML = `
-            <div class="tc-lb-rank">${i+1}. ${escapeHtml(row.name)}</div>
-            <div class="tc-lb-score">${row.score}</div>
-          `;
-          lbList.appendChild(div);
-        });
-      }
-      renderLB();
-
-      // Dışarıdan bağlamak için API:
-      window.TC = window.TC || {};
-      window.TC.state = state;
-      window.TC.renderTopbar = renderTopbar;
-      window.TC.openMenu = openMenu;
-      window.TC.closeMenu = closeMenu;
-      window.TC.openLeaderboard = openLeaderboard;
-      window.TC.closeLeaderboard = closeLeaderboard;
-      window.TC.toggleChat = toggleChat;
-    })();
-  </script>
-</body>
-</html>
+        data.forEach((row, i)
