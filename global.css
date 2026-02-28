@@ -1,70 +1,28 @@
 /* =========================================================
-   TONCRIME - GLOBAL.CSS (TEK PARÇA / TEMİZ / STABİL)
-   Amaç:
-   - Logo: %100 büyümüş (52px)
-   - HUD: daha küçük, çerçevesiz, transparan
-   - Barlar ince
-   - Bar içinde yazı (varsa) overlay
-   - Index + PvP aynı davranış (selector force)
+   TONCRIME - GLOBAL.CSS (TEK PARÇA / BAR YAZISI FIX)
+   - Logo 2x
+   - HUD zarif/transparan
+   - Enerji/XP yazısı barın ÜSTÜNE (index+pvp aynı)
    ========================================================= */
 
-/* ---------- BASE ---------- */
-*{ box-sizing:border-box; }
-html, body{
-  margin:0;
-  padding:0;
-  background:#000;
-  font-family: Georgia, serif;
-}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:#000;font-family:Georgia,serif;}
+.app{width:390px;height:690px;margin:0 auto;position:relative;overflow:hidden;border-radius:20px;}
+.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 
-/* Uygulama frame'ini sen zaten kullanıyorsun */
-.app{
-  width:390px;
-  height:690px;
-  margin:0 auto;
-  position:relative;
-  overflow:hidden;
-  border-radius:20px;
-}
-
-/* background */
-.bg{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-/* =========================================================
-   1) LOGO (GLOBAL) - %100 büyütülmüş
-   ========================================================= */
+/* ---------------- LOGO ---------------- */
 .tc-logo{
   position:absolute;
   top:8px;
   left:16px;
   z-index:300;
-
-  height:52px;       /* 26px -> 52px (2x) */
+  height:52px; /* %100 büyüt */
   width:auto;
-
-  filter: drop-shadow(0 3px 10px rgba(0,0,0,0.6));
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.6));
 }
 
-/* Eğer bazı sayfalarda logo class'ı farklıysa (logo / tcLogo vb)
-   bu satırı açabilirsin ama şimdilik bozmamak için kapalı bıraktım.
-   .app img.logo{ height:52px !important; }
-*/
-
-
-/* =========================================================
-   2) HUD (GLOBAL) - FORCE (index + pvp aynı)
-   - ÇERÇEVESİZ
-   - Transparan
-   - Daha zarif
-   ========================================================= */
-
-/* HUD container yakalama: bazen .hud-card bazen .hud oluyor */
+/* ---------------- HUD (GLOBAL) ---------------- */
+/* index bazen .hud-card, pvp bazen .hud */
 .app .hud-card,
 .app .hud{
   position:absolute;
@@ -73,8 +31,7 @@ html, body{
   transform:translateX(-50%);
   z-index:250;
 
-  /* Boyut: zarif (çok devleşmesin) */
-  width:260px;                 /* stabil küçük görünüm */
+  width:260px;
   padding:8px 10px;
   border-radius:14px;
 
@@ -85,60 +42,20 @@ html, body{
   border:none;
   box-shadow:none;
 
-  color:gold;
-}
-
-/* HUD iç yazılar */
-.app .hud-card,
-.app .hud{
+  color:#ffd54a;
   font-size:11px;
   font-weight:600;
-  line-height:1.2;
+  line-height:1.15;
 }
 
-/* Üst satır (senin yapın bu class'ı kullanıyorsa) */
-.hud-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:4px;
-  color:gold;
-  font-size:11px;
-}
+/* HUD satırları (varsa) */
+.hud-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.hud-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
+.yton-line{display:flex;align-items:center;gap:6px;}
+.yton-line img{height:12px;width:auto;}
+.weapon-line{opacity:.9;}
 
-/* Alt satır */
-.hud-bottom{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-top:4px;
-  font-size:11px;
-}
-
-/* YTON satırı */
-.yton-line{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-.yton-line img{
-  height:12px;
-  width:auto;
-}
-
-/* Silah / bonus yazısı */
-.weapon-line{
-  opacity:0.9;
-  font-size:11px;
-}
-
-/* =========================================================
-   3) BARLAR (ENERJİ / XP)
-   - İnce, stabil
-   - HTML farklı olabilir diye hem .hud-bar hem .bar yakalanır
-   ========================================================= */
-
-/* bar container */
+/* ---------------- BARLAR ---------------- */
 .app .hud-card .hud-bar,
 .app .hud .hud-bar,
 .app .hud-card .bar,
@@ -148,70 +65,43 @@ html, body{
   background:rgba(255,255,255,0.15);
   border-radius:999px;
   overflow:hidden;
-  margin:4px 0 8px;
+  margin:6px 0 10px;
 }
 
-/* doluluklar (enerji/xp için farklı class'lar olabiliyor) */
-.hud-fill-energy,
-.energyFill,
-.fill.energyFill{
-  height:100%;
-  width:0%;
-  background:#35ff9c;
-}
-
-.hud-fill-xp,
-.xpFill,
-.fill.xpFill{
-  height:100%;
-  width:0%;
-  background:#ffd54a;
-}
+/* Fill classları farklı olabiliyor */
+.hud-fill-energy, .energyFill, .fill.energyFill{height:100%;width:0%;background:#35ff9c;}
+.hud-fill-xp, .xpFill, .fill.xpFill{height:100%;width:0%;background:#ffd54a;}
 
 /* =========================================================
-   4) BAR İÇİ YAZI (OVERLAY)
-   - Eğer motor .hud-bar-text oluşturuyorsa direkt çalışır
-   - Eğer motor #energyText / #xpText üretiyorsa onu da overlay yapar
+   BAR ÜSTÜNE YAZI (ASIL ÇÖZÜM)
    ========================================================= */
 
-/* Motorun üretebildiği bar içi text elementi */
-.hud-bar-text,
-.bar-text{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
+/* 1) Text GENEL görünüm */
+#energyText,#xpText,#hudEnergyText,#hudXpText,
+.hud-bar-text,.bar-text{
+  display:block;
+  width:100%;
+  text-align:center;
   font-size:10px;
-  font-weight:700;
-  color:#fff;
-  text-shadow:0 1px 2px rgba(0,0,0,0.8);
-  pointer-events:none;
-  z-index:5;
+  font-weight:800;
+  color:rgba(255,255,255,0.96);
+  text-shadow:0 1px 2px rgba(0,0,0,0.85);
+  letter-spacing:0;
   white-space:nowrap;
+  line-height:1;
+  z-index:6;
 }
 
-/* Bazı motor sürümlerinde text ayrı div/span olarak geliyor */
-#energyText,
-#xpText,
-#hudEnergyText,
-#hudXpText{
-  position:absolute !important;
-  left:50% !important;
-  top:50% !important;
-  transform:translate(-50%,-50%) !important;
-
-  font-size:10px !important;
-  font-weight:700 !important;
-  color:#fff !important;
-  text-shadow:0 1px 2px rgba(0,0,0,0.8) !important;
-  pointer-events:none !important;
-  z-index:5 !important;
-  margin:0 !important;
-  white-space:nowrap !important;
+/* 2) Eğer text BARIN DIŞINDA ise:
+      Bara bindirmek için “bar üstüne çekiyoruz” (index yapısı) */
+#energyText,#xpText,#hudEnergyText,#hudXpText{
+  position:relative;
+  margin:0 0 -16px 0; /* kritik: text'i barın üstüne al */
+  pointer-events:none;
 }
 
-/* Bu id'ler barın içinde değilse (üstte duruyorsa) bozmamak için:
-   sadece bar içinde yakalarsak overlay'e zorlarız. */
+/* 3) Eğer text BARIN İÇİNDE ise:
+      absolute ile tam ortaya oturt (pvp yapısı) */
 .app .hud-card .hud-bar #energyText,
 .app .hud-card .hud-bar #xpText,
 .app .hud .hud-bar #energyText,
@@ -219,17 +109,35 @@ html, body{
 .app .hud-card .bar #energyText,
 .app .hud-card .bar #xpText,
 .app .hud .bar #energyText,
-.app .hud .bar #xpText{
+.app .hud .bar #xpText,
+.app .hud-card .hud-bar #hudEnergyText,
+.app .hud-card .hud-bar #hudXpText,
+.app .hud .hud-bar #hudEnergyText,
+.app .hud .hud-bar #hudXpText{
   position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+  margin:0 !important;          /* dıştaki -16px'i iptal eder */
+  width:auto !important;
 }
 
-/* =========================================================
-   5) SAAT/TARİH + ONLINE (senin pill yapın varsa)
-   - çerçevesiz, transparan
-   ========================================================= */
-.tc-topbar,
-.time-pill,
-.online-pill{
+/* 4) Motor zaten .hud-bar-text/.bar-text üretiyorsa (bar içinde) */
+.app .hud-card .hud-bar .hud-bar-text,
+.app .hud .hud-bar .hud-bar-text,
+.app .hud-card .bar .bar-text,
+.app .hud .bar .bar-text{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  margin:0;
+  width:auto;
+  pointer-events:none;
+}
+
+/* ---------------- Saat/Tarih + Online pill (varsa) ---------------- */
+.tc-topbar,.time-pill,.online-pill{
   background:rgba(0,0,0,0.22) !important;
   border:none !important;
   box-shadow:none !important;
@@ -237,11 +145,5 @@ html, body{
   -webkit-backdrop-filter:blur(7px) !important;
 }
 
-/* =========================================================
-   6) Menü vs. (bozmamak için sadece z-index fix)
-   ========================================================= */
-.side-menu,
-.sidebar,
-.tc-menu{
-  z-index:260 !important;
-}
+/* Menü z-index (bozmadan) */
+.side-menu,.sidebar,.tc-menu{z-index:260 !important;}
