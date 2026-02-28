@@ -1,92 +1,187 @@
-/* =========================================================
-   TONCRIME - HUD FIX (TEK PARÇA)
-   1) Eski HUD'ı tamamen gizle
-   2) Yeni HUD (#tcHudMini) küçük + çerçevesiz + şeffaf
-   ========================================================= */
+/* ============================
+   TONCRIME GLOBAL TOPBAR CSS
+   Sabit: Sol oyuncu, Orta logo, Sağ barlar + yton
+   ============================ */
 
-/* --- 1) ESKİ HUD: tamamen kapat (HTML/JS'e dokunmadan) --- */
-/* Senin eski sınıf/id'ler farklı olabilir; bunlar en yaygın olanlar */
-.hud-card,
-#hud,
-#hudCard,
-.hud,
-.tc-hud,
-#tcHud,
-.hudContainer,
-#hudContainer{
-  display:none !important;
-  visibility:hidden !important;
-  opacity:0 !important;
-  pointer-events:none !important;
+.tc-topbar{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999;
+  pointer-events: none; /* oyun tıklamaları bozulmasın */
 }
 
-/* --- 2) YENİ HUD: tcHudMini tasarım --- */
-#tcHudMini{
-  /* KONUM: sağ üst (app içinde) */
-  position:absolute !important;
-  top:12px !important;
-  right:12px !important;
-  z-index:999 !important;
+.tc-topbar__inner{
+  width: min(980px, calc(100% - 24px));
+  margin: 10px auto 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 10px;
 
-  /* BOYUT: küçük */
-  width:170px !important;
-  padding:8px 9px !important;
-  border-radius:12px !important;
-
-  /* İSTEDİĞİN: çerçevesiz + şeffaf (transparan) */
-  border:none !important;
-  box-shadow:none !important;
-
-  background:rgba(0,0,0,0.10) !important;  /* DAHA ŞEFFAF */
-  backdrop-filter:blur(6px) !important;     /* hafif blur (istersen 0 yap) */
-  -webkit-backdrop-filter:blur(6px) !important;
-
-  color:rgba(255,255,255,0.95) !important;
-  font-family: Arial, sans-serif !important;
+  pointer-events: none;
 }
 
-/* Yazılar daha küçük */
-#tcHudMini .row{ font-size:11px !important; margin-bottom:5px !important; }
-#tcHudMini .label{ font-size:10px !important; }
-#tcHudMini .muted{ font-size:10px !important; opacity:.9 !important; }
-#tcHudMini .twoCol{ font-size:10px !important; }
-#tcHudMini .yton{ font-size:10px !important; }
-
-/* Barlar daha ince */
-#tcHudMini .bar{
-  height:6px !important;
-  margin:4px 0 8px !important;
-  background:rgba(255,255,255,0.14) !important;
-  border-radius:999px !important;
-  overflow:hidden !important;
-  position:relative !important;
+/* Ortak “şeffaf / çerçevesiz” görünüm */
+.tc-left, .tc-right{
+  background: rgba(0,0,0,0.12);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: none;
+  box-shadow: none;
+  border-radius: 14px;
+  padding: 8px 10px;
 }
 
-/* Bar içi yazı (sadece bu kalsın) */
-#tcHudMini .barText{
-  position:absolute !important;
-  left:50% !important;
-  top:50% !important;
-  transform:translate(-50%,-50%) !important;
-
-  font-size:10px !important;
-  font-weight:900 !important;
-  color:rgba(255,255,255,0.95) !important;
-
-  text-shadow:0 1px 2px rgba(0,0,0,0.65) !important;
-  pointer-events:none !important;
-  white-space:nowrap !important;
+.tc-left{
+  justify-self: start;
+  min-width: 220px;
+  color: rgba(255,255,255,0.92);
+  font-size: 13px;
+  line-height: 1.2;
 }
 
-/* Başka yerde aynı değerler görünmesin (yeni HUD içinde) */
-#tcHudMini #hudEnergyRight,
-#tcHudMini #hudXpRight{
-  display:none !important;
+.tc-left__line{ margin: 2px 0; }
+
+.tc-player__name{
+  font-weight: 800;
+  color: #ffd54a;
 }
 
-/* Renk vurgular */
-#tcHudMini .gold{ color:gold !important; }
-#tcHudMini .green{ color:#35ff9c !important; }
+.tc-weapon__name{
+  font-weight: 800;
+  color: #ffd54a;
+}
 
-/* App container absolute'ları doğru tutsun */
-.app{ position:relative !important; }
+.tc-bonus{
+  opacity: 0.95;
+}
+
+.tc-bonus__val{
+  font-weight: 800;
+  color: #35ff9c;
+}
+
+.tc-center{
+  justify-self: center;
+  pointer-events: none;
+}
+
+.tc-logo{
+  height: 44px;   /* logo boyutu */
+  width: auto;
+  filter: drop-shadow(0 3px 10px rgba(0,0,0,0.55));
+}
+
+/* Sağ alan */
+.tc-right{
+  justify-self: end;
+  min-width: 260px;
+  color: rgba(255,255,255,0.92);
+  font-size: 12px;
+}
+
+.tc-bars{ display: grid; gap: 8px; }
+
+.tc-bar-row{
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.tc-bar-label{
+  font-weight: 700;
+  opacity: 0.92;
+}
+
+.tc-bar{
+  position: relative;
+  height: 10px;
+  background: rgba(255,255,255,0.16);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.tc-bar-fill{
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+}
+
+.tc-bar-fill--energy{ background: #35ff9c; }
+.tc-bar-fill--xp{ background: #ffd54a; }
+
+/* ✅ Bar içi yazı (buradan boyut değişir) */
+.tc-bar-text{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 11px;     /* BAR yazı boyutu BURASI */
+  font-weight: 900;    /* BAR yazı kalınlığı */
+  color: rgba(0,0,0,0.75);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tc-right__bottom{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  gap: 10px;
+}
+
+.tc-energy-timer{
+  font-weight: 800;
+  color: #35ff9c;
+  opacity: 0.95;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.tc-yton{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 900;
+  color: #ffd54a;
+  white-space: nowrap;
+}
+
+.tc-yton__icon{
+  height: 16px;
+  width: auto;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+}
+
+.tc-yton__val{
+  font-size: 13px;
+}
+
+/* Mobil/ dar ekran: ölçek değil, daha kompakt */
+@media (max-width: 740px){
+  .tc-topbar__inner{
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+  .tc-center{
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+  }
+  .tc-left{
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+  .tc-right{
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+  }
+   }
