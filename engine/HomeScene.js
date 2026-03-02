@@ -15,8 +15,10 @@ export class HomeScene {
 
   render(ctx, w, h) {
     // arka plan
-    ctx.fillStyle = "#0b0b0f";
-    ctx.fillRect(0, 0, w, h);
+   const bg = this.assets.getImage("background");
+if (bg) {
+  ctx.drawImage(bg, 0, 0, w, h);
+}
 
     // başlık
     ctx.fillStyle = "#ffffff";
