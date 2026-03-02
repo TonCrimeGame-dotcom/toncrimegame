@@ -8,12 +8,16 @@ export class BootScene {
   async onEnter() {
     await this.assets.loadImages([
       { key: "background", src: "./src/assets/ui/background.jpg" },
-
-      // Logo yolu: sende src/assets/logo.png varsayımı
       { key: "logo", src: "./src/assets/logo.png" },
-
-      // Coin icon (yton)
       { key: "yton", src: "./src/assets/yton.png" },
+
+      // Carousel images
+      { key: "missions", src: "./src/assets/missions.jpg" },
+      { key: "pvp", src: "./src/assets/pvp.jpg" },
+      { key: "weapons", src: "./src/assets/weapons.jpg" },
+      { key: "nightclub", src: "./src/assets/nightclub.jpg" },
+      { key: "coffeeshop", src: "./src/assets/coffeeshop.jpg" },
+      { key: "xxx", src: "./src/assets/xxx.jpg" },
     ]);
 
     this.scenes.go("home");
