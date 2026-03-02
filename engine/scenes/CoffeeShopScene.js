@@ -5,30 +5,22 @@ export class CoffeeShopScene {
     this.assets = assets;
     this.i18n = i18n;
     this.scenes = scenes;
-    // state yoksa güvenli fallback
-    this.state = state || {
-      coin: 0,
-      energy: 0,
-      energyMax: 10,
-    };
 
-    // UI
+    this.state = state || { coin: 0, energy: 0, energyMax: 10 };
+
     this._w = 0;
     this._h = 0;
 
-    // CoffeeShop
     this._menuOpen = false;
     this._page = 0;
 
-    // click handling
     this._clickHandler = null;
     this._canvas = null;
 
     // addiction tracking (24h reset)
     this._adKey = "tc_coffee_ad_v1";
 
-    // Products (30 item / 3 sayfa / sayfa başına 10 slot)
-    // NOT: İsimler kurgusal/oyun içi.
+    // 30 item, 3 page x 10 slot
     this._items = [
       { id: "shadow_kush", name: "Shadow Kush", price: 10, energyPct: 5 },
       { id: "blue_drift", name: "Blue Drift", price: 11, energyPct: 5 },
@@ -64,24 +56,26 @@ export class CoffeeShopScene {
       { id: "velour_mix", name: "Velour Mix", price: 35, energyPct: 5 },
     ];
 
-    // sayfa başına 10 item
     this._perPage = 10;
+
+    // BG içindeki kitaba tıklama alanı (yüzde ile).
+    // Bu değerler “coffeeshop.png” ekran görüntündeki kitabın konumuna göre ayarlı.
+    // Gerekirse çok küçük oynarız ama önce bunu dene.
+    this._bgBookHit = {
+      x: 0.27, // left
+      y: 0.40, // top
+      w: 0.46, // width
+      h: 0.52, // height
+    };
   }
 
-  // -----------------------------
-  // lifecycle
-  // -----------------------------
   async onEnter({ canvas } = {}) {
     this._menuOpen = false;
     this._page = 0;
 
-    // canvas referansı
     this._canvas = canvas || null;
-
-    // addiction state load
     this._ad = this._loadAddiction();
 
-    // click binding (engine input yerine direkt canvas click)
     if (this._canvas && !this._clickHandler) {
       this._clickHandler = (ev) => {
         const p = this._clientToCanvas(ev);
@@ -89,14 +83,18 @@ export class CoffeeShopScene {
         this._handleClick(p.x, p.y);
       };
       this._canvas.addEventListener("click", this._clickHandler);
-      // mobil için:
-      this._canvas.addEventListener("touchend", (ev) => {
-        const t = ev.changedTouches && ev.changedTouches[0];
-        if (!t) return;
-        const p = this._clientToCanvas(t);
-        if (!p) return;
-        this._handleClick(p.x, p.y);
-      }, { passive: true });
+
+      this._canvas.addEventListener(
+        "touchend",
+        (ev) => {
+          const t = ev.changedTouches && ev.changedTouches[0];
+          if (!t) return;
+          const p = this._clientToCanvas(t);
+          if (!p) return;
+          this._handleClick(p.x, p.y);
+        },
+        { passive: true }
+      );
     }
   }
 
@@ -109,25 +107,24 @@ export class CoffeeShopScene {
   }
 
   update() {
-    // 24 saat reset kontrol
     this._ensureAddictionFresh();
   }
 
-  // engine render çağırır
   render(ctx, w, h) {
     this._w = w;
     this._h = h;
 
-    // BG (coffeeshop.png)
+    // BG: coffeeshop.png (içinde kitap zaten var)
     const bg = this.assets.getImage("coffeeshop_bg");
     if (bg) {
-      this._drawCover(ctx, bg, 0, 0, w, h);
+      // cover + draw rect bilgisini sakla (hit-test için)
+      this._bgDrawRect = this._drawCoverWithRect(ctx, bg, 0, 0, w, h);
     } else {
+      this._bgDrawRect = { dx: 0, dy: 0, dw: w, dh: h };
       ctx.fillStyle = "#0b0b0f";
       ctx.fillRect(0, 0, w, h);
     }
 
-    // Menü açıksa overlay + menu png
     if (this._menuOpen) {
       ctx.save();
       ctx.fillStyle = "rgba(0,0,0,0.25)";
@@ -139,37 +136,17 @@ export class CoffeeShopScene {
         const layout = this._menuLayout(menuImg, w, h);
         this._drawMenu(ctx, menuImg, layout);
       }
-      return;
-    }
-
-    // Menü kapalıyken: kitap görseli overlay (coffeeshop_book.png)
-    // Eğer bg'nin üstüne ekstra kitap çizmek istemiyorsun: aşağıdaki blok zaten küçük + tıklanabilir alan oluşturuyor.
-    const book = this.assets.getImage("coffeeshop_book");
-    if (book) {
-      const bx = w * 0.37;
-      const by = h * 0.36;
-      const bw = w * 0.26;
-      const bh = bw * (book.height / book.width);
-      this._bookRect = { x: bx, y: by, w: bw, h: bh };
-      ctx.drawImage(book, bx, by, bw, bh);
-    } else {
-      // kitap yoksa da bg üzerinde merkezde tıklama alanı bırak
-      this._bookRect = { x: w * 0.35, y: h * 0.35, w: w * 0.30, h: h * 0.40 };
     }
   }
 
-  // -----------------------------
-  // click logic
-  // -----------------------------
   _handleClick(x, y) {
+    // Menü açıksa: slot / ok / dışarı tıkla kapat
     if (this._menuOpen) {
-      // menüde: oklar + slotlar + kapatma (ESC yok)
       const menuImg = this.assets.getImage("coffeeshop_menu");
       if (!menuImg) return;
 
       const layout = this._menuLayout(menuImg, this._w, this._h);
 
-      // sağ/sol ok butonları
       if (this._inRect(x, y, layout.btnPrev)) {
         this._page = (this._page - 1 + this._pageCount()) % this._pageCount();
         return;
@@ -179,16 +156,17 @@ export class CoffeeShopScene {
         return;
       }
 
-      // menüyü kapatma: menü dışına tıkla
+      // menü dışı tıkla -> kapat
       if (!this._inRect(x, y, layout.menuRect)) {
         this._menuOpen = false;
         return;
       }
 
-      // slot click
+      // slot tık
       for (let i = 0; i < layout.slots.length; i++) {
         const slot = layout.slots[i];
         if (!this._inRect(x, y, slot)) continue;
+
         const idx = this._page * this._perPage + i;
         const item = this._items[idx];
         if (!item) return;
@@ -200,39 +178,42 @@ export class CoffeeShopScene {
       return;
     }
 
-    // menü kapalıysa: kitap alanı tıkla -> menü aç
-    if (this._bookRect && this._inRect(x, y, this._bookRect)) {
+    // Menü kapalıyken: BG içindeki kitaba tıklandı mı?
+    if (this._hitBgBook(x, y)) {
       this._menuOpen = true;
-      return;
     }
   }
 
+  _hitBgBook(x, y) {
+    const r = this._bgDrawRect || { dx: 0, dy: 0, dw: this._w, dh: this._h };
+    const bx = r.dx + r.dw * this._bgBookHit.x;
+    const by = r.dy + r.dh * this._bgBookHit.y;
+    const bw = r.dw * this._bgBookHit.w;
+    const bh = r.dh * this._bgBookHit.h;
+    return x >= bx && x <= bx + bw && y >= by && y <= by + bh;
+  }
+
   // -----------------------------
-  // gameplay (coin/energy + addiction)
+  // coin / energy + addiction
   // -----------------------------
   _buyAndUse(item) {
-    // coin check
     const coin = Number(this.state.coin || 0);
     if (coin < item.price) return;
 
-    // addiction tracking per item (10 kullanım sonrası)
     this._ensureAddictionFresh();
-    const ad = this._ad.items[item.id] || { uses: 0, penalized: false };
+    const ad = this._ad.items[item.id] || { uses: 0 };
 
-    // satın al
+    // coin düş
     this.state.coin = coin - item.price;
 
-    // enerji kazanımı:
-    // - normal: +%5 of energyMax (min 1)
-    // - 10+ kullanım sonrası: +%2'ye düşer (senin kuralın)
-    const pct = ad.uses >= 10 ? 2 : item.energyPct; // 5 veya 2
-    const gain = Math.max(1, Math.round((Number(this.state.energyMax || 10) * pct) / 100));
+    // 10 kullanım sonrası %2’ye düş
+    const pct = ad.uses >= 10 ? 2 : item.energyPct;
+    const maxE = Number(this.state.energyMax || 10);
+    const gain = Math.max(1, Math.round((maxE * pct) / 100));
 
     const curE = Number(this.state.energy || 0);
-    const maxE = Number(this.state.energyMax || 10);
     this.state.energy = Math.min(maxE, curE + gain);
 
-    // kullanım say
     ad.uses = (ad.uses || 0) + 1;
     this._ad.items[item.id] = ad;
     this._saveAddiction();
@@ -242,7 +223,6 @@ export class CoffeeShopScene {
     const now = Date.now();
     if (!this._ad || !this._ad.resetAt) return;
     if (now >= this._ad.resetAt) {
-      // 24h reset
       this._ad = this._freshAddiction();
       this._saveAddiction();
     }
@@ -250,10 +230,7 @@ export class CoffeeShopScene {
 
   _freshAddiction() {
     const now = Date.now();
-    return {
-      resetAt: now + 24 * 60 * 60 * 1000,
-      items: {},
-    };
+    return { resetAt: now + 24 * 60 * 60 * 1000, items: {} };
   }
 
   _loadAddiction() {
@@ -279,62 +256,41 @@ export class CoffeeShopScene {
   // menu layout + drawing
   // -----------------------------
   _menuLayout(menuImg, w, h) {
-    // Menü görselini ekrana düzgün oturt (küçülme/taşma yok)
-    // hedef: ekranın %88 yüksekliği
     const targetH = h * 0.88;
     const scale = targetH / menuImg.height;
+
     const mw = menuImg.width * scale;
     const mh = menuImg.height * scale;
-
     const mx = (w - mw) / 2;
     const my = (h - mh) / 2;
 
     const menuRect = { x: mx, y: my, w: mw, h: mh };
 
-    // SLOT koordinatları (menu png 1024x1536 referans alınarak)
-    // Bu değerler senin attığın “boş yazısız menü” görselindeki çerçevelere göre ayarlı.
-    // 5 sol + 5 sağ = 10 slot
-    const n = (v) => v * scale; // px -> scaled px
+    const n = (v) => v * scale;
 
-    // referans rect'ler (1024x1536 içinde)
-    const Lx = 130, Rx = 545;
-    const slotW = 330, slotH = 125;
-    const ys = [415, 565, 715, 865, 1015]; // 5 sıra
+    // 1024x1536 referans (coffeeshop_menu.png boş kutulara göre)
+    const Lx = 130,
+      Rx = 545;
+    const slotW = 330,
+      slotH = 125;
+    const ys = [415, 565, 715, 865, 1015];
 
     const slots = [];
-    for (let r = 0; r < 5; r++) {
-      slots.push({ x: mx + n(Lx), y: my + n(ys[r]), w: n(slotW), h: n(slotH) }); // sol
-    }
-    for (let r = 0; r < 5; r++) {
-      slots.push({ x: mx + n(Rx), y: my + n(ys[r]), w: n(slotW), h: n(slotH) }); // sağ
-    }
+    for (let r = 0; r < 5; r++) slots.push({ x: mx + n(Lx), y: my + n(ys[r]), w: n(slotW), h: n(slotH) });
+    for (let r = 0; r < 5; r++) slots.push({ x: mx + n(Rx), y: my + n(ys[r]), w: n(slotW), h: n(slotH) });
 
-    // Ok butonları (menu altı)
-    const btnPrev = {
-      x: mx + mw * 0.12,
-      y: my + mh * 0.90,
-      w: mw * 0.10,
-      h: mh * 0.07,
-    };
-    const btnNext = {
-      x: mx + mw * 0.78,
-      y: my + mh * 0.90,
-      w: mw * 0.10,
-      h: mh * 0.07,
-    };
+    const btnPrev = { x: mx + mw * 0.12, y: my + mh * 0.90, w: mw * 0.10, h: mh * 0.07 };
+    const btnNext = { x: mx + mw * 0.78, y: my + mh * 0.90, w: mw * 0.10, h: mh * 0.07 };
 
     return { menuRect, mx, my, mw, mh, slots, btnPrev, btnNext, scale };
   }
 
   _drawMenu(ctx, menuImg, layout) {
-    // menu background
     ctx.drawImage(menuImg, layout.mx, layout.my, layout.mw, layout.mh);
 
-    // items (page)
     const start = this._page * this._perPage;
     const pageItems = this._items.slice(start, start + this._perPage);
 
-    // text style
     ctx.save();
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
@@ -346,40 +302,33 @@ export class CoffeeShopScene {
       const item = pageItems[i];
       if (!item) continue;
 
-      const ad = (this._ad.items[item.id] || { uses: 0 });
+      const ad = this._ad.items[item.id] || { uses: 0 };
       const effectivePct = ad.uses >= 10 ? 2 : item.energyPct;
 
-      // === YAZIYI AŞAĞI OTURT (senin istediğin) ===
-      // slot içinde padding (daha aşağı)
+      // Yazıları biraz daha aşağıya oturt
       const padX = slot.w * 0.07;
-      const padY = slot.h * 0.24;   // kritik: daha aşağı başlat
-      const yShift = slot.h * 0.10; // kritik: komple aşağı kaydır
-
+      const yShift = slot.h * 0.16; // daha aşağı
       const tx = slot.x + padX;
       const maxW = slot.w - padX * 2;
 
-      // 1) isim (upper)
-      const titleText = item.name.toUpperCase();
-      const titleSize = this._fitText(ctx, titleText, maxW, slot.h * 0.30, slot.h * 0.18, 900);
+      // Title
+      const title = item.name.toUpperCase();
+      const titleSize = this._fitText(ctx, title, maxW, slot.h * 0.30, slot.h * 0.18, 900);
       ctx.font = `900 ${Math.round(titleSize)}px system-ui`;
       ctx.fillStyle = "rgba(255,255,255,0.98)";
-      ctx.fillText(this._ellipsis(ctx, titleText, maxW), tx, slot.y + padY + yShift + titleSize);
+      ctx.fillText(this._ellipsis(ctx, title, maxW), tx, slot.y + yShift + titleSize);
 
-      // 2) price + energy
+      // Line2
       const line2 = `${item.price} YTON  |  +%${effectivePct} Enerji`;
       const line2Size = this._fitText(ctx, line2, maxW, slot.h * 0.22, slot.h * 0.16, 800);
       ctx.font = `800 ${Math.round(line2Size)}px system-ui`;
       ctx.fillStyle = "rgba(255,255,255,0.93)";
-      ctx.fillText(this._ellipsis(ctx, line2, maxW), tx, slot.y + padY + yShift + titleSize + slot.h * 0.30);
+      ctx.fillText(this._ellipsis(ctx, line2, maxW), tx, slot.y + yShift + titleSize + slot.h * 0.30);
 
-      // 3) usage
-      const usedTxt = `Kullanım: ${Math.min(ad.uses || 0, 99)}/10`;
-      const line3Size = Math.max(11, slot.h * 0.15);
-      ctx.font = `700 ${Math.round(line3Size)}px system-ui`;
+      // Usage
+      ctx.font = `700 ${Math.round(Math.max(11, slot.h * 0.15))}px system-ui`;
       ctx.fillStyle = "rgba(255,255,255,0.78)";
-      ctx.fillText(usedTxt, tx, slot.y + slot.h - padY * 0.20);
-
-      // (isteğe bağlı) 24h reset kalan süreyi gösterme istemiyorsun diye eklemedim.
+      ctx.fillText(`Kullanım: ${Math.min(ad.uses || 0, 99)}/10`, tx, slot.y + slot.h - slot.h * 0.12);
     }
 
     ctx.restore();
@@ -395,13 +344,12 @@ export class CoffeeShopScene {
     ctx.fillText(`Sayfa ${this._page + 1}/${this._pageCount()}`, layout.mx + layout.mw / 2, layout.my + layout.mh * 0.935);
     ctx.restore();
 
-    // arrows (tıklanabilir alan)
+    // arrows
     this._drawArrow(ctx, layout.btnPrev, "left");
     this._drawArrow(ctx, layout.btnNext, "right");
   }
 
   _drawArrow(ctx, r, dir) {
-    // sade ok (senin “tuş yok” dediğin problem için)
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.25)";
     ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -448,23 +396,24 @@ export class CoffeeShopScene {
     const cx = ev.clientX - rect.left;
     const cy = ev.clientY - rect.top;
 
-    // canvas gerçek boyut/ekran boyut oranı
     const sx = c.width / rect.width;
     const sy = c.height / rect.height;
 
     return { x: cx * sx, y: cy * sy };
   }
 
-  _drawCover(ctx, img, x, y, w, h) {
-    // CSS background-size: cover gibi
+  _drawCoverWithRect(ctx, img, x, y, w, h) {
     const iw = img.width;
     const ih = img.height;
+
     const s = Math.max(w / iw, h / ih);
     const dw = iw * s;
     const dh = ih * s;
     const dx = x + (w - dw) / 2;
     const dy = y + (h - dh) / 2;
+
     ctx.drawImage(img, dx, dy, dw, dh);
+    return { dx, dy, dw, dh };
   }
 
   _fitText(ctx, text, maxWidth, startPx, minPx, weight = 800) {
@@ -488,4 +437,4 @@ export class CoffeeShopScene {
     }
     return ell;
   }
-        }
+      }
