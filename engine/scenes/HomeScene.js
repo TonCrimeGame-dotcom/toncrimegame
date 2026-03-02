@@ -38,10 +38,6 @@ export class HomeScene {
     this.i18n = i18n;
     this.scenes = scenes;
 
-    // bottom tabs
-    this._tabs = [];
-
-    // carousel state
     this.carousel = {
       index: 0,
       dragging: false,
@@ -52,11 +48,10 @@ export class HomeScene {
       clickCandidate: false,
     };
 
-    this._cardRect = { x: 0, y: 0, w: 0, h: 0 }; // tap for action
+    this._cardRect = { x: 0, y: 0, w: 0, h: 0 };
   }
 
   onEnter() {
-    // Dil değiştir (L)
     this._onKey = (e) => {
       if (e.key.toLowerCase() === "l") {
         const s = this.store.get();
@@ -65,7 +60,6 @@ export class HomeScene {
     };
     window.addEventListener("keydown", this._onKey);
 
-    // Player defaultları
     const s = this.store.get();
     if (!s.player) {
       this.store.set({
@@ -84,7 +78,6 @@ export class HomeScene {
         },
       });
     } else {
-      // eksikleri tamamla
       const p = s.player;
       const patch = {};
       if (p.energy == null) patch.energy = 10;
@@ -124,7 +117,6 @@ export class HomeScene {
 
     const newE = Math.min(maxE, e + gained);
     const newLast = Number(p.lastEnergyAt || now) + gained * interval;
-
     this.store.set({ player: { ...p, energy: newE, lastEnergyAt: newLast } });
   }
 
@@ -152,7 +144,6 @@ export class HomeScene {
   update() {
     this._tickEnergy();
 
-    // Pointer drag logic (Input sadece justPressed veriyor, o yüzden isDown ile sürükleme yapıyoruz)
     const c = this.carousel;
     const px = this.input.pointer.x;
     const py = this.input.pointer.y;
@@ -164,16 +155,6 @@ export class HomeScene {
       c.lastX = px;
       c.moved = 0;
       c.clickCandidate = true;
-
-      // önce alt menü mü?
-      for (const t of this._tabs) {
-        if (pointInRect(px, py, t.rect)) {
-          this.scenes.go(t.sceneKey);
-          c.dragging = false;
-          c.clickCandidate = false;
-          return;
-        }
-      }
     }
 
     if (c.dragging && this.input.isDown()) {
@@ -181,7 +162,6 @@ export class HomeScene {
       const dx = c.dragNowX - c.lastX;
       c.lastX = c.dragNowX;
       c.moved += Math.abs(dx);
-
       if (c.moved > 10) c.clickCandidate = false;
     }
 
@@ -191,19 +171,14 @@ export class HomeScene {
       const items = this._carouselItems();
       const dragDX = c.dragNowX - c.dragStartX;
 
-      // swipe threshold
       const threshold = 45;
       if (dragDX > threshold) c.index = Math.max(0, c.index - 1);
       else if (dragDX < -threshold) c.index = Math.min(items.length - 1, c.index + 1);
 
-      // click on card (enerji harca + sahneye git)
+      // Kart tıklaması: 1 enerji harca + sahneye git (şimdilik yoksa coin artır)
       if (c.clickCandidate && pointInRect(px, py, this._cardRect)) {
-        // 1 enerji harcat (test)
         if (this._spendEnergy(1)) {
           const item = items[c.index];
-          // Bu sahneler şimdilik placeholder değilse bile navigation hazır
-          // Not: Henüz main.js'te "nightclub/coffeeshop/xxx" scene yoksa hata verir.
-          // O yüzden güvenli geçiş: yoksa coin artır.
           try {
             this.scenes.go(item.sceneKey);
           } catch (_) {
@@ -211,10 +186,6 @@ export class HomeScene {
             this.store.set({ coins: (s.coins ?? 0) + 1 });
           }
         }
-      } else if (c.clickCandidate) {
-        // kart dışına tıkladıysa coin artır (test)
-        const s = this.store.get();
-        this.store.set({ coins: (s.coins ?? 0) + 1 });
       }
     }
   }
@@ -234,7 +205,7 @@ export class HomeScene {
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, w, h);
 
-    // TOP layout
+    // TOP layout: logo + left/right panels
     const topX = safe.x + pad;
     const topY = safe.y + pad;
     const topW = safe.w - pad * 2;
@@ -261,12 +232,8 @@ export class HomeScene {
     const leftRect = { x: topX, y: logoRect.y, w: leftW, h: panelH };
     const rightRect = { x: safe.x + safe.w - pad - rightW, y: logoRect.y, w: rightW, h: panelH };
 
-    // LEFT panel (username/coin/weapon)
+    // LEFT panel
     const player = state.player || {};
-    const username = player.username ?? "Player";
-    const weaponName = player.weaponName ?? "Silah Yok";
-    const weaponBonus = player.weaponBonus ?? "+0%";
-
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     fillRoundRect(ctx, leftRect.x, leftRect.y, leftRect.w, leftRect.h, 12);
     ctx.strokeStyle = "rgba(255,255,255,0.14)";
@@ -280,11 +247,12 @@ export class HomeScene {
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left";
     ctx.font = "14px system-ui";
-    ctx.fillText(username, leftRect.x + linePadX, lineY1);
+    ctx.fillText(player.username ?? "Player", leftRect.x + linePadX, lineY1);
 
     const coinValue = state.coins ?? 0;
     const yton = this.assets.getImage("yton");
     const iconSize = 16;
+
     let coinTextX = leftRect.x + linePadX;
     if (yton) {
       ctx.drawImage(yton, leftRect.x + linePadX, lineY2 - iconSize + 2, iconSize, iconSize);
@@ -295,9 +263,9 @@ export class HomeScene {
 
     ctx.font = "12px system-ui";
     ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.fillText(`${weaponName}`, leftRect.x + linePadX, lineY3);
+    ctx.fillText(player.weaponName ?? "Silah Yok", leftRect.x + linePadX, lineY3);
     ctx.fillStyle = "rgba(255,255,255,0.70)";
-    ctx.fillText(`${weaponBonus}`, leftRect.x + linePadX, lineY3 + 14);
+    ctx.fillText(player.weaponBonus ?? "+0%", leftRect.x + linePadX, lineY3 + 14);
 
     // LOGO
     if (logoImg) ctx.drawImage(logoImg, logoRect.x, logoRect.y, logoRect.w, logoRect.h);
@@ -332,11 +300,11 @@ export class HomeScene {
     const e = Math.max(0, Number(player.energy || 0));
     const eMax = Math.max(1, Number(player.energyMax || 10));
     const ePct = clamp01(e / eMax);
-
     const interval = Math.max(10_000, Number(player.energyIntervalMs || 300000));
     const lastAt = Number(player.lastEnergyAt || Date.now());
     const now = Date.now();
     const untilNext = e >= eMax ? 0 : Math.max(0, interval - (now - lastAt));
+    const timeText = e >= eMax ? "FULL" : fmtMMSS(untilNext);
 
     const enX = xpX;
     const enY = xpY + barH + 10;
@@ -344,124 +312,67 @@ export class HomeScene {
     fillRoundRect(ctx, enX, enY, barW, barH, 10);
     ctx.fillStyle = "rgba(255,255,255,0.22)";
     fillRoundRect(ctx, enX, enY, Math.max(8, barW * ePct), barH, 10);
-
-    const timeText = e >= eMax ? "FULL" : fmtMMSS(untilNext);
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.font = "12px system-ui";
     ctx.fillText(`ENERJİ ${e}/${eMax} • ${timeText}`, enX + barW / 2, enY + barH / 2 + 4);
 
-    // ----- BOTTOM TABS -----
-    const barSafeH = 58;
-    const bottomY = safe.y + safe.h - barSafeH;
-
-    ctx.fillStyle = "rgba(0,0,0,0.65)";
-    ctx.fillRect(safe.x, bottomY, safe.w, barSafeH);
-
-    const tabs = [
-      { key: "tab_missions", sceneKey: "missions" },
-      { key: "tab_dealer", sceneKey: "dealer" },
-      { key: "tab_pvp", sceneKey: "pvp" },
-      { key: "tab_clan", sceneKey: "clan" },
-    ];
-
-    const tabGap = 10;
-    const tabPad = 12;
-    const tabW = Math.floor((safe.w - tabPad * 2 - tabGap * (tabs.length - 1)) / tabs.length);
-    const tabH = 38;
-    const ty = bottomY + Math.floor((barSafeH - tabH) / 2);
-
-    this._tabs = [];
-    ctx.font = "13px system-ui";
-    ctx.textAlign = "center";
-
-    tabs.forEach((t, i) => {
-      const tx = safe.x + tabPad + i * (tabW + tabGap);
-      const rect = { x: tx, y: ty, w: tabW, h: tabH };
-
-      ctx.fillStyle = "rgba(255,255,255,0.10)";
-      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-
-      ctx.strokeStyle = "rgba(255,255,255,0.18)";
-      ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText(this.i18n.t(t.key), rect.x + rect.w / 2, rect.y + rect.h / 2 + 5);
-
-      this._tabs.push({ rect, sceneKey: t.sceneKey });
-    });
-
-    // ----- CENTER CAROUSEL -----
+    // ----- CENTER CAROUSEL (CONTAIN: resim tam görünsün) -----
     const items = this._carouselItems();
     const idx = this.carousel.index;
 
-    // carousel alanı: üst panellerin altı ile bottom barın üstü arası
     const carouselTop = logoRect.y + logoRect.h + 18;
-    const carouselBottom = bottomY - 18;
-    const areaH = Math.max(120, carouselBottom - carouselTop);
+    const carouselBottom = safe.y + safe.h - 18; // alt bar kalktı
+    const areaH = Math.max(140, carouselBottom - carouselTop);
 
-    const cardW = Math.min(safe.w * 0.76, 360);
-    const cardH = Math.min(areaH * 0.72, 260);
+    const cardW = Math.min(safe.w * 0.80, 380);
+    const cardH = Math.min(areaH * 0.78, 280);
+
     const cx = safe.x + safe.w / 2;
     const cy = carouselTop + areaH / 2;
 
-    const spacing = cardW + 26;
-
-    // sürükleme offset
+    const spacing = cardW + 28;
     const dragDX = this.carousel.dragging ? (this.carousel.dragNowX - this.carousel.dragStartX) : 0;
 
-    // kartları çiz (sadece 3 tane: prev, current, next)
     const drawCard = (itemIndex) => {
       if (itemIndex < 0 || itemIndex >= items.length) return;
 
       const item = items[itemIndex];
       const offset = (itemIndex - idx) * spacing + dragDX;
-      const x = cx - cardW / 2 + offset;
-      const y = cy - cardH / 2;
 
-      // kenardakiler biraz küçülsün
       const dist = Math.abs(itemIndex - idx);
       const scale = dist === 0 ? 1 : 0.92;
+
       const w2 = cardW * scale;
       const h2 = cardH * scale;
       const x2 = cx - w2 / 2 + offset;
       const y2 = cy - h2 / 2;
 
-      // shadow bg
+      // panel
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       fillRoundRect(ctx, x2, y2, w2, h2, 18);
 
-      // image
+      // clip
+      ctx.save();
+      roundRectPath(ctx, x2, y2, w2, h2, 18);
+      ctx.clip();
+
+      // image (CONTAIN)
       const img = this.assets.getImage(item.id);
       if (img) {
-        // cover draw
-        const ar = img.width / img.height;
-        const targetAR = w2 / h2;
-        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+        const s = Math.min(w2 / img.width, h2 / img.height);
+        const dw = img.width * s;
+        const dh = img.height * s;
+        const dx = x2 + (w2 - dw) / 2;
+        const dy = y2 + (h2 - dh) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
 
-        if (ar > targetAR) {
-          // image wider -> crop sides
-          sh = img.height;
-          sw = Math.floor(sh * targetAR);
-          sx = Math.floor((img.width - sw) / 2);
-        } else {
-          // image taller -> crop top/bottom
-          sw = img.width;
-          sh = Math.floor(sw / targetAR);
-          sy = Math.floor((img.height - sh) / 2);
-        }
-
-        // clip rounded
-        roundRectPath(ctx, x2, y2, w2, h2, 18);
-        ctx.save();
-        ctx.clip();
-        ctx.drawImage(img, sx, sy, sw, sh, x2, y2, w2, h2);
-        ctx.restore();
-
-        // dark overlay for text
-        ctx.fillStyle = "rgba(0,0,0,0.25)";
-        fillRoundRect(ctx, x2, y2, w2, h2, 18);
+        // overlay text readability
+        ctx.fillStyle = "rgba(0,0,0,0.20)";
+        ctx.fillRect(x2, y2, w2, h2);
       }
+
+      ctx.restore();
 
       // border
       ctx.strokeStyle = dist === 0 ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.18)";
@@ -474,18 +385,15 @@ export class HomeScene {
       ctx.font = dist === 0 ? "18px system-ui" : "16px system-ui";
       ctx.fillText(title, x2 + w2 / 2, y2 + h2 - 22);
 
-      // Only current card is clickable for action
-      if (itemIndex === idx) {
-        this._cardRect = { x: x2, y: y2, w: w2, h: h2 };
-      }
+      if (itemIndex === idx) this._cardRect = { x: x2, y: y2, w: w2, h: h2 };
     };
 
     drawCard(idx - 1);
     drawCard(idx);
     drawCard(idx + 1);
 
-    // küçük nokta göstergesi
-    const dotsY = Math.min(bottomY - 22, cy + cardH / 2 + 18);
+    // dots
+    const dotsY = Math.min(safe.y + safe.h - 22, cy + cardH / 2 + 18);
     const dotGap = 10;
     const total = (items.length - 1) * dotGap;
     const startX = cx - total / 2;
@@ -498,11 +406,5 @@ export class HomeScene {
       ctx.fillStyle = i === idx ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.28)";
       ctx.fill();
     }
-
-    // Dil ipucu
-    ctx.fillStyle = "rgba(255,255,255,0.70)";
-    ctx.textAlign = "left";
-    ctx.font = "12px system-ui";
-    ctx.fillText(`Lang: ${state.lang ?? "tr"} (L)`, safe.x + 12, bottomY - 10);
   }
-      }
+       }
