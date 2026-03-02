@@ -9,10 +9,10 @@ export class BootScene {
   async onEnter() {
     this._done = false;
 
-    // Örnek asset listesi: senin görsellerinle dolduracağız
-await this.assets.loadImages([
-  { key: "background", src: "./src/assets/ui/background.jpg" },
-]);
+    // Assets
+    await this.assets.loadImages([
+      { key: "background", src: "./src/assets/ui/background.jpg" },
+    ]);
 
     this._done = true;
     this.scenes.go("home");
