@@ -8,49 +8,35 @@ export class CoffeeShopScene {
     this.menuOpen = false;
     this.page = 0;
 
-    // Menü sprite baz ölçüsü (senin attığın görsel: 1024 x 1536)
+    // Menünün baz ölçüsü (coffeeshop_menu.png üretimin 1024x1536 idi)
     this.MENU_W = 1024;
     this.MENU_H = 1536;
 
-    // 4 sayfa * 8 ürün = 32 slot -> biz 30 ürün doldurup son 2 slotu boş bırakacağız.
     this.PAGE_SIZE = 8;
-
-    // Kullanıcı state localStorage anahtarları
     this.STORAGE_KEY = "tc_state_v1";
   }
 
-  // ---- AYAR: Asset key isimleri ----
-  ASSET_KEYS = {
-    BG: "coffeeshop_bg", // ./src/assets/coffeeshop.png
-    MENU: "coffeeshop_menu", // ./src/assets/coffeeshop_menu.png
-  };
-
-  // ---- MENÜ KUTUCUK KOORDİNATLARI (coffeeshop_menu.png üzerinde) ----
-  // 8 slot: solda 4, sağda 4 (alttaki dekorların üstünde kalıyor, taşma yapmıyor)
-  // Bu koordinatlar 1024x1536 referansına göredir.
+  // ---- MENÜ KUTUCUK KOORDİNATLARI (1024x1536 referans) ----
   SLOT_RECTS = [
-    // LEFT column (4)
+    // LEFT
     { x: 115, y: 360, w: 360, h: 76 },
     { x: 115, y: 494, w: 360, h: 76 },
     { x: 115, y: 630, w: 360, h: 76 },
     { x: 115, y: 765, w: 360, h: 76 },
-
-    // RIGHT column (4)
+    // RIGHT
     { x: 545, y: 360, w: 360, h: 76 },
     { x: 545, y: 494, w: 360, h: 76 },
     { x: 545, y: 630, w: 360, h: 76 },
     { x: 545, y: 765, w: 360, h: 76 },
   ];
 
-  // Menü kontrol alanları (1024x1536 referansına göre)
   UI_RECTS = {
-    close: { x: 900, y: 170, w: 90, h: 90 },     // sağ üst kapat
-    prev:  { x: 90,  y: 1350, w: 220, h: 120 },   // sol alt önceki
-    next:  { x: 714, y: 1350, w: 220, h: 120 },   // sağ alt sonraki
+    close: { x: 900, y: 170, w: 90, h: 90 },
+    prev: { x: 90, y: 1350, w: 220, h: 120 },
+    next: { x: 714, y: 1350, w: 220, h: 120 },
   };
 
-  // ---- Kurgusal ürün listesi (30 adet) ----
-  // min fiyat 10 YTON, min enerji +%5 (bağımlılıkta +%2)
+  // ---- Kurgusal ürün listesi (30) ----
   ITEMS = [
     { id: "shadow_kush", name: "Shadow Kush", price: 10, energyPct: 5 },
     { id: "blue_drift", name: "Blue Drift", price: 15, energyPct: 5 },
@@ -87,29 +73,27 @@ export class CoffeeShopScene {
     { id: "prime_rocks", name: "Prime Rocks", price: 42, energyPct: 5 },
   ];
 
-  // ---------------- STATE ----------------
+  // -------- time helpers --------
   _now() { return Date.now(); }
   _dayMs() { return 24 * 60 * 60 * 1000; }
 
+  // -------- state --------
   _loadState() {
     let s;
     try { s = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || "null"); } catch { s = null; }
     if (!s) {
-      s = {
-        yton: 200,
-        energy: 5,
-        energyMax: 10,
-        // item usage tracking
-        usage: {}, // id -> { count, windowStart, addictedAt }
-      };
+      s = { yton: 200, energy: 5, energyMax: 10, usage: {} };
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(s));
     }
+    if (!s.usage) s.usage = {};
+    if (typeof s.yton !== "number") s.yton = 0;
+    if (typeof s.energy !== "number") s.energy = 0;
+    if (typeof s.energyMax !== "number") s.energyMax = 10;
     return s;
   }
 
   _saveState(s) {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(s));
-    // Hud/Chat başka js’lerde dinliyorsa diye event atalım
     window.dispatchEvent(new CustomEvent("tc:state", { detail: s }));
   }
 
@@ -131,23 +115,62 @@ export class CoffeeShopScene {
     return u;
   }
 
-  _isAddicted(u) {
-    return !!u.addictedAt;
+  _isAddicted(u) { return !!u.addictedAt; }
+
+  // -------- ENGINE UYUMLU: image getter (ÖNEMLİ) --------
+  _getImageByKey(key) {
+    if (!key) return null;
+
+    // 1) assets.image(key)
+    try {
+      const a = this.assets?.image?.(key);
+      if (a && (a instanceof HTMLImageElement || a instanceof HTMLCanvasElement || a instanceof ImageBitmap)) return a;
+      // bazı engine’lerde {img: HTMLImageElement} gibi dönebiliyor
+      if (a?.img && a.img instanceof HTMLImageElement) return a.img;
+    } catch {}
+
+    // 2) assets.getImage / assets.get
+    try {
+      const b = this.assets?.getImage?.(key);
+      if (b && b instanceof HTMLImageElement) return b;
+    } catch {}
+    try {
+      const c = this.assets?.get?.(key);
+      if (c && c instanceof HTMLImageElement) return c;
+      if (c?.img && c.img instanceof HTMLImageElement) return c.img;
+    } catch {}
+
+    // 3) assets.images map/obj
+    const imgs = this.assets?.images;
+    if (imgs) {
+      if (typeof imgs.get === "function") {
+        const d = imgs.get(key);
+        if (d && d instanceof HTMLImageElement) return d;
+        if (d?.img && d.img instanceof HTMLImageElement) return d.img;
+      } else {
+        const e = imgs[key];
+        if (e && e instanceof HTMLImageElement) return e;
+        if (e?.img && e.img instanceof HTMLImageElement) return e.img;
+      }
+    }
+
+    return null;
   }
 
-  // ---------------- INPUT HELPERS ----------------
-  _pointer(thisInput) {
-    // Engine’in input’u projende “pointer object” şeklindeyse:
-    // {x, y, down, pressed, justPressed} gibi.
-    // Bazı sürümlerde "this.input.pointer" objedir. Fonksiyon değildir.
-    const p = thisInput?.pointer || thisInput?.mouse || thisInput;
-    if (!p) return null;
+  _getImageAny(keys) {
+    for (const k of keys) {
+      const img = this._getImageByKey(k);
+      if (img) return img;
+    }
+    return null;
+  }
 
-    // "clicked" benzeri alanları normalize edelim:
+  // -------- input normalize --------
+  _pointer(input) {
+    const p = input?.pointer || input?.mouse || input;
+    if (!p) return null;
     const x = p.x ?? p.clientX ?? 0;
     const y = p.y ?? p.clientY ?? 0;
-
-    // tık anı: justPressed / pressed / click
     const justPressed = !!(p.justPressed || p.pressed || p.click || p.clicked);
     return { x, y, justPressed };
   }
@@ -156,9 +179,7 @@ export class CoffeeShopScene {
     return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
   }
 
-  // Menü çizim alanı (ekranda)
   _computeMenuDraw(w, h) {
-    // Menü yüksekliği ekranın %86’sı olsun (HUD üstü kalsın)
     const maxH = h * 0.86;
     const scale = Math.min((w * 0.92) / this.MENU_W, maxH / this.MENU_H);
     const dw = this.MENU_W * scale;
@@ -168,73 +189,40 @@ export class CoffeeShopScene {
     return { dx, dy, dw, dh, scale };
   }
 
-  // Menü içindeki (1024x1536) rect’i ekrana mapler
   _mapRect(menuDraw, r) {
     const { dx, dy, scale } = menuDraw;
-    return {
-      x: dx + r.x * scale,
-      y: dy + r.y * scale,
-      w: r.w * scale,
-      h: r.h * scale,
-    };
+    return { x: dx + r.x * scale, y: dy + r.y * scale, w: r.w * scale, h: r.h * scale };
   }
 
-  // ---------------- LIFECYCLE ----------------
-  onEnter() {
-    // hiçbir şey
-  }
+  // -------- lifecycle --------
+  onEnter() {}
 
   update(dt, input, w, h) {
     const p = this._pointer(input);
     if (!p || !p.justPressed) return;
 
-    // Menü kapalıyken: arka plandaki kitabın olduğu bölgeye tıklayınca aç
     if (!this.menuOpen) {
-      // coffeeshop.png arka planında kitabın yaklaşık alanı (oran bazlı)
-      // Bu oranlar senin ekranda kitabın üstüne denk gelecek şekilde geniş tutuldu.
-      const bookRect = {
-        x: w * 0.22,
-        y: h * 0.28,
-        w: w * 0.46,
-        h: h * 0.50,
-      };
-      if (this._inRect(p.x, p.y, bookRect)) {
-        this.menuOpen = true;
-      }
+      // arka plandaki kitabın alanı (oran bazlı)
+      const bookRect = { x: w * 0.22, y: h * 0.28, w: w * 0.46, h: h * 0.50 };
+      if (this._inRect(p.x, p.y, bookRect)) this.menuOpen = true;
       return;
     }
 
-    // Menü açıkken: menü UI hit-test
-    const menuDraw = this._computeMenuDraw(w, h);
+    const md = this._computeMenuDraw(w, h);
 
-    // close
-    const closeR = this._mapRect(menuDraw, this.UI_RECTS.close);
-    if (this._inRect(p.x, p.y, closeR)) {
-      this.menuOpen = false;
-      return;
-    }
+    const closeR = this._mapRect(md, this.UI_RECTS.close);
+    if (this._inRect(p.x, p.y, closeR)) { this.menuOpen = false; return; }
 
-    // prev/next
-    const prevR = this._mapRect(menuDraw, this.UI_RECTS.prev);
-    const nextR = this._mapRect(menuDraw, this.UI_RECTS.next);
+    const prevR = this._mapRect(md, this.UI_RECTS.prev);
+    const nextR = this._mapRect(md, this.UI_RECTS.next);
+    if (this._inRect(p.x, p.y, prevR)) { this.page = (this.page + 3) % 4; return; }
+    if (this._inRect(p.x, p.y, nextR)) { this.page = (this.page + 1) % 4; return; }
 
-    if (this._inRect(p.x, p.y, prevR)) {
-      this.page = (this.page + 4 - 1) % 4;
-      return;
-    }
-    if (this._inRect(p.x, p.y, nextR)) {
-      this.page = (this.page + 1) % 4;
-      return;
-    }
-
-    // slot click
     const start = this.page * this.PAGE_SIZE;
-
     for (let i = 0; i < this.SLOT_RECTS.length; i++) {
       const item = this.ITEMS[start + i];
       if (!item) continue;
-
-      const slotR = this._mapRect(menuDraw, this.SLOT_RECTS[i]);
+      const slotR = this._mapRect(md, this.SLOT_RECTS[i]);
       if (this._inRect(p.x, p.y, slotR)) {
         this._buyAndApply(item);
         return;
@@ -247,101 +235,94 @@ export class CoffeeShopScene {
     const u = this._getUsage(s, item.id);
     const now = this._now();
 
-    // 24 saat penceresi başlat
     if (!u.windowStart) u.windowStart = now;
-
-    // bakiye yeterli mi?
     if (s.yton < item.price) return;
 
-    // ödeme
     s.yton -= item.price;
 
-    // bağımlılık kontrol: 10 kullanımdan sonra 24 saat boyunca düşür
-    // (10. kullanımdan itibaren addictedAt set)
     u.count += 1;
-    if (u.count >= 10 && !u.addictedAt) {
-      u.addictedAt = now;
-    }
+    if (u.count >= 10 && !u.addictedAt) u.addictedAt = now;
 
     const addicted = this._isAddicted(u);
-    const effectivePct = addicted ? 2 : item.energyPct;
+    const pct = addicted ? 2 : item.energyPct;
 
-    // enerji artışı: max’a göre yüzde
-    const gain = Math.max(1, Math.round((s.energyMax * effectivePct) / 100));
+    const gain = Math.max(1, Math.round((s.energyMax * pct) / 100));
     s.energy = Math.min(s.energyMax, s.energy + gain);
 
     s.usage[item.id] = u;
     this._saveState(s);
   }
 
-  // ---------------- RENDER ----------------
+  // -------- render --------
   render(ctx, w, h) {
-    // BG
-    const bg = this.assets.image(this.ASSET_KEYS.BG);
-    if (bg) {
+    // BG: farklı olası key’ler
+    const bg = this._getImageAny([
+      "coffeeshop_bg",
+      "coffeeshop",
+      "background_coffeeshop",
+      "bg_coffeeshop",
+      "background",
+    ]);
+
+    if (bg && bg.width && bg.height) {
       this._drawCover(ctx, bg, 0, 0, w, h);
     } else {
+      // resim yoksa çökme yok
       ctx.fillStyle = "#0b0b0f";
       ctx.fillRect(0, 0, w, h);
     }
 
     if (!this.menuOpen) return;
 
-    // Menü karartma
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
 
-    // Menü sprite
-    const menu = this.assets.image(this.ASSET_KEYS.MENU);
     const md = this._computeMenuDraw(w, h);
 
-    if (menu) {
-      ctx.save();
-      ctx.globalAlpha = 1;
+    const menu = this._getImageAny([
+      "coffeeshop_menu",
+      "menu_coffeeshop",
+      "menu",
+    ]);
+
+    if (menu && menu.width && menu.height) {
       ctx.drawImage(menu, md.dx, md.dy, md.dw, md.dh);
-      ctx.restore();
     } else {
-      // fallback panel
       ctx.fillStyle = "rgba(20,20,25,0.92)";
       ctx.fillRect(md.dx, md.dy, md.dw, md.dh);
     }
 
-    // UI: close + oklar + sayfa yazısı
-    this._drawMenuUI(ctx, w, h, md);
-
-    // Slot yazıları
+    this._drawMenuUI(ctx, md);
     this._drawItems(ctx, md);
   }
 
   _drawCover(ctx, img, x, y, w, h) {
-    // cover fit (center crop)
     const iw = img.width, ih = img.height;
     const ir = iw / ih;
     const r = w / h;
     let sx = 0, sy = 0, sw = iw, sh = ih;
     if (ir > r) {
-      // too wide
-      sh = ih;
       sw = ih * r;
       sx = (iw - sw) / 2;
     } else {
-      // too tall
-      sw = iw;
       sh = iw / r;
       sy = (ih - sh) / 2;
     }
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   }
 
-  _drawMenuUI(ctx, w, h, md) {
-    // close "X"
+  _drawMenuUI(ctx, md) {
     const closeR = this._mapRect(md, this.UI_RECTS.close);
+    const prevR = this._mapRect(md, this.UI_RECTS.prev);
+    const nextR = this._mapRect(md, this.UI_RECTS.next);
+
     ctx.save();
+
+    // Close X
     ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.beginPath();
-    ctx.roundRect(closeR.x + closeR.w * 0.18, closeR.y + closeR.h * 0.18, closeR.w * 0.64, closeR.h * 0.64, 12);
+    this._rr(ctx, closeR.x + closeR.w * 0.18, closeR.y + closeR.h * 0.18, closeR.w * 0.64, closeR.h * 0.64, 12);
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.7)";
     ctx.lineWidth = 2;
@@ -351,29 +332,23 @@ export class CoffeeShopScene {
     ctx.moveTo(closeR.x + closeR.w * 0.67, closeR.y + closeR.h * 0.33);
     ctx.lineTo(closeR.x + closeR.w * 0.33, closeR.y + closeR.h * 0.67);
     ctx.stroke();
-    ctx.restore();
 
-    // oklar (görünür küçük)
-    const prevR = this._mapRect(md, this.UI_RECTS.prev);
-    const nextR = this._mapRect(md, this.UI_RECTS.next);
-
-    ctx.save();
+    // Prev/Next
     ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.beginPath();
-    ctx.roundRect(prevR.x, prevR.y, prevR.w, prevR.h, 18);
-    ctx.roundRect(nextR.x, nextR.y, nextR.w, nextR.h, 18);
-    ctx.fill();
+    this._rr(ctx, prevR.x, prevR.y, prevR.w, prevR.h, 18); ctx.fill();
+    this._rr(ctx, nextR.x, nextR.y, nextR.w, nextR.h, 18); ctx.fill();
 
     ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.font = `${Math.max(22, Math.round(md.scale * 34))}px system-ui`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    ctx.font = `${Math.max(22, Math.round(md.scale * 34))}px system-ui`;
     ctx.fillText("◀", prevR.x + prevR.w / 2, prevR.y + prevR.h / 2);
     ctx.fillText("▶", nextR.x + nextR.w / 2, nextR.y + nextR.h / 2);
 
-    // sayfa
+    // Page label
     ctx.font = `${Math.max(16, Math.round(md.scale * 22))}px system-ui`;
     ctx.fillText(`Sayfa ${this.page + 1}/4`, md.dx + md.dw / 2, md.dy + md.dh - md.scale * 40);
+
     ctx.restore();
   }
 
@@ -390,29 +365,29 @@ export class CoffeeShopScene {
       const addicted = this._isAddicted(usage);
       const pct = addicted ? 2 : item.energyPct;
 
-      // 3 satır: İsim / fiyat+pct / kullanım+bağımlılık
       const padX = r.w * 0.06;
       const x = r.x + padX;
       const maxW = r.w - padX * 2;
 
-      // Yazıları kutu içine sığdır (özellikle alt kutularda taşma oluyordu)
-      const nameFont = Math.max(14, Math.round(md.scale * 26));
-      const subFont = Math.max(11, Math.round(md.scale * 18));
-      const tinyFont = Math.max(10, Math.round(md.scale * 15));
+      // taşmayı bitirmek için: isim fontu slot genişliğine göre otomatik küçülür
+      const nameFontStart = Math.max(12, Math.round(md.scale * 24));
+      const nameFontMin = 12;
+      const subFont = Math.max(10, Math.round(md.scale * 16));
+      const tinyFont = Math.max(10, Math.round(md.scale * 14));
 
       ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillStyle = "rgba(255,255,255,0.92)";
 
-      // isim (fit)
-      this._fillTextFit(ctx, item.name, x, r.y + r.h * 0.12, maxW, nameFont, 24);
+      // 1) İsim (fit)
+      this._fillTextFit(ctx, item.name, x, r.y + r.h * 0.08, maxW, nameFontStart, nameFontMin);
 
-      // fiyat + enerji
+      // 2) fiyat + enerji
       ctx.font = `${subFont}px system-ui`;
-      ctx.fillText(`${item.price} YTON  |  +%${pct} Enerji`, x, r.y + r.h * 0.46);
+      ctx.fillText(`${item.price} YTON  |  +%${pct} Enerji`, x, r.y + r.h * 0.43);
 
-      // kullanım + bağımlılık geri sayımı
+      // 3) kullanım + bağımlılık geri sayım
       ctx.font = `${tinyFont}px system-ui`;
       let line3 = `Kullanım: ${Math.min(usage.count, 10)}/10`;
       if (addicted) {
@@ -422,40 +397,34 @@ export class CoffeeShopScene {
         const ss = String(Math.floor((remain % 60000) / 1000)).padStart(2, "0");
         line3 += `  |  Bağımlılık: ${hh}:${mm}:${ss}`;
       }
-      ctx.fillText(line3, x, r.y + r.h * 0.70);
-
-      // slot hover/klik hissi için çok hafif highlight
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      // line3 çok uzarsa slotta kırpılsın
+      this._fillTextFit(ctx, line3, x, r.y + r.h * 0.68, maxW, tinyFont, 10, false);
 
       ctx.restore();
     }
   }
 
-  _fillTextFit(ctx, text, x, y, maxW, startSize, minSize) {
+  _fillTextFit(ctx, text, x, y, maxW, startSize, minSize, bold = true) {
     let size = startSize;
     while (size >= minSize) {
-      ctx.font = `700 ${size}px system-ui`;
-      const w = ctx.measureText(text).width;
-      if (w <= maxW) break;
+      ctx.font = `${bold ? "700" : "400"} ${size}px system-ui`;
+      if (ctx.measureText(text).width <= maxW) break;
       size -= 1;
     }
     ctx.fillText(text, x, y);
   }
-}
 
-// Canvas roundRect polyfill (bazı tarayıcılarda yoksa)
-if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D.prototype.roundRect) {
-  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+  _rr(ctx, x, y, w, h, r) {
+    // roundRect yoksa manuel
+    if (ctx.roundRect) return ctx.roundRect(x, y, w, h, r);
     const rr = Math.min(r, w / 2, h / 2);
-    this.beginPath();
-    this.moveTo(x + rr, y);
-    this.arcTo(x + w, y, x + w, y + h, rr);
-    this.arcTo(x + w, y + h, x, y + h, rr);
-    this.arcTo(x, y + h, x, y, rr);
-    this.arcTo(x, y, x + w, y, rr);
-    this.closePath();
-    return this;
-  };
-}
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+    return ctx;
+  }
+          }
