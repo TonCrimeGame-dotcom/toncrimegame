@@ -10,9 +10,9 @@ export class BootScene {
     this._done = false;
 
     // Örnek asset listesi: senin görsellerinle dolduracağız
-    await this.assets.loadImages([
-      // { key: "bg", src: "./assets/ui/bg.png" },
-    ]);
+await this.assets.loadImages([
+  { key: "background", src: "./src/assets/ui/background.jpg" },
+]);
 
     this._done = true;
     this.scenes.go("home");
