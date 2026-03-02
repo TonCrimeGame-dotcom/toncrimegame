@@ -12,7 +12,6 @@
 
       --tc-bg: #071a3a;
       --tc-panel: rgba(10, 18, 30, .72);
-      --tc-panel-2: rgba(10, 18, 30, .60);
       --tc-stroke: rgba(255,255,255,.12);
       --tc-text: rgba(255,255,255,.92);
       --tc-muted: rgba(255,255,255,.70);
@@ -24,93 +23,93 @@
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    *{ box-sizing: border-box; }
+    *{ box-sizing:border-box; }
     html, body{
       width:100%;
       height:100%;
       margin:0;
       padding:0;
-      background: var(--tc-bg);
       overflow:hidden;
+      background: var(--tc-bg);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color: var(--tc-text);
       -webkit-tap-highlight-color: transparent;
-      user-select: none;
+      user-select:none;
     }
 
-    /* Outer */
+    /* Root always fills screen */
     #tc-root{
-      position: fixed;
-      inset: 0;
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       background:
         radial-gradient(70% 70% at 50% 20%, rgba(255,255,255,.06), transparent 65%),
         linear-gradient(180deg, rgba(255,255,255,.03), transparent 50%),
         var(--tc-bg);
-      display:flex;
-      align-items:center;
-      justify-content:center;
     }
 
-    /* Stage 390x844 */
+    /* Stage is the ONLY thing scaled */
     #tc-stage{
-      position: relative;
+      position:relative;
       width: calc(var(--tc-design-w) * 1px);
       height: calc(var(--tc-design-h) * 1px);
       transform: scale(var(--tc-scale));
-      transform-origin: center center;
+      transform-origin:center center;
       border-radius: 22px;
-      overflow: hidden;
-      background: #0a1a3a;
-      box-shadow: 0 20px 80px rgba(0,0,0,.45);
+      overflow:hidden;           /* IMPORTANT: prevents HUD overflow */
+      background:#0a1a3a;
+      box-shadow:0 20px 80px rgba(0,0,0,.45);
     }
 
-    /* Background image */
     #tc-bg{
       position:absolute;
       inset:0;
       background: url("assets/background.jpg") center/cover no-repeat;
-      filter: saturate(1.05) contrast(1.05);
+      filter:saturate(1.05) contrast(1.05);
     }
     #tc-bg::after{
       content:"";
       position:absolute;
       inset:0;
-      background: linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.12) 35%, rgba(0,0,0,.35));
+      background: linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.10) 35%, rgba(0,0,0,.35));
     }
 
-    /* UI layer */
     #tc-ui{
       position:absolute;
       inset:0;
       display:flex;
       flex-direction:column;
       padding-top: calc(10px + var(--safe-top));
-      padding-bottom: 10px;
+      padding-bottom: calc(10px + var(--safe-bottom));
+      gap: 10px;
     }
 
-    /* ============ TOPBAR (FIXED LAYOUT) ============ */
+    /* ================= TOPBAR ================= */
     #tc-topbar{
-      position: relative;
-      z-index: 60;
-      width: 100%;
-      padding: 10px 12px 10px;
+      position:relative;
+      z-index:60;
+      padding: 0 12px;
     }
 
     .tb-strip{
-      background: rgba(10,18,30,.35);
-      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(10,18,30,.38);
+      border: 1px solid rgba(255,255,255,.10);
       border-radius: 18px;
-      padding: 10px 10px;
+      padding: 10px;
       backdrop-filter: blur(10px);
     }
 
+    /* FIX: prevent grid overflow by forcing min-width:0 on items */
     .tb-wrap{
       display:grid;
-      grid-template-columns: 138px 1fr 170px; /* stabil */
-      align-items: center;
+      grid-template-columns: 140px 1fr 170px;
       gap: 10px;
-      min-height: 86px;
+      align-items:center;
+      min-height: 88px;
     }
+    .tb-wrap > *{ min-width:0; }
 
     .pill{
       background: var(--tc-panel);
@@ -120,213 +119,201 @@
       backdrop-filter: blur(10px);
     }
 
-    .tb-user{ line-height: 1.05; }
     .tb-user .name{
       font-weight: 900;
-      letter-spacing: .2px;
       font-size: 14px;
       white-space: nowrap;
-      overflow: hidden;
+      overflow:hidden;
       text-overflow: ellipsis;
     }
     .tb-user .weapon{
-      margin-top: 4px;
-      font-size: 12px;
+      margin-top:4px;
+      font-size:12px;
       color: var(--tc-muted);
       white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
     }
     .tb-user .bonus{
-      margin-top: 2px;
-      font-size: 12px;
+      margin-top:2px;
+      font-size:12px;
       color: var(--tc-green);
       font-weight: 900;
       white-space: nowrap;
     }
 
-    /* Center logo: %30 bigger, locked in center */
+    /* LOGO with PLATE: solves transparent logo */
     .tb-logo{
       display:flex;
       align-items:center;
       justify-content:center;
       pointer-events:none;
     }
-    .tb-logo img{
-      height: 62px;              /* biraz büyüttüm */
-      transform: scale(1.30);    /* %30 büyüt */
-      transform-origin: center;
+    .tb-logoPlate{
+      background: rgba(10,18,30,.60);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding: 10px 16px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .tb-logoPlate img{
+      height: 56px;
+      transform: scale(1.30);     /* %30 büyüt */
+      transform-origin:center;
       filter: drop-shadow(0 8px 18px rgba(0,0,0,.55));
     }
 
-    .tb-right .pill{ width: 100%; }
-
     .bar-row{
       display:flex;
-      align-items:center;
       justify-content:space-between;
-      gap: 10px;
-      margin-bottom: 6px;
+      align-items:center;
+      gap:10px;
+      margin-bottom:6px;
     }
     .bar-label{
-      font-size: 12px;
+      font-size:12px;
+      font-weight:800;
       color: var(--tc-muted);
-      font-weight: 800;
     }
     .bar-val{
-      font-size: 12px;
+      font-size:12px;
+      font-weight:900;
       color: var(--tc-text);
-      font-weight: 900;
     }
     .bar{
-      width: 100%;
-      height: 10px;
-      border-radius: 999px;
+      height:10px;
+      border-radius:999px;
       background: rgba(255,255,255,.10);
       border: 1px solid rgba(255,255,255,.10);
       overflow:hidden;
     }
-    .bar > i{
+    .bar i{
       display:block;
       height:100%;
-      width: 50%;
-      border-radius: 999px;
+      width:50%;
+      border-radius:999px;
       background: linear-gradient(90deg, rgba(110,242,255,.95), rgba(67,227,141,.95));
     }
-    .bar.xp > i{
+    .bar.xp i{
       background: linear-gradient(90deg, rgba(242,211,107,.95), rgba(255,255,255,.35));
     }
     .yton-line{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      margin-top: 6px;
-      padding-top: 6px;
+      margin-top:6px;
+      padding-top:6px;
       border-top: 1px solid rgba(255,255,255,.10);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
     }
     .yton-line .k{
-      font-size: 12px;
+      font-size:12px;
+      font-weight:900;
       color: var(--tc-muted);
-      font-weight: 900;
-      letter-spacing: .2px;
     }
     .yton-line .v{
-      font-size: 13px;
-      font-weight: 950;
+      font-size:13px;
+      font-weight:950;
       color: var(--tc-gold);
     }
 
-    /* ============ CONTENT (CAROUSEL) ============ */
+    /* ================= CONTENT ================= */
     #tc-content{
-      position: relative;
-      z-index: 10;
-      flex: 1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding: 10px 0 0;
-      padding-bottom: 88px; /* chat kapalıyken bile alan */
-    }
-
-    .carousel{
-      width: 100%;
-      height: 100%;
+      position:relative;
+      z-index:10;
+      flex:1;
       display:flex;
       align-items:center;
       justify-content:center;
       padding: 0 14px;
+      padding-bottom: 86px;  /* reserve space for chat bar */
     }
 
     .carousel-viewport{
-      position: relative;
-      width: 100%;
+      width:100%;
       max-width: 360px;
-      height: 460px;
+      height: 480px;
       border-radius: 22px;
-      overflow: hidden;
-      background: rgba(0,0,0,.10);
+      overflow:hidden;
       border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
       backdrop-filter: blur(6px);
 
-      /* FIX: swipe garantisi */
-      touch-action: none;              /* browser swipe/scroll’u kapat */
-      -webkit-user-select: none;
-      user-select: none;
+      /* ABSOLUTE FIX for swipe */
+      touch-action: none;
     }
 
     .track{
-      position:absolute;
-      inset:0;
+      position:relative;
+      width:100%;
+      height:100%;
       display:flex;
       will-change: transform;
     }
 
     .slide{
-      min-width: 100%;
-      height: 100%;
+      min-width:100%;
+      height:100%;
       padding: 14px;
       display:flex;
       flex-direction:column;
-      gap: 12px;
     }
 
     .card{
-      flex: 1;
-      border-radius: 18px;
+      flex:1;
+      border-radius:18px;
       overflow:hidden;
-      border: 1px solid rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.12);
+      position:relative;
       background: rgba(0,0,0,.22);
-      position: relative;
       box-shadow: 0 18px 60px rgba(0,0,0,.35);
-      cursor: pointer;
+      cursor:pointer;
     }
 
     .card .img{
       position:absolute;
       inset:0;
-      background-size: cover;
-      background-position: center;
-      filter: contrast(1.04) saturate(1.03);
-      transform: scale(1.02);
+      background-size:cover;
+      background-position:center;
+      transform:scale(1.02);
     }
     .card .shade{
       position:absolute;
       inset:0;
-      background: linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.45));
+      background: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.50));
     }
     .card .title{
       position:absolute;
-      left: 14px;
-      bottom: 14px;
-      right: 14px;
-      font-weight: 950;
-      letter-spacing: .3px;
-      font-size: 18px;
+      left:14px;
+      right:14px;
+      bottom:14px;
+      font-size:18px;
+      font-weight:950;
       color: var(--tc-gold);
       text-shadow: 0 6px 18px rgba(0,0,0,.70);
+      letter-spacing:.3px;
     }
 
-    .carousel-controls{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-    }
     .navbtn{
-      pointer-events:auto;
       position:absolute;
-      top: 50%;
+      top:50%;
       transform: translateY(-50%);
-      width: 42px;
-      height: 42px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.18);
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
       background: rgba(10,18,30,.55);
       backdrop-filter: blur(10px);
+      color: rgba(255,255,255,.92);
+      font-weight: 900;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-weight: 900;
-      color: rgba(255,255,255,.92);
       cursor:pointer;
+      z-index: 20;
     }
     .navbtn:active{ transform: translateY(-50%) scale(.98); }
     .navbtn.prev{ left: 10px; }
@@ -334,111 +321,103 @@
 
     .dots{
       position:absolute;
-      left: 0;
-      right: 0;
-      bottom: 10px;
+      left:0; right:0;
+      bottom:10px;
       display:flex;
       justify-content:center;
-      gap: 8px;
+      gap:8px;
+      z-index: 20;
       pointer-events:none;
     }
     .dot{
-      width: 8px; height: 8px;
-      border-radius: 999px;
+      width:8px; height:8px;
+      border-radius:999px;
       background: rgba(255,255,255,.28);
     }
-    .dot.on{
-      background: rgba(255,255,255,.78);
-    }
+    .dot.on{ background: rgba(255,255,255,.78); }
 
-    /* ============ CHAT (FIX: bottom sheet, stable) ============ */
+    /* ================= CHAT ================= */
     #tc-chat{
-      position: absolute;
-      left: 14px;
-      right: 14px;
+      position:absolute;
+      left:14px;
+      right:14px;
       bottom: calc(10px + var(--safe-bottom));
       z-index: 90;
     }
 
     .chat-shell{
-      width: 100%;
-      border-radius: 18px;
+      border-radius:18px;
       border: 1px solid rgba(255,255,255,.14);
       background: rgba(10,18,30,.62);
       backdrop-filter: blur(10px);
       overflow:hidden;
-
-      max-height: 54px;              /* FIX: max-height ile stabil */
+      max-height: 54px;
       transition: max-height .22s ease;
     }
     .chat-shell.open{
-      max-height: 280px;
+      max-height: 300px;
     }
 
     .chat-head{
-      height: 54px;
+      height:54px;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-weight: 950;
-      letter-spacing: .4px;
+      font-weight:950;
+      letter-spacing:.4px;
       cursor:pointer;
-      position: relative;
+      position:relative;
     }
     .chat-head::before{
       content:"";
       position:absolute;
-      top: 10px;
-      left: 50%;
+      top:10px;
+      left:50%;
       transform: translateX(-50%);
-      width: 54px;
-      height: 4px;
-      border-radius: 999px;
+      width:54px;
+      height:4px;
+      border-radius:999px;
       background: rgba(255,255,255,.18);
     }
 
     .chat-body{
-      height: 226px;
+      height: 246px;
+      padding: 10px;
       display:flex;
       flex-direction:column;
-      padding: 10px;
-      gap: 10px;
+      gap:10px;
 
-      opacity: 0;
-      pointer-events: none;
+      opacity:0;
+      pointer-events:none;
       transform: translateY(4px);
       transition: opacity .18s ease, transform .18s ease;
     }
     .chat-shell.open .chat-body{
-      opacity: 1;
-      pointer-events: auto;
+      opacity:1;
+      pointer-events:auto;
       transform: translateY(0);
     }
 
     .chat-log{
-      flex: 1;
+      flex:1;
       overflow:auto;
-      border-radius: 12px;
+      border-radius:12px;
       background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.08);
-      padding: 10px;
-      font-size: 12px;
+      border:1px solid rgba(255,255,255,.08);
+      padding:10px;
+      font-size:12px;
       color: rgba(255,255,255,.85);
       user-select:text;
     }
-    .msg{ margin: 0 0 8px; }
+    .msg{ margin:0 0 8px; }
     .msg b{ color: rgba(255,255,255,.95); }
 
-    .chat-row{
-      display:flex;
-      gap: 10px;
-      align-items:center;
-    }
+    .chat-row{ display:flex; gap:10px; }
     .chat-input{
-      flex: 1;
-      height: 42px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.14);
+      flex:1;
+      height:42px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
       background: rgba(0,0,0,.25);
       color: rgba(255,255,255,.92);
       padding: 0 12px;
@@ -446,205 +425,189 @@
       user-select:text;
     }
     .chat-send{
-      height: 42px;
-      min-width: 92px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,.14);
+      height:42px;
+      min-width:92px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
       background: rgba(242,211,107,.18);
       color: rgba(255,255,255,.92);
-      font-weight: 900;
+      font-weight:900;
       cursor:pointer;
     }
     .chat-send:active{ transform: scale(.99); }
 
-    /* debug */
     .debug{
       position:absolute;
-      left: 10px;
-      top: 10px;
-      z-index: 95;
-      font-size: 11px;
-      color: rgba(255,255,255,.75);
-      opacity: .55;
+      left:10px;
+      top:10px;
+      z-index: 99;
+      font-size:11px;
+      opacity:.55;
       pointer-events:none;
-      white-space: nowrap;
+      white-space:nowrap;
     }
   </style>
 </head>
 
 <body>
-  <div id="tc-root">
-    <div id="tc-stage">
-      <div id="tc-bg"></div>
+  <div id="tc-root"></div>
 
-      <div id="tc-ui">
+  <script>
+    // ================== BUILD DOM (guarantee) ==================
+    function tcBuildDOM(){
+      const root = document.getElementById('tc-root');
+      if(!root) throw new Error('#tc-root yok');
 
-        <div id="tc-topbar">
-          <div class="tb-strip">
-            <div class="tb-wrap">
-              <div class="pill tb-user">
-                <div class="name" id="tbName">Player01</div>
-                <div class="weapon" id="tbWeapon">Tabanca</div>
-                <div class="bonus" id="tbBonus">(+10%)</div>
-              </div>
+      root.innerHTML = `
+        <div id="tc-stage">
+          <div id="tc-bg"></div>
+          <div id="tc-ui">
 
-              <div class="tb-logo">
-                <img src="assets/logo.png" alt="TonCrime Logo" />
-              </div>
-
-              <div class="tb-right">
-                <div class="pill">
-                  <div class="bar-row">
-                    <div class="bar-label">Enerji</div>
-                    <div class="bar-val" id="tbEnergyText">85/100</div>
-                  </div>
-                  <div class="bar">
-                    <i id="tbEnergyFill" style="width:85%"></i>
+            <div id="tc-topbar">
+              <div class="tb-strip">
+                <div class="tb-wrap">
+                  <div class="pill tb-user">
+                    <div class="name" id="tbName">Player01</div>
+                    <div class="weapon" id="tbWeapon">Tabanca</div>
+                    <div class="bonus" id="tbBonus">(+10%)</div>
                   </div>
 
-                  <div style="height:10px"></div>
-
-                  <div class="bar-row">
-                    <div class="bar-label">XP</div>
-                    <div class="bar-val" id="tbXpText">118/1000</div>
-                  </div>
-                  <div class="bar xp">
-                    <i id="tbXpFill" style="width:12%"></i>
+                  <div class="tb-logo">
+                    <div class="tb-logoPlate">
+                      <img src="assets/logo.png" alt="TonCrime Logo" />
+                    </div>
                   </div>
 
-                  <div class="yton-line">
-                    <div class="k">YTON</div>
-                    <div class="v" id="tbYton">1031</div>
+                  <div class="pill">
+                    <div class="bar-row">
+                      <div class="bar-label">Enerji</div>
+                      <div class="bar-val" id="tbEnergyText">85/100</div>
+                    </div>
+                    <div class="bar"><i id="tbEnergyFill" style="width:85%"></i></div>
+
+                    <div style="height:10px"></div>
+
+                    <div class="bar-row">
+                      <div class="bar-label">XP</div>
+                      <div class="bar-val" id="tbXpText">118/1000</div>
+                    </div>
+                    <div class="bar xp"><i id="tbXpFill" style="width:12%"></i></div>
+
+                    <div class="yton-line">
+                      <div class="k">YTON</div>
+                      <div class="v" id="tbYton">1031</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- CAROUSEL -->
-        <div id="tc-content">
-          <div class="carousel">
-            <div class="carousel-viewport" id="cv">
-              <div class="track" id="track">
-                <div class="slide">
-                  <div class="card" data-route="missions">
-                    <div class="img" style="background-image:url('assets/missions.jpg');"></div>
-                    <div class="shade"></div>
-                    <div class="title">Görevler</div>
-                  </div>
-                </div>
-
-                <div class="slide">
-                  <div class="card" data-route="pvp">
-                    <div class="img" style="background-image:url('assets/pvp.jpg');"></div>
-                    <div class="shade"></div>
-                    <div class="title">PvP</div>
-                  </div>
-                </div>
-
-                <div class="slide">
-                  <div class="card" data-route="weapons">
-                    <div class="img" style="background-image:url('assets/weapons.jpg');"></div>
-                    <div class="shade"></div>
-                    <div class="title">Silah Kaçakçısı</div>
-                  </div>
-                </div>
-
-                <div class="slide">
-                  <div class="card" data-route="coffeeshop">
-                    <div class="img" style="background-image:url('assets/coffeeshop.jpg');"></div>
-                    <div class="shade"></div>
-                    <div class="title">Coffee Shop</div>
-                  </div>
-                </div>
-
-                <div class="slide">
-                  <div class="card" data-route="nightclub">
-                    <div class="img" style="background-image:url('assets/nightclub.jpg');"></div>
-                    <div class="shade"></div>
-                    <div class="title">Gece Kulübü</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="carousel-controls">
+            <div id="tc-content">
+              <div class="carousel-viewport" id="cv">
                 <button class="navbtn prev" id="prevBtn" aria-label="Önceki">‹</button>
                 <button class="navbtn next" id="nextBtn" aria-label="Sonraki">›</button>
                 <div class="dots" id="dots"></div>
+
+                <div class="track" id="track">
+                  <div class="slide">
+                    <div class="card" data-route="missions">
+                      <div class="img" style="background-image:url('assets/missions.jpg');"></div>
+                      <div class="shade"></div>
+                      <div class="title">Görevler</div>
+                    </div>
+                  </div>
+
+                  <div class="slide">
+                    <div class="card" data-route="pvp">
+                      <div class="img" style="background-image:url('assets/pvp.jpg');"></div>
+                      <div class="shade"></div>
+                      <div class="title">PvP</div>
+                    </div>
+                  </div>
+
+                  <div class="slide">
+                    <div class="card" data-route="weapons">
+                      <div class="img" style="background-image:url('assets/weapons.jpg');"></div>
+                      <div class="shade"></div>
+                      <div class="title">Silah Kaçakçısı</div>
+                    </div>
+                  </div>
+
+                  <div class="slide">
+                    <div class="card" data-route="coffeeshop">
+                      <div class="img" style="background-image:url('assets/coffeeshop.jpg');"></div>
+                      <div class="shade"></div>
+                      <div class="title">Coffee Shop</div>
+                    </div>
+                  </div>
+
+                  <div class="slide">
+                    <div class="card" data-route="nightclub">
+                      <div class="img" style="background-image:url('assets/nightclub.jpg');"></div>
+                      <div class="shade"></div>
+                      <div class="title">Gece Kulübü</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- CHAT -->
-        <div id="tc-chat">
-          <div class="chat-shell" id="chatShell">
-            <div class="chat-head" id="chatHead">CHAT</div>
-            <div class="chat-body">
-              <div class="chat-log" id="chatLog">
-                <p class="msg"><b>Sistem:</b> Chat hazır.</p>
-              </div>
-              <div class="chat-row">
-                <input class="chat-input" id="chatInput" placeholder="Mesaj yaz..." />
-                <button class="chat-send" id="chatSend">Gönder</button>
+            <div id="tc-chat">
+              <div class="chat-shell" id="chatShell">
+                <div class="chat-head" id="chatHead">CHAT</div>
+                <div class="chat-body">
+                  <div class="chat-log" id="chatLog">
+                    <p class="msg"><b>Sistem:</b> Chat hazır.</p>
+                  </div>
+                  <div class="chat-row">
+                    <input class="chat-input" id="chatInput" placeholder="Mesaj yaz..." />
+                    <button class="chat-send" id="chatSend">Gönder</button>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <div class="debug" id="dbg"></div>
           </div>
         </div>
+      `;
+    }
 
-        <div class="debug" id="dbg"></div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // ====== LAYOUT SCALE ENGINE (390x844) ======
-    (function tcLayout(){
+    // ================== SCALE ENGINE ==================
+    function tcApplyScale(){
       const DESIGN_W = 390, DESIGN_H = 844;
       const root = document.documentElement;
       const dbg = document.getElementById('dbg');
 
-      function apply(){
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
-        root.style.setProperty('--tc-scale', scale.toFixed(6));
-        dbg.textContent = `${DESIGN_W}x${DESIGN_H} / scale ${scale.toFixed(3)}`;
-      }
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
 
-      window.addEventListener('resize', apply, {passive:true});
-      window.addEventListener('orientationchange', apply, {passive:true});
-      apply();
-    })();
+      const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+      root.style.setProperty('--tc-scale', scale.toFixed(6));
 
-    // ====== TOPBAR DATA SETTER (demo) ======
+      if(dbg) dbg.textContent = `${DESIGN_W}x${DESIGN_H} | vw:${vw} vh:${vh} | scale:${scale.toFixed(3)}`;
+    }
+
+    // ================== TOPBAR SETTER ==================
     function setTopbar({name, weapon, bonus, energyNow, energyMax, xpNow, xpMax, yton}){
-      document.getElementById('tbName').textContent = name;
-      document.getElementById('tbWeapon').textContent = weapon;
-      document.getElementById('tbBonus').textContent = bonus;
+      const $ = (id)=>document.getElementById(id);
+      $('tbName').textContent = name;
+      $('tbWeapon').textContent = weapon;
+      $('tbBonus').textContent = bonus;
 
       const ePct = Math.max(0, Math.min(1, energyNow / energyMax));
-      document.getElementById('tbEnergyText').textContent = `${energyNow}/${energyMax}`;
-      document.getElementById('tbEnergyFill').style.width = `${(ePct*100).toFixed(1)}%`;
+      $('tbEnergyText').textContent = `${energyNow}/${energyMax}`;
+      $('tbEnergyFill').style.width = `${(ePct*100).toFixed(1)}%`;
 
       const xPct = Math.max(0, Math.min(1, xpNow / xpMax));
-      document.getElementById('tbXpText').textContent = `${xpNow}/${xpMax}`;
-      document.getElementById('tbXpFill').style.width = `${(xPct*100).toFixed(1)}%`;
+      $('tbXpText').textContent = `${xpNow}/${xpMax}`;
+      $('tbXpFill').style.width = `${(xPct*100).toFixed(1)}%`;
 
-      document.getElementById('tbYton').textContent = String(yton);
+      $('tbYton').textContent = String(yton);
     }
-    setTopbar({
-      name: "Player01",
-      weapon: "Tabanca",
-      bonus: "(+10%)",
-      energyNow: 85, energyMax: 100,
-      xpNow: 118, xpMax: 1000,
-      yton: 1031
-    });
 
-    // ====== CAROUSEL ENGINE (FIX: Pointer Events, guaranteed swipe) ======
-    (function tcCarousel(){
+    // ================== CAROUSEL ENGINE (POINTER CAPTURE) ==================
+    function tcInitCarousel(){
       const track = document.getElementById('track');
       const viewport = document.getElementById('cv');
       const prevBtn = document.getElementById('prevBtn');
@@ -660,17 +623,13 @@
       let currentX = 0;
 
       // dots
-      const dots = [];
       dotsWrap.innerHTML = '';
+      const dots = [];
       for(let i=0;i<count;i++){
         const d = document.createElement('div');
         d.className = 'dot' + (i===0 ? ' on' : '');
         dotsWrap.appendChild(d);
         dots.push(d);
-      }
-
-      function setTransition(on){
-        track.style.transition = on ? 'transform .22s ease' : 'none';
       }
 
       function render(offsetPx=0){
@@ -680,9 +639,9 @@
       }
 
       function update(){
-        setTransition(true);
+        track.style.transition = 'transform .22s ease';
         render(0);
-        dots.forEach((d,i)=> d.classList.toggle('on', i===index));
+        dots.forEach((d,i)=>d.classList.toggle('on', i===index));
       }
 
       function go(i){
@@ -690,22 +649,20 @@
         update();
       }
 
-      prevBtn.addEventListener('click', ()=>go(index-1));
-      nextBtn.addEventListener('click', ()=>go(index+1));
+      prevBtn.onclick = ()=>go(index-1);
+      nextBtn.onclick = ()=>go(index+1);
 
       viewport.addEventListener('pointerdown', (e)=>{
         dragging = true;
-        startX = e.clientX;
-        currentX = e.clientX;
-        setTransition(false);
+        startX = currentX = e.clientX;
+        track.style.transition = 'none';
         viewport.setPointerCapture(e.pointerId);
       });
 
       viewport.addEventListener('pointermove', (e)=>{
         if(!dragging) return;
         currentX = e.clientX;
-        const dx = currentX - startX;
-        render(dx);
+        render(currentX - startX);
       });
 
       function endDrag(){
@@ -723,6 +680,31 @@
       viewport.addEventListener('pointercancel', endDrag);
       viewport.addEventListener('lostpointercapture', endDrag);
 
-      // Card click route
       track.addEventListener('click', (e)=>{
-        if(dragging) return
+        const card = e.target.closest('.card');
+        if(!card) return;
+        console.log('route:', card.getAttribute('data-route'));
+      });
+
+      update();
+    }
+
+    // ================== CHAT ENGINE ==================
+    function tcInitChat(){
+      const shell = document.getElementById('chatShell');
+      const head  = document.getElementById('chatHead');
+      const log   = document.getElementById('chatLog');
+      const input = document.getElementById('chatInput');
+      const send  = document.getElementById('chatSend');
+
+      function toggle(){
+        shell.classList.toggle('open');
+        if(shell.classList.contains('open')) setTimeout(()=>input.focus(), 120);
+        else input.blur();
+      }
+
+      // single source of truth:
+      head.addEventListener('click', toggle);
+
+      function addMsg(text){
+    
