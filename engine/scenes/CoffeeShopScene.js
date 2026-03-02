@@ -1,528 +1,453 @@
 // src/scenes/CoffeeShopScene.js
-
-function clamp(n, a, b) {
-  return Math.max(a, Math.min(b, n));
-}
-const DAY = 24 * 60 * 60 * 1000;
-
-function safeJSONParse(s, fallback) {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return fallback;
-  }
-}
-
-function findLikelyPlayerState() {
-  // HUD hangi key'i kullanıyorsa yakalamaya çalışıyoruz
-  const keys = [
-    "tc_player",
-    "tc_state",
-    "player",
-    "playerState",
-    "toncrime_player",
-    "toncrime_state",
-    "game_state",
-    "hud_state",
-    "hud",
-  ];
-
-  for (const k of keys) {
-    const raw = localStorage.getItem(k);
-    if (!raw) continue;
-    const obj = safeJSONParse(raw, null);
-    if (!obj || typeof obj !== "object") continue;
-
-    // coin/energy benzeri alanlar var mı?
-    const hasMoney =
-      typeof obj.coin === "number" ||
-      typeof obj.yton === "number" ||
-      typeof obj.money === "number";
-    const hasEnergy =
-      typeof obj.energy === "number" ||
-      typeof obj.enerji === "number" ||
-      (obj.stats && typeof obj.stats.energy === "number");
-
-    if (hasMoney || hasEnergy) return { key: k, obj };
-  }
-
-  // fallback: tc_player yoksa oluştur
-  const init = {
-    name: "Player",
-    coin: 500,
-    yton: 500,
-    energy: 5,
-    energyMax: 10,
-    xp: 30,
-    level: 1,
-  };
-  localStorage.setItem("tc_player", JSON.stringify(init));
-  return { key: "tc_player", obj: init };
-}
-
-function savePlayerEverywhere(player) {
-  // HUD’un farklı key’leri kullanma ihtimaline karşı çoklu yazıyoruz
-  const payloads = [
-    ["tc_player", player],
-    ["tc_state", player],
-    ["playerState", player],
-    ["toncrime_state", player],
-    ["hud_state", player],
-  ];
-
-  for (const [k, v] of payloads) {
-    try {
-      localStorage.setItem(k, JSON.stringify(v));
-    } catch {}
-  }
-
-  // HUD ileride dinleyebilirse diye event de atalım
-  try {
-    window.dispatchEvent(new CustomEvent("tc:playerUpdate", { detail: player }));
-  } catch {}
-}
-
-function ensureDrugState() {
-  const raw = localStorage.getItem("tc_drugs");
-  if (raw) {
-    const obj = safeJSONParse(raw, null);
-    if (obj && typeof obj === "object") return obj;
-  }
-  const init = {};
-  localStorage.setItem("tc_drugs", JSON.stringify(init));
-  return init;
-}
-
-function getDrugMeta(drugs, key) {
-  if (!drugs[key]) drugs[key] = { uses: 0, firstUseAt: 0, addictedUntil: 0 };
-  return drugs[key];
-}
-
-function updateAddiction(meta) {
-  // 24 saat geçtiyse reset
-  if (meta.firstUseAt && Date.now() - meta.firstUseAt >= DAY) {
-    meta.uses = 0;
-    meta.firstUseAt = 0;
-    meta.addictedUntil = 0;
-  }
-  // 10 kullanım sonrası 24 saat bağımlı
-  if (meta.uses >= 10 && (!meta.addictedUntil || meta.addictedUntil <= Date.now())) {
-    meta.addictedUntil = Date.now() + DAY;
-  }
-}
-
-function isAddicted(meta) {
-  return meta.addictedUntil && meta.addictedUntil > Date.now();
-}
-
-function fmtLeft(ms) {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const r = s % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
-  return `${m}:${String(r).padStart(2, "0")}`;
-}
-
 export class CoffeeShopScene {
   constructor({ assets, i18n, scenes }) {
     this.assets = assets;
     this.i18n = i18n;
     this.scenes = scenes;
 
-    const found = findLikelyPlayerState();
-    this.playerKey = found.key;
-    this.player = found.obj;
-
-    this.drugs = ensureDrugState();
-
+    // UI state
     this.menuOpen = false;
-    this.page = 0;
+    this.page = 0; // 0..3
+    this.itemsPerPage = 8;
 
-    // Kurgusal 30 ürün (gerçek uyuşturucu isimleri yok)
-    // fiyat: min 10
-    // enerji kazancı: normal %5, bağımlıysa %2
-    this.items = [
-      { key: "shadow_kush", name: "Shadow Kush", price: 10 },
-      { key: "neon_haze", name: "Neon Haze", price: 12 },
-      { key: "lemon_sketch", name: "Lemon Sketch", price: 13 },
-      { key: "white_veil", name: "White Veil", price: 14 },
-      { key: "blue_drift", name: "Blue Drift", price: 15 },
-      { key: "gelato_flux", name: "Gelato Flux", price: 16 },
-      { key: "zk_sugar", name: "ZK Sugar", price: 16 },
-      { key: "gsc_prime", name: "GSC Prime", price: 17 },
+    // Image keys (BootScene'de bu key'ler load edilmiş olmalı)
+    this.bgKey = "coffeeshop_bg";     // coffeeshop.png
+    this.menuKey = "coffeeshop_menu"; // coffeeshop_menu.png
 
-      { key: "diamond_dust", name: "Diamond Dust", price: 18 },
-      { key: "glass_shard", name: "Glass Shard", price: 18 },
-      { key: "neon_crystal", name: "Neon Crystal", price: 19 },
-      { key: "midnight_rock", name: "Midnight Rock", price: 19 },
-      { key: "mdm_mix", name: "MDM Mix", price: 20 },
-      { key: "soft_powder", name: "Soft Powder", price: 20 },
-      { key: "hard_powder", name: "Hard Powder", price: 21 },
-      { key: "pure_powder", name: "Pure Powder", price: 22 },
+    // Layout (menü overlay)
+    this.menuScale = 0.78; // ekranın %78'i (çok küçülmesin)
+    this.menuAlphaBackdrop = 0.35;
 
-      { key: "red_crystal", name: "Red Crystal", price: 22 },
-      { key: "ice_kristal", name: "Ice Kristal", price: 23 },
-      { key: "gold_flake", name: "Gold Flake", price: 24 },
-      { key: "black_tar", name: "Black Tar", price: 25 },
-      { key: "silver_line", name: "Silver Line", price: 26 },
-      { key: "night_snow", name: "Night Snow", price: 27 },
-      { key: "acid_drop", name: "Acid Drop", price: 28 },
-      { key: "astro_tabs", name: "Astro Tabs", price: 29 },
+    // Kutuların (slot) konumu: menü görseline göre yüzde oranlar
+    // Bu oranlar "coffeeshop_menu.png" içindeki altın çerçeveli slot'lara göre ayarlandı.
+    // 4 satır x 2 sütun = 8 slot
+    this.SLOTS = [
+      // left page
+      { col: "L", row: 0, x: 0.12, y: 0.18, w: 0.34, h: 0.10 },
+      { col: "L", row: 1, x: 0.12, y: 0.36, w: 0.34, h: 0.10 },
+      { col: "L", row: 2, x: 0.12, y: 0.54, w: 0.34, h: 0.10 },
+      { col: "L", row: 3, x: 0.12, y: 0.72, w: 0.34, h: 0.10 },
 
-      { key: "retro_pills", name: "Retro Pills", price: 30 },
-      { key: "neon_pills", name: "Neon Pills", price: 32 },
-      { key: "shadow_tabs", name: "Shadow Tabs", price: 34 },
-      { key: "velvet_powder", name: "Velvet Powder", price: 36 },
-      { key: "chrome_dust", name: "Chrome Dust", price: 38 },
-      { key: "ultra_crystal", name: "Ultra Crystal", price: 40 },
+      // right page
+      { col: "R", row: 0, x: 0.54, y: 0.18, w: 0.34, h: 0.10 },
+      { col: "R", row: 1, x: 0.54, y: 0.36, w: 0.34, h: 0.10 },
+      { col: "R", row: 2, x: 0.54, y: 0.54, w: 0.34, h: 0.10 },
+      { col: "R", row: 3, x: 0.54, y: 0.72, w: 0.34, h: 0.10 },
     ];
 
-    this.PAGE_SIZE = 8;
+    // Close button (X) ve sayfa okları: menü görseli üzerinde oranla
+    this.CLOSE_BTN = { x: 0.90, y: 0.10, r: 0.035 }; // daire alan
+    this.PREV_BTN = { x: 0.08, y: 0.92, w: 0.12, h: 0.06 };
+    this.NEXT_BTN = { x: 0.80, y: 0.92, w: 0.12, h: 0.06 };
 
-    // ✅ Arka plandaki kitabın tıklama alanı (yüzde) — gerekirse az oynarsın
-    this.BOOK_HIT = { x: 0.22, y: 0.40, w: 0.34, h: 0.40 };
-
-    // ✅ Menü artık büyük ve ortalı
-    this.MENU_RECT = { x: 0.10, y: 0.05, w: 0.80, h: 0.90 };
-
-    // ✅ Yeni menu görseline göre kutu yerleşimi (daha iyi oturur)
-    this.BOX_LAYOUT = {
-      leftX: 0.28,
-      rightX: 0.72,
-      startY: 0.33,
-      gapY: 0.155,
-    };
-
-    // Kutuların ölçüsü (menu rect içinde)
-    this.BOX_SIZE = { w: 0.36, h: 0.105 }; // genişlik/yükseklik yüzde
-
-    // Kapatma / sayfa alanları (menu rect içinde yüzde)
-    this.CLOSE_HIT = { x: 0.89, y: 0.05, w: 0.08, h: 0.08 };
-    this.PREV_HIT = { x: 0.10, y: 0.92, w: 0.18, h: 0.06 };
-    this.NEXT_HIT = { x: 0.72, y: 0.92, w: 0.18, h: 0.06 };
-
-    this._clickHandler = null;
+    // Persistent keys
+    this.KEY_PLAYER = "toncrime_player"; // yton, energy, energyMax, xp, lvl... burada tutuyoruz
+    this.KEY_COFFEE = "toncrime_coffeeshop"; // usage + addiction timer
   }
 
   async onEnter() {
-    const canvas = document.querySelector("canvas");
-    if (!canvas) return;
+    // Varsayılan player state varsa yarat
+    this._ensurePlayerState();
 
-    if (!this._clickHandler) {
-      this._clickHandler = (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const sx = canvas.width / rect.width;
-        const sy = canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * sx;
-        const y = (e.clientY - rect.top) * sy;
-        this._handleClick(x, y, canvas.width, canvas.height);
-      };
-      canvas.addEventListener("click", this._clickHandler);
-    }
+    // Coffee state varsa yarat
+    this._ensureCoffeeState();
+
+    // Click handler canvas'a DOM üzerinden bağlanacak
+    this._boundClick = false;
+    this._canvas = null;
+    this._clickHandler = (e) => this._onCanvasClick(e);
+
+    // Scene ilk açıldığında menü kapalı
+    this.menuOpen = false;
+    this.page = 0;
   }
 
   onExit() {
-    const canvas = document.querySelector("canvas");
-    if (canvas && this._clickHandler) {
-      canvas.removeEventListener("click", this._clickHandler);
-      this._clickHandler = null;
+    // Event temizle
+    if (this._canvas && this._boundClick) {
+      this._canvas.removeEventListener("click", this._clickHandler);
+      this._boundClick = false;
     }
   }
 
-  _rectAbsFromPct(p, W, H) {
-    return { x: p.x * W, y: p.y * H, w: p.w * W, h: p.h * H };
-  }
-
-  _rectAbsInside(parent, p) {
-    return {
-      x: parent.x + p.x * parent.w,
-      y: parent.y + p.y * parent.h,
-      w: p.w * parent.w,
-      h: p.h * parent.h,
-    };
-  }
-
-  _inRect(x, y, r) {
-    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
-  }
-
-  _maxPage() {
-    return Math.max(0, Math.ceil(this.items.length / this.PAGE_SIZE) - 1);
-  }
-
-  _getVisibleItems() {
-    const start = this.page * this.PAGE_SIZE;
-    return this.items.slice(start, start + this.PAGE_SIZE);
-  }
-
-  _getBoxes(menuAbs) {
-    const boxW = menuAbs.w * this.BOX_SIZE.w;
-    const boxH = menuAbs.h * this.BOX_SIZE.h;
-
-    const cxL = menuAbs.x + this.BOX_LAYOUT.leftX * menuAbs.w;
-    const cxR = menuAbs.x + this.BOX_LAYOUT.rightX * menuAbs.w;
-    const startY = menuAbs.y + this.BOX_LAYOUT.startY * menuAbs.h;
-    const gap = this.BOX_LAYOUT.gapY * menuAbs.h;
-
-    const boxes = [];
-    for (let i = 0; i < 4; i++) {
-      const cy = startY + i * gap;
-      boxes.push({ x: cxL - boxW / 2, y: cy - boxH / 2, w: boxW, h: boxH });
-    }
-    for (let i = 0; i < 4; i++) {
-      const cy = startY + i * gap;
-      boxes.push({ x: cxR - boxW / 2, y: cy - boxH / 2, w: boxW, h: boxH });
-    }
-    return boxes;
-  }
-
-  _getMoney() {
-    // HUD “Coin: 0” gösteriyor → coin varsa onu baz al
-    if (typeof this.player.coin === "number") return this.player.coin;
-    if (typeof this.player.yton === "number") return this.player.yton;
-    if (typeof this.player.money === "number") return this.player.money;
-    return 0;
-  }
-
-  _setMoney(v) {
-    v = Math.max(0, Math.floor(v));
-    if (typeof this.player.coin === "number") this.player.coin = v;
-    if (typeof this.player.yton === "number") this.player.yton = v;
-    if (typeof this.player.money === "number") this.player.money = v;
-
-    // hiçbiri yoksa coin+yton setle
-    if (
-      typeof this.player.coin !== "number" &&
-      typeof this.player.yton !== "number" &&
-      typeof this.player.money !== "number"
-    ) {
-      this.player.coin = v;
-      this.player.yton = v;
+  update() {
+    // Bağımlılık reset kontrolü (24 saat)
+    const cs = this._getCoffeeState();
+    if (cs.addictionUntil && Date.now() > cs.addictionUntil) {
+      // reset
+      cs.addictionUntil = 0;
+      cs.uses = {}; // hepsini sıfırla
+      this._setCoffeeState(cs);
     }
   }
 
-  _getEnergy() {
-    if (typeof this.player.energy === "number") return this.player.energy;
-    if (typeof this.player.enerji === "number") return this.player.enerji;
-    if (this.player.stats && typeof this.player.stats.energy === "number") return this.player.stats.energy;
-    return 0;
-  }
+  render(ctx, w, h) {
+    // Canvas event'i burada bağla (ctx.canvas burada garanti)
+    if (!this._boundClick && ctx && ctx.canvas) {
+      this._canvas = ctx.canvas;
+      this._canvas.addEventListener("click", this._clickHandler);
+      this._boundClick = true;
+    }
 
-  _getEnergyMax() {
-    if (typeof this.player.energyMax === "number") return this.player.energyMax;
-    if (typeof this.player.enerjiMax === "number") return this.player.enerjiMax;
-    if (this.player.stats && typeof this.player.stats.energyMax === "number") return this.player.stats.energyMax;
-    return 10;
-  }
+    // BG
+    const bg = this.assets.getImage ? this.assets.getImage(this.bgKey) : null;
+    ctx.clearRect(0, 0, w, h);
 
-  _setEnergy(v) {
-    v = clamp(v, 0, this._getEnergyMax());
-    if (typeof this.player.energy === "number") this.player.energy = v;
-    if (typeof this.player.enerji === "number") this.player.enerji = v;
-    if (this.player.stats && typeof this.player.stats.energy === "number") this.player.stats.energy = v;
+    if (bg) {
+      // cover draw
+      const s = this._cover(bg.width, bg.height, w, h);
+      ctx.drawImage(bg, s.sx, s.sy, s.sw, s.sh, 0, 0, w, h);
+    } else {
+      ctx.fillStyle = "#0b0b0f";
+      ctx.fillRect(0, 0, w, h);
+    }
 
-    // hiçbiri yoksa energy alanı ekle
-    if (
-      typeof this.player.energy !== "number" &&
-      typeof this.player.enerji !== "number" &&
-      !(this.player.stats && typeof this.player.stats.energy === "number")
-    ) {
-      this.player.energy = v;
+    // Menü overlay
+    if (this.menuOpen) {
+      // backdrop
+      ctx.fillStyle = `rgba(0,0,0,${this.menuAlphaBackdrop})`;
+      ctx.fillRect(0, 0, w, h);
+
+      // menu image
+      const menuImg = this.assets.getImage ? this.assets.getImage(this.menuKey) : null;
+      if (!menuImg) return;
+
+      const mw = Math.floor(w * this.menuScale);
+      const mh = Math.floor((mw / menuImg.width) * menuImg.height);
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+
+      // menu base
+      ctx.drawImage(menuImg, mx, my, mw, mh);
+
+      // Draw clickable text aligned into slots
+      const items = this._getItems();
+      const pageItems = items.slice(this.page * this.itemsPerPage, this.page * this.itemsPerPage + this.itemsPerPage);
+
+      const player = this._getPlayerState();
+      const cs = this._getCoffeeState();
+      const addictionActive = !!cs.addictionUntil && Date.now() < cs.addictionUntil;
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (let i = 0; i < this.SLOTS.length; i++) {
+        const slot = this.SLOTS[i];
+        const item = pageItems[i];
+        if (!item) continue;
+
+        const rx = mx + slot.x * mw;
+        const ry = my + slot.y * mh;
+        const rw = slot.w * mw;
+        const rh = slot.h * mh;
+        const cx = rx + rw / 2;
+
+        const uses = (cs.uses[item.id] || 0);
+        const maxUses = 10;
+
+        // Enerji kazancı: normalde item.energyPct, bağımlılık aktifse %2
+        const energyPct = addictionActive ? 2 : item.energyPct;
+
+        // Yazı boyutlarını slot'a göre ayarla
+        const nameSize = Math.max(14, Math.floor(rh * 0.34));
+        const lineSize = Math.max(12, Math.floor(rh * 0.26));
+        const smallSize = Math.max(11, Math.floor(rh * 0.22));
+
+        // İsim
+        ctx.font = `700 ${nameSize}px system-ui`;
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.fillText(item.name, cx, ry + rh * 0.30);
+
+        // Fiyat + enerji
+        ctx.font = `600 ${lineSize}px system-ui`;
+        ctx.fillStyle = "rgba(255,255,255,0.90)";
+        ctx.fillText(`${item.price} YTON  |  +%${energyPct}`, cx, ry + rh * 0.58);
+
+        // Kullanım
+        ctx.font = `500 ${smallSize}px system-ui`;
+        ctx.fillStyle = "rgba(255,255,255,0.80)";
+        ctx.fillText(`Kullanım: ${uses}/${maxUses}`, cx, ry + rh * 0.82);
+      }
+
+      // Page indicator
+      ctx.font = `600 ${Math.max(12, Math.floor(mh * 0.03))}px system-ui`;
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.textAlign = "center";
+      ctx.fillText(`Sayfa ${this.page + 1}/4`, mx + mw / 2, my + mh * 0.945);
+
+      // Addiction indicator (üstte küçük)
+      const cs2 = this._getCoffeeState();
+      if (cs2.addictionUntil && Date.now() < cs2.addictionUntil) {
+        const leftMs = cs2.addictionUntil - Date.now();
+        const mm = Math.floor(leftMs / 60000);
+        const ss = Math.floor((leftMs % 60000) / 1000);
+        ctx.textAlign = "left";
+        ctx.font = `600 ${Math.max(12, Math.floor(mh * 0.03))}px system-ui`;
+        ctx.fillStyle = "rgba(255,210,80,0.95)";
+        ctx.fillText(`Bağımlılık: ${mm}:${String(ss).padStart(2, "0")} (Enerji +%2)`, mx + mw * 0.10, my + mh * 0.10);
+      }
     }
   }
 
-  _handleClick(x, y, W, H) {
-    // addiction tick
-    for (const k of Object.keys(this.drugs)) updateAddiction(this.drugs[k]);
-    localStorage.setItem("tc_drugs", JSON.stringify(this.drugs));
+  // =========================
+  // CLICK / HIT TEST
+  // =========================
+  _onCanvasClick(e) {
+    if (!this._canvas) return;
 
-    const bookAbs = this._rectAbsFromPct(this.BOOK_HIT, W, H);
+    const rect = this._canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (this._canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (this._canvas.height / rect.height);
 
-    // Menü kapalı → kitap alanına tıkla → aç
+    // Menü kapalıysa: BG içindeki "kitap" alanına tıklayınca aç
+    // Biz burada kitabı çizmediğimiz için (bg'nin üstüne ekstra koymuyoruz),
+    // sabit bir hit-area kullanıyoruz. Senin BG’de kitabın olduğu bölgeye göre ayarlı:
     if (!this.menuOpen) {
-      if (this._inRect(x, y, bookAbs)) {
+      // Kitap hitbox (ekrandaki görsele göre yaklaşık)
+      const hit = {
+        x1: this._canvas.width * 0.20,
+        y1: this._canvas.height * 0.40,
+        x2: this._canvas.width * 0.58,
+        y2: this._canvas.height * 0.88,
+      };
+
+      if (x >= hit.x1 && x <= hit.x2 && y >= hit.y1 && y <= hit.y2) {
         this.menuOpen = true;
+        return;
       }
       return;
     }
 
-    // Menü açık
-    const menuAbs = this._rectAbsFromPct(this.MENU_RECT, W, H);
+    // Menü açıksa: menu overlay koordinatlarına göre kontrol
+    const w = this._canvas.width;
+    const h = this._canvas.height;
 
-    // Menü dışına tıkla → kapat
-    if (!this._inRect(x, y, menuAbs)) {
+    const menuImg = this.assets.getImage ? this.assets.getImage(this.menuKey) : null;
+    if (!menuImg) return;
+
+    const mw = Math.floor(w * this.menuScale);
+    const mh = Math.floor((mw / menuImg.width) * menuImg.height);
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    // Menü dışına tıklandıysa kapat
+    if (x < mx || x > mx + mw || y < my || y > my + mh) {
       this.menuOpen = false;
       return;
     }
 
-    // Close
-    const closeAbs = this._rectAbsInside(menuAbs, this.CLOSE_HIT);
-    if (this._inRect(x, y, closeAbs)) {
+    // Close button (X) daire
+    const cx = mx + this.CLOSE_BTN.x * mw;
+    const cy = my + this.CLOSE_BTN.y * mh;
+    const rr = this.CLOSE_BTN.r * mw;
+    if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= rr * rr) {
       this.menuOpen = false;
       return;
     }
 
     // Prev/Next
-    const prevAbs = this._rectAbsInside(menuAbs, this.PREV_HIT);
-    const nextAbs = this._rectAbsInside(menuAbs, this.NEXT_HIT);
+    const prev = this._rectAbs(mx, my, mw, mh, this.PREV_BTN);
+    const next = this._rectAbs(mx, my, mw, mh, this.NEXT_BTN);
 
-    if (this._inRect(x, y, prevAbs)) {
-      this.page = clamp(this.page - 1, 0, this._maxPage());
+    if (this._inRect(x, y, prev)) {
+      this.page = Math.max(0, this.page - 1);
       return;
     }
-    if (this._inRect(x, y, nextAbs)) {
-      this.page = clamp(this.page + 1, 0, this._maxPage());
+    if (this._inRect(x, y, next)) {
+      this.page = Math.min(3, this.page + 1);
       return;
     }
 
-    // Ürün kutuları
-    const visible = this._getVisibleItems();
-    const boxes = this._getBoxes(menuAbs);
+    // Slot click => satın al / kullan
+    const items = this._getItems();
+    const pageItems = items.slice(this.page * this.itemsPerPage, this.page * this.itemsPerPage + this.itemsPerPage);
 
-    for (let i = 0; i < boxes.length; i++) {
-      if (!visible[i]) continue;
-      if (this._inRect(x, y, boxes[i])) {
-        this._buy(visible[i]);
+    for (let i = 0; i < this.SLOTS.length; i++) {
+      const slot = this.SLOTS[i];
+      const r = this._rectAbs(mx, my, mw, mh, slot);
+      if (this._inRect(x, y, r)) {
+        const item = pageItems[i];
+        if (item) this._useItem(item);
         return;
       }
     }
   }
 
-  _buy(item) {
-    // Player snapshot güncelle (HUD key'i değiştiyse)
-    const found = findLikelyPlayerState();
-    this.playerKey = found.key;
-    this.player = found.obj;
+  _useItem(item) {
+    const player = this._getPlayerState();
+    const cs = this._getCoffeeState();
 
-    const meta = getDrugMeta(this.drugs, item.key);
-    updateAddiction(meta);
-
-    if (!meta.firstUseAt) meta.firstUseAt = Date.now();
-
-    const addicted = isAddicted(meta);
-    const energyPct = addicted ? 2 : 5;
-
-    const money = this._getMoney();
-    if (money < item.price) return;
-
-    // ödeme
-    this._setMoney(money - item.price);
-
-    // enerji ekle (max 10 üzerinden)
-    const eMax = this._getEnergyMax();
-    const gain = Math.max(1, Math.floor((eMax * energyPct) / 100));
-    this._setEnergy(this._getEnergy() + gain);
-
-    // kullanım
-    meta.uses += 1;
-    updateAddiction(meta);
-
-    localStorage.setItem("tc_drugs", JSON.stringify(this.drugs));
-    savePlayerEverywhere(this.player);
-  }
-
-  update(dt) {
-    // addiction reset
-    let changed = false;
-    for (const k of Object.keys(this.drugs)) {
-      const before = JSON.stringify(this.drugs[k]);
-      updateAddiction(this.drugs[k]);
-      if (JSON.stringify(this.drugs[k]) !== before) changed = true;
+    // 24 saat reset kontrolü (her kullanımda da kontrol)
+    if (cs.addictionUntil && Date.now() > cs.addictionUntil) {
+      cs.addictionUntil = 0;
+      cs.uses = {};
     }
-    if (changed) localStorage.setItem("tc_drugs", JSON.stringify(this.drugs));
+
+    // Yeterli para var mı?
+    if (player.yton < item.price) {
+      // İstersen chat'e mesaj atarsın; şimdilik sessiz geçiyoruz
+      this._setCoffeeState(cs);
+      return;
+    }
+
+    // kullanım sayısı
+    const uses = (cs.uses[item.id] || 0);
+
+    // Bağımlılık aktif mi?
+    const addictionActive = !!cs.addictionUntil && Date.now() < cs.addictionUntil;
+
+    // Enerji artışı: %5 default, bağımlılık aktifse %2
+    const gainPct = addictionActive ? 2 : item.energyPct;
+
+    // İşlem
+    player.yton -= item.price;
+
+    const maxEnergy = player.energyMax ?? 10;
+    const gain = Math.max(1, Math.round((maxEnergy * gainPct) / 100));
+    player.energy = Math.min(maxEnergy, (player.energy ?? 0) + gain);
+
+    // uses + bağımlılık tetik
+    const newUses = uses + 1;
+    cs.uses[item.id] = newUses;
+
+    if (!addictionActive && newUses >= 10) {
+      // 24 saat bağımlılık
+      cs.addictionUntil = Date.now() + 24 * 60 * 60 * 1000;
+    }
+
+    // Kaydet
+    this._setPlayerState(player);
+    this._setCoffeeState(cs);
+
+    // HUD localStorage dinliyorsa güncellenir; dinlemiyorsa refresh'te görünür.
   }
 
-  render(ctx, W, H) {
-    // BG: coffeeshop.png
-    const bg =
-      this.assets.get?.("coffeeshop_bg") ||
-      this.assets.get?.("coffeeshop") ||
-      this.assets.images?.coffeeshop_bg ||
-      this.assets.images?.coffeeshop;
+  // =========================
+  // DATA
+  // =========================
+  _getItems() {
+    // 30 ürün — kurgusal ama OG Kush tarzı yakın isimler
+    // Fiyat min 10 YTON, enerji default %5 (bazılarını %2/%3/%5 yapıyoruz ama kural: en düşük 10YTON => %5
+    // (Senin kuralına göre en düşük fiyat 10YTON ve enerji %5; burada 10YTON olanlar %5)
+    return [
+      { id: "shadow_kush", name: "Shadow Kush", price: 10, energyPct: 5 },
+      { id: "blue_drift", name: "Blue Drift", price: 15, energyPct: 5 },
+      { id: "neon_haze", name: "Neon Haze", price: 12, energyPct: 5 },
+      { id: "gelato_flux", name: "Gelato Flux", price: 16, energyPct: 5 },
+      { id: "lemon_sketch", name: "Lemon Sketch", price: 13, energyPct: 5 },
+      { id: "zk_sugar", name: "ZK Sugar", price: 16, energyPct: 5 },
+      { id: "white_veil", name: "White Veil", price: 14, energyPct: 5 },
+      { id: "gsc_prime", name: "GSC Prime", price: 17, energyPct: 5 },
 
-    if (bg) {
-      const s = Math.max(W / bg.width, H / bg.height);
-      const dw = bg.width * s;
-      const dh = bg.height * s;
-      const dx = (W - dw) / 2;
-      const dy = (H - dh) / 2;
-      ctx.drawImage(bg, dx, dy, dw, dh);
+      { id: "og_kush", name: "OG Kush", price: 18, energyPct: 5 },
+      { id: "purple_haze", name: "Purple Haze", price: 19, energyPct: 5 },
+      { id: "sour_skunk", name: "Sour Skunk", price: 20, energyPct: 5 },
+      { id: "island_gold", name: "Island Gold", price: 21, energyPct: 5 },
+      { id: "amnesia_wave", name: "Amnesia Wave", price: 22, energyPct: 5 },
+      { id: "bubble_diesel", name: "Bubble Diesel", price: 24, energyPct: 5 },
+      { id: "crystal_moon", name: "Crystal Moon", price: 25, energyPct: 5 },
+      { id: "kali_mist", name: "Kali Mist", price: 23, energyPct: 5 },
+
+      { id: "mdm_spark", name: "MDM Spark", price: 26, energyPct: 5 },
+      { id: "stone_rush", name: "Stone Rush", price: 27, energyPct: 5 },
+      { id: "dust_runner", name: "Dust Runner", price: 28, energyPct: 5 },
+      { id: "crackling_ice", name: "Crackling Ice", price: 29, energyPct: 5 },
+      { id: "glass_shift", name: "Glass Shift", price: 30, energyPct: 5 },
+      { id: "night_crystal", name: "Night Crystal", price: 32, energyPct: 5 },
+      { id: "street_mix", name: "Street Mix", price: 10, energyPct: 5 },
+      { id: "dark_powder", name: "Dark Powder", price: 31, energyPct: 5 },
+
+      { id: "ruby_shard", name: "Ruby Shard", price: 33, energyPct: 5 },
+      { id: "ice_flake", name: "Ice Flake", price: 34, energyPct: 5 },
+      { id: "kristal_ex", name: "Kristal-EX", price: 35, energyPct: 5 },
+      { id: "mdm_pulse", name: "MDM Pulse", price: 36, energyPct: 5 },
+      { id: "toz_ghost", name: "Toz Ghost", price: 14, energyPct: 5 },
+      { id: "cizik_black", name: "Çizik Black", price: 12, energyPct: 5 },
+    ];
+  }
+
+  // =========================
+  // STORAGE
+  // =========================
+  _ensurePlayerState() {
+    const cur = localStorage.getItem(this.KEY_PLAYER);
+    if (cur) return;
+    const base = {
+      username: "Player",
+      yton: 0,
+      energy: 10,
+      energyMax: 10,
+      xp: 30,
+      lvl: 1,
+    };
+    localStorage.setItem(this.KEY_PLAYER, JSON.stringify(base));
+  }
+
+  _getPlayerState() {
+    try {
+      return JSON.parse(localStorage.getItem(this.KEY_PLAYER)) || { yton: 0, energy: 0, energyMax: 10 };
+    } catch {
+      return { yton: 0, energy: 0, energyMax: 10 };
+    }
+  }
+
+  _setPlayerState(state) {
+    localStorage.setItem(this.KEY_PLAYER, JSON.stringify(state));
+  }
+
+  _ensureCoffeeState() {
+    const cur = localStorage.getItem(this.KEY_COFFEE);
+    if (cur) return;
+    const base = {
+      uses: {}, // { [itemId]: number }
+      addictionUntil: 0, // timestamp
+    };
+    localStorage.setItem(this.KEY_COFFEE, JSON.stringify(base));
+  }
+
+  _getCoffeeState() {
+    try {
+      return JSON.parse(localStorage.getItem(this.KEY_COFFEE)) || { uses: {}, addictionUntil: 0 };
+    } catch {
+      return { uses: {}, addictionUntil: 0 };
+    }
+  }
+
+  _setCoffeeState(state) {
+    localStorage.setItem(this.KEY_COFFEE, JSON.stringify(state));
+  }
+
+  // =========================
+  // HELPERS
+  // =========================
+  _inRect(px, py, r) {
+    return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+  }
+
+  _rectAbs(mx, my, mw, mh, rel) {
+    return {
+      x: mx + rel.x * mw,
+      y: my + rel.y * mh,
+      w: rel.w * mw,
+      h: rel.h * mh,
+    };
+  }
+
+  _cover(iw, ih, ow, oh) {
+    const ir = iw / ih;
+    const or = ow / oh;
+    let sw, sh, sx, sy;
+    if (ir > or) {
+      sh = ih;
+      sw = ih * or;
+      sx = (iw - sw) / 2;
+      sy = 0;
     } else {
-      ctx.fillStyle = "#0b0b0f";
-      ctx.fillRect(0, 0, W, H);
+      sw = iw;
+      sh = iw / or;
+      sx = 0;
+      sy = (ih - sh) / 2;
     }
-
-    if (!this.menuOpen) return;
-
-    const menuAbs = this._rectAbsFromPct(this.MENU_RECT, W, H);
-
-    // karartma
-    ctx.fillStyle = "rgba(0,0,0,0.20)";
-    ctx.fillRect(0, 0, W, H);
-
-    // Menu image: coffeeshop_menu.png
-    const menuImg =
-      this.assets.get?.("coffeeshop_menu") ||
-      this.assets.images?.coffeeshop_menu;
-
-    if (menuImg) {
-      ctx.drawImage(menuImg, menuAbs.x, menuAbs.y, menuAbs.w, menuAbs.h);
-    } else {
-      ctx.fillStyle = "rgba(20,20,25,0.92)";
-      ctx.fillRect(menuAbs.x, menuAbs.y, menuAbs.w, menuAbs.h);
-    }
-
-    // yazıları kutulara oturt
-    const visible = this._getVisibleItems();
-    const boxes = this._getBoxes(menuAbs);
-
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    for (let i = 0; i < boxes.length; i++) {
-      const item = visible[i];
-      if (!item) continue;
-
-      const r = boxes[i];
-      const cx = r.x + r.w / 2;
-      const cy = r.y + r.h / 2;
-
-      const meta = getDrugMeta(this.drugs, item.key);
-      updateAddiction(meta);
-
-      const addicted = isAddicted(meta);
-      const energyPct = addicted ? 2 : 5;
-
-      // Hafif glow
-      ctx.shadowColor = "rgba(255,215,0,0.55)";
-      ctx.shadowBlur = 8;
-
-      // Başlık
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 20px system-ui";
-      ctx.fillText(item.name, cx, cy - 16);
-
-      // Alt satır (fiyat + enerji)
-      ctx.font = "16px system-ui";
-      ctx.fillText(`${item.price} YTON | +%${energyPct}`, cx, cy + 6);
-
-      // Küçük satır (kullanım/bağımlılık)
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = "12px system-ui";
-      if (addicted) {
-        ctx.fillText(`Bağımlılık: ${fmtLeft(meta.addictedUntil - Date.now())}`, cx, cy + 24);
-      } else {
-        ctx.fillText(`Kullanım: ${meta.uses}/10`, cx, cy + 24);
-      }
-    }
-
-    // sayfa
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.font = "14px system-ui";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(`Sayfa ${this.page + 1}/${this._maxPage() + 1}`, menuAbs.x + 12, menuAbs.y + menuAbs.h - 18);
+    return { sx, sy, sw, sh };
   }
-        }
+          }
