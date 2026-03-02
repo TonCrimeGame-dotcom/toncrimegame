@@ -10,7 +10,6 @@
 
     <style>
       :root {
-        /* Telegram safe-area (iOS) */
         --sat: env(safe-area-inset-top, 0px);
         --sar: env(safe-area-inset-right, 0px);
         --sab: env(safe-area-inset-bottom, 0px);
@@ -25,7 +24,8 @@
         width: 100%;
         background: #0b0b0f;
         overflow: hidden;
-        touch-action: none; /* telegramda kaydırma olmasın */
+        touch-action: none;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       }
 
       /* Canvas tam ekran */
@@ -38,7 +38,7 @@
         display: block;
       }
 
-      /* Safe area overlay (içerik taşmasın diye ölçü alacağız) */
+      /* Safe area ölçümü */
       #safe {
         position: fixed;
         left: var(--sal);
@@ -47,12 +47,146 @@
         bottom: var(--sab);
         pointer-events: none;
       }
+
+      /* ===== CHAT DRAWER ===== */
+      #chatDrawer {
+        position: fixed;
+        left: var(--sal);
+        right: var(--sar);
+        bottom: var(--sab);
+        height: min(42vh, 360px);
+        transform: translateY(calc(100% - 44px)); /* kapalı: sadece başlık görünür */
+        transition: transform 220ms ease;
+        z-index: 50;
+        pointer-events: auto;
+      }
+
+      #chatDrawer.open {
+        transform: translateY(0);
+      }
+
+      #chatHeader {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        background: rgba(0, 0, 0, 0.72);
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+        border-left: 1px solid rgba(255, 255, 255, 0.10);
+        border-right: 1px solid rgba(255, 255, 255, 0.10);
+        border-top-left-radius: 14px;
+        border-top-right-radius: 14px;
+        backdrop-filter: blur(6px);
+      }
+
+      #chatTitle {
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #chatToggle {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.10);
+        color: rgba(255, 255, 255, 0.92);
+        border-radius: 10px;
+        height: 28px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
+      #chatBody {
+        height: calc(100% - 44px);
+        background: rgba(0, 0, 0, 0.62);
+        border-left: 1px solid rgba(255, 255, 255, 0.10);
+        border-right: 1px solid rgba(255, 255, 255, 0.10);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        border-bottom-left-radius: 14px;
+        border-bottom-right-radius: 14px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(6px);
+      }
+
+      #chatMessages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 10px 6px;
+      }
+
+      .msg {
+        margin: 6px 0;
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 13px;
+        line-height: 1.25;
+        word-break: break-word;
+      }
+
+      .msg .meta {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 11px;
+        min-width: 56px;
+      }
+
+      #chatInputRow {
+        display: flex;
+        gap: 8px;
+        padding: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(0, 0, 0, 0.30);
+      }
+
+      #chatInput {
+        flex: 1;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.92);
+        padding: 0 10px;
+        outline: none;
+        font-size: 13px;
+      }
+
+      #chatSend {
+        width: 74px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.10);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 13px;
+      }
     </style>
   </head>
 
   <body>
     <canvas id="game"></canvas>
     <div id="safe"></div>
+
+    <!-- Chat Drawer -->
+    <div id="chatDrawer" class="closed">
+      <div id="chatHeader">
+        <div id="chatTitle">💬 Sohbet</div>
+        <button id="chatToggle" type="button">Aç</button>
+      </div>
+      <div id="chatBody">
+        <div id="chatMessages"></div>
+        <div id="chatInputRow">
+          <input id="chatInput" type="text" placeholder="Mesaj yaz..." />
+          <button id="chatSend" type="button">Gönder</button>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
