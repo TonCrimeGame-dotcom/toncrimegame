@@ -3,18 +3,16 @@ export class BootScene {
     this.assets = assets;
     this.i18n = i18n;
     this.scenes = scenes;
-    this._done = false;
   }
 
   async onEnter() {
-    this._done = false;
-
-    // Assets
     await this.assets.loadImages([
       { key: "background", src: "./src/assets/ui/background.jpg" },
+
+      // Logo yolu: sende src/assets/logo.png varsayımı
+      { key: "logo", src: "./src/assets/logo.png" },
     ]);
 
-    this._done = true;
     this.scenes.go("home");
   }
 
@@ -26,10 +24,5 @@ export class BootScene {
     ctx.font = "20px system-ui";
     ctx.textAlign = "center";
     ctx.fillText(this.i18n.t("loading"), w / 2, h / 2);
-
-    if (!this._done) {
-      ctx.font = "12px system-ui";
-      ctx.fillText("(assets loading)", w / 2, h / 2 + 26);
-    }
   }
 }
