@@ -7,12 +7,8 @@ export class BootScene {
 
   async onEnter() {
     await this.assets.loadImages([
-      // Home background
+      // HOME background
       { key: "background", src: "./src/assets/ui/background.jpg" },
-
-      // CoffeeShop backgrounds
-      { key: "coffeeshop_outdoor", src: "./src/assets/coffeeshop.jpg" },
-      { key: "coffeeshop_indoor", src: "./src/assets/coffeeshop_indoor.png" },
 
       // UI
       { key: "logo", src: "./src/assets/logo.png" },
@@ -23,11 +19,13 @@ export class BootScene {
       { key: "pvp", src: "./src/assets/pvp.jpg" },
       { key: "weapons", src: "./src/assets/weapons.jpg" },
       { key: "nightclub", src: "./src/assets/nightclub.jpg" },
+      { key: "coffeeshop", src: "./src/assets/coffeeshop.jpg" },
       { key: "xxx", src: "./src/assets/xxx.jpg" },
 
-      // CoffeeShop menu images (senin dosya adların böyleyse)
+      // CoffeeShop (senin gerçek dosya adların)
+      { key: "coffeeshop_bg", src: "./src/assets/coffeeshop.png" },
       { key: "coffeeshop_book", src: "./src/assets/coffeeshop_book.png" },
-      { key: "coffeeshop_menu_open", src: "./src/assets/coffeeshop_menu_open.png" },
+      { key: "coffeeshop_menu", src: "./src/assets/coffeeshop_menu.png" },
     ]);
 
     this.scenes.go("home");
