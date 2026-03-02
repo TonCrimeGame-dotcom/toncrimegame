@@ -1,5 +1,6 @@
 export class HomeScene {
   constructor({ store, input, i18n }) {
+   this.assets = assets; 
     this.store = store;
     this.input = input;
     this.i18n = i18n;
