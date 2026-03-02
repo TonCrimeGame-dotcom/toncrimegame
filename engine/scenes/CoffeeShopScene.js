@@ -458,4 +458,4 @@ if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D
     this.closePath();
     return this;
   };
-  }
+}
