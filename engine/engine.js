@@ -1,43 +1,48 @@
-/* ===================================================
-   AUTO UI SYNC (FIX LOADING SCREEN)
-=================================================== */
+export class Engine {
+  constructor({ canvas, ctx, input, scenes }) {
+    this.canvas = canvas;
+    this.ctx = ctx;
+    this.input = input;
+    this.scenes = scenes;
 
-(function(){
-
-async function waitUserReady(){
-
-  if(!window.GAME || !GAME.user){
-    setTimeout(waitUserReady,300);
-    return;
+    this._running = false;
+    this._last = 0;
   }
 
-  console.log("✅ User Ready → UI Sync");
-
-  if(window.UI){
-
-    try{
-      UI.updateStats(GAME.user);
-      UI.renderPlayerCard(GAME.user);
-    }catch(e){
-      console.warn("UI render retry...");
-    }
-
+  start() {
+    if (this._running) return;
+    this._running = true;
+    this._last = performance.now();
+    requestAnimationFrame(this._tick);
   }
 
-  const stats=document.getElementById("stats");
-  if(stats && stats.innerText.includes("Yükleniyor")){
-    stats.innerHTML=`
-      Lv ${GAME.user.level}
-      | XP ${GAME.user.xp}
-      | ⚡ ${GAME.user.energy}
-      | 💰 ${Number(GAME.user.yton).toFixed(2)}
-    `;
+  stop() {
+    this._running = false;
   }
 
+  _tick = (now) => {
+    if (!this._running) return;
+
+    const dtMs = now - this._last;
+    this._last = now;
+
+    // dt clamp (tab switch vs)
+    const dt = Math.min(dtMs / 1000, 0.05);
+
+    this.input.beginFrame();
+
+    const scene = this.scenes.current();
+    if (scene?.update) scene.update(dt);
+
+    // clear
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.ctx.clearRect(0, 0, w, h);
+
+    if (scene?.render) scene.render(this.ctx, w, h);
+
+    this.input.endFrame();
+
+    requestAnimationFrame(this._tick);
+  };
 }
-
-document.addEventListener("DOMContentLoaded",()=>{
-  setTimeout(waitUserReady,500);
-});
-
-})();
