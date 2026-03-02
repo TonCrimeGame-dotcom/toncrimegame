@@ -8,40 +8,29 @@ export class CoffeeShopScene {
 
     this.menuOpen = false;
 
-    // kitap tıklama alanı (ekranda ortada duracak)
-    this.bookRect = { x: 0, y: 0, w: 0, h: 0 };
-  }
+    // BG üstündeki kitabın tıklama alanı (ekrana göre hesaplanacak)
+    this.bgBookHit = { x: 0, y: 0, w: 0, h: 0 };
 
-  onEnter() {
-    // refresh sonrası da menü açık/kapalı durumu hatırlansın istersen:
-    // this.menuOpen = !!this.store.get("coffeeshop_menu_open");
-  }
-
-  onExit() {
-    // this.store.set("coffeeshop_menu_open", this.menuOpen);
+    // Son render'da kullanılan bg cover ölçüleri (hitbox hesabı için)
+    this.bgDraw = { dx: 0, dy: 0, dw: 0, dh: 0 };
   }
 
   update(dt) {
-    // Mouse/touch click yakalama
     if (this.input && this.input.justPressed && this.input.justPressed()) {
       const p = this.input.pointer ? this.input.pointer() : null;
       if (!p) return;
 
       const mx = p.x, my = p.y;
 
-      // menü açıksa dışarı tıklayınca kapatma + sağ üst X alanı
+      // Menü açıksa tıklayınca kapat (istersen sadece X yaparız)
       if (this.menuOpen) {
-        // basit: menü arka planına tıklayınca kapansın
-        // (istersen sadece X'e basınca kapatırız)
         this.menuOpen = false;
-        // this.store.set("coffeeshop_menu_open", this.menuOpen);
         return;
       }
 
-      // menü kapalıyken kitaba tıklanınca aç
-      if (this.pointInRect(mx, my, this.bookRect)) {
+      // BG üzerindeki kitap bölgesine tıklayınca menü aç
+      if (this.pointInRect(mx, my, this.bgBookHit)) {
         this.menuOpen = true;
-        // this.store.set("coffeeshop_menu_open", this.menuOpen);
       }
     }
   }
@@ -51,47 +40,55 @@ export class CoffeeShopScene {
   }
 
   render(ctx, w, h) {
-    // 1) Background (coffeeshop.png)
+    // 1) Background (coffeeshop.png) - cover
     const bg = this.assets.get ? this.assets.get("coffeeshop_bg") : null;
+
     if (bg) {
-      // cover çizim (oran koru, ekranı tamamen kapla)
       const bw = bg.width, bh = bg.height;
       const scale = Math.max(w / bw, h / bh);
       const dw = bw * scale;
       const dh = bh * scale;
       const dx = (w - dw) / 2;
       const dy = (h - dh) / 2;
+
+      this.bgDraw = { dx, dy, dw, dh };
+
       ctx.drawImage(bg, dx, dy, dw, dh);
+
+      // ✅ BG üzerindeki kitabın hitbox'ını ayarla
+      // Bu oranlar bg resmine göredir (0..1). Şu an tahmini verdim.
+      // Eğer tıklama tam oturmazsa oranları birlikte ince ayarlarız.
+      const book = {
+        x: 0.32, // soldan oran
+        y: 0.33, // yukarıdan oran
+        w: 0.22, // genişlik oran
+        h: 0.30, // yükseklik oran
+      };
+
+      this.bgBookHit = {
+        x: dx + dw * book.x,
+        y: dy + dh * book.y,
+        w: dw * book.w,
+        h: dh * book.h,
+      };
+
+      // DEBUG: hitbox’ı görmek istersen aç
+      // ctx.strokeStyle = "rgba(0,255,0,0.6)";
+      // ctx.lineWidth = 2;
+      // ctx.strokeRect(this.bgBookHit.x, this.bgBookHit.y, this.bgBookHit.w, this.bgBookHit.h);
+
+      // Alt yazı (kitap çizmeden sadece yönlendirme)
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "16px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("Kitaba tıkla → Menü aç", w / 2, h - 90);
     } else {
-      // bg yoksa siyah bas
       ctx.fillStyle = "#0b0b0f";
       ctx.fillRect(0, 0, w, h);
     }
 
-    // 2) Kitap (coffeeshop_book.png) ortada
-    const book = this.assets.get ? this.assets.get("coffeeshop_book") : null;
-    if (book) {
-      const targetW = Math.min(260, w * 0.35);
-      const ratio = book.height / book.width;
-      const targetH = targetW * ratio;
-
-      const x = (w - targetW) / 2;
-      const y = (h - targetH) / 2;
-
-      this.bookRect = { x, y, w: targetW, h: targetH };
-
-      ctx.drawImage(book, x, y, targetW, targetH);
-
-      // alt yazı
-      ctx.fillStyle = "rgba(255,255,255,0.9)";
-      ctx.font = "16px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText("Kitaba tıkla → Menü aç", w / 2, y + targetH + 28);
-    }
-
-    // 3) Menü açıkken (coffeeshop_menu.png) modal göster
+    // 2) Menü açıkken modal
     if (this.menuOpen) {
-      // karartma
       ctx.fillStyle = "rgba(0,0,0,0.55)";
       ctx.fillRect(0, 0, w, h);
 
@@ -109,7 +106,7 @@ export class CoffeeShopScene {
 
         ctx.drawImage(menuImg, dx, dy, dw, dh);
 
-        // sağ üst kapatma butonu (X)
+        // X butonu görsel
         const bx = dx + dw - 40;
         const by = dy + 10;
         ctx.fillStyle = "rgba(0,0,0,0.55)";
