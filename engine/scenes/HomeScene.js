@@ -12,28 +12,22 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
 }
-
 function fillRoundRect(ctx, x, y, w, h, r) {
   roundRectPath(ctx, x, y, w, h, r);
   ctx.fill();
 }
-
 function strokeRoundRect(ctx, x, y, w, h, r) {
   roundRectPath(ctx, x, y, w, h, r);
   ctx.stroke();
 }
-
 function clamp01(n) {
   return Math.max(0, Math.min(1, n));
 }
-
 function fmtMMSS(ms) {
   const totalSec = Math.max(0, Math.ceil(ms / 1000));
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return `${mm}:${ss}`;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 export class HomeScene {
@@ -44,7 +38,21 @@ export class HomeScene {
     this.i18n = i18n;
     this.scenes = scenes;
 
+    // bottom tabs
     this._tabs = [];
+
+    // carousel state
+    this.carousel = {
+      index: 0,
+      dragging: false,
+      dragStartX: 0,
+      dragNowX: 0,
+      lastX: 0,
+      moved: 0,
+      clickCandidate: false,
+    };
+
+    this._cardRect = { x: 0, y: 0, w: 0, h: 0 }; // tap for action
   }
 
   onEnter() {
@@ -69,24 +77,21 @@ export class HomeScene {
           weaponName: "Silah Yok",
           weaponBonus: "+0%",
 
-          // ENERGY
           energy: 10,
           energyMax: 10,
-          energyIntervalMs: 5 * 60 * 1000, // 5 dakika
-          lastEnergyAt: Date.now(), // son dolum referansı
+          energyIntervalMs: 5 * 60 * 1000,
+          lastEnergyAt: Date.now(),
         },
       });
     } else {
-      // eksik enerji alanları varsa ekle
+      // eksikleri tamamla
       const p = s.player;
       const patch = {};
       if (p.energy == null) patch.energy = 10;
       if (p.energyMax == null) patch.energyMax = 10;
       if (p.energyIntervalMs == null) patch.energyIntervalMs = 5 * 60 * 1000;
       if (p.lastEnergyAt == null) patch.lastEnergyAt = Date.now();
-      if (Object.keys(patch).length) {
-        this.store.set({ player: { ...p, ...patch } });
-      }
+      if (Object.keys(patch).length) this.store.set({ player: { ...p, ...patch } });
     }
   }
 
@@ -100,12 +105,11 @@ export class HomeScene {
     if (!p) return;
 
     const now = Date.now();
-    const interval = Math.max(10_000, Number(p.energyIntervalMs || 300000)); // min 10sn güvenlik
+    const interval = Math.max(10_000, Number(p.energyIntervalMs || 300000));
     const maxE = Math.max(1, Number(p.energyMax || 10));
     let e = Math.max(0, Math.min(maxE, Number(p.energy || 0)));
 
     if (e >= maxE) {
-      // full ise referansı şimdiye çek (geri sayım düzgün dursun)
       if (p.lastEnergyAt !== now) {
         this.store.set({ player: { ...p, energy: maxE, lastEnergyAt: now } });
       }
@@ -119,36 +123,99 @@ export class HomeScene {
     if (gained <= 0) return;
 
     const newE = Math.min(maxE, e + gained);
-    // lastEnergyAt'i kalan süreyi koruyacak şekilde ileri taşı
     const newLast = Number(p.lastEnergyAt || now) + gained * interval;
 
-    this.store.set({
-      player: {
-        ...p,
-        energy: newE,
-        lastEnergyAt: newLast,
-      },
-    });
+    this.store.set({ player: { ...p, energy: newE, lastEnergyAt: newLast } });
+  }
+
+  _spendEnergy(amount) {
+    const s = this.store.get();
+    const p = s.player;
+    if (!p) return false;
+    const e = Number(p.energy || 0);
+    if (e < amount) return false;
+    this.store.set({ player: { ...p, energy: e - amount } });
+    return true;
+  }
+
+  _carouselItems() {
+    return [
+      { id: "missions", titleTR: "Görevler", titleEN: "Missions", sceneKey: "missions" },
+      { id: "pvp", titleTR: "PvP", titleEN: "PvP", sceneKey: "pvp" },
+      { id: "weapons", titleTR: "Silah Kaçakçısı", titleEN: "Arms Dealer", sceneKey: "dealer" },
+      { id: "nightclub", titleTR: "Gece Kulübü", titleEN: "Nightclub", sceneKey: "nightclub" },
+      { id: "coffeeshop", titleTR: "Coffeeshop", titleEN: "Coffeeshop", sceneKey: "coffeeshop" },
+      { id: "xxx", titleTR: "Genel Ev", titleEN: "Brothel", sceneKey: "xxx" },
+    ];
   }
 
   update() {
-    // enerji regen tick
     this._tickEnergy();
 
-    if (this.input.justPressed()) {
-      const { x, y } = this.input.pointer;
+    // Pointer drag logic (Input sadece justPressed veriyor, o yüzden isDown ile sürükleme yapıyoruz)
+    const c = this.carousel;
+    const px = this.input.pointer.x;
+    const py = this.input.pointer.y;
 
-      // alt menü tıklama
+    if (this.input.justPressed()) {
+      c.dragging = true;
+      c.dragStartX = px;
+      c.dragNowX = px;
+      c.lastX = px;
+      c.moved = 0;
+      c.clickCandidate = true;
+
+      // önce alt menü mü?
       for (const t of this._tabs) {
-        if (pointInRect(x, y, t.rect)) {
+        if (pointInRect(px, py, t.rect)) {
           this.scenes.go(t.sceneKey);
+          c.dragging = false;
+          c.clickCandidate = false;
           return;
         }
       }
+    }
 
-      // coin artır (test)
-      const s = this.store.get();
-      this.store.set({ coins: (s.coins ?? 0) + 1 });
+    if (c.dragging && this.input.isDown()) {
+      c.dragNowX = px;
+      const dx = c.dragNowX - c.lastX;
+      c.lastX = c.dragNowX;
+      c.moved += Math.abs(dx);
+
+      if (c.moved > 10) c.clickCandidate = false;
+    }
+
+    if (c.dragging && this.input.justReleased()) {
+      c.dragging = false;
+
+      const items = this._carouselItems();
+      const dragDX = c.dragNowX - c.dragStartX;
+
+      // swipe threshold
+      const threshold = 45;
+      if (dragDX > threshold) c.index = Math.max(0, c.index - 1);
+      else if (dragDX < -threshold) c.index = Math.min(items.length - 1, c.index + 1);
+
+      // click on card (enerji harca + sahneye git)
+      if (c.clickCandidate && pointInRect(px, py, this._cardRect)) {
+        // 1 enerji harcat (test)
+        if (this._spendEnergy(1)) {
+          const item = items[c.index];
+          // Bu sahneler şimdilik placeholder değilse bile navigation hazır
+          // Not: Henüz main.js'te "nightclub/coffeeshop/xxx" scene yoksa hata verir.
+          // O yüzden güvenli geçiş: yoksa coin artır.
+          try {
+            this.scenes.go(item.sceneKey);
+          } catch (_) {
+            const s = this.store.get();
+            this.store.set({ coins: (s.coins ?? 0) + 1 });
+          }
+        }
+      } else if (c.clickCandidate) {
+        // kart dışına tıkladıysa coin artır (test)
+        const s = this.store.get();
+        this.store.set({ coins: (s.coins ?? 0) + 1 });
+      }
     }
   }
 
@@ -157,7 +224,7 @@ export class HomeScene {
     const safe = state?.ui?.safe ?? { x: 0, y: 0, w, h };
     const pad = 14;
 
-    // ----- BG -----
+    // BG
     const bg = this.assets.getImage("background");
     if (bg) ctx.drawImage(bg, 0, 0, w, h);
     else {
@@ -167,40 +234,34 @@ export class HomeScene {
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, w, h);
 
-    // ----- TOP LAYOUT: logo + left/right panels within logo height -----
+    // TOP layout
     const topX = safe.x + pad;
     const topY = safe.y + pad;
     const topW = safe.w - pad * 2;
 
     const logoImg = this.assets.getImage("logo");
-
     let logoW = Math.min(240, topW * 0.32);
     let logoH = 60;
-
     if (logoImg) {
       const ratio = logoImg.height / logoImg.width;
-      logoH = logoW * ratio;
-      logoH = Math.min(90, logoH);
+      logoH = Math.min(90, logoW * ratio);
       logoW = logoH / ratio;
     }
-
     const logoX = safe.x + (safe.w - logoW) / 2;
     const logoY = topY + 6;
     const logoRect = { x: logoX, y: logoY, w: logoW, h: logoH };
 
     const panelH = logoRect.h;
-
     const gap = 10;
     const leftMaxW = Math.max(160, (logoRect.x - topX) - gap);
     const rightMaxW = Math.max(160, (safe.x + safe.w - (logoRect.x + logoRect.w)) - gap);
-
     const leftW = Math.min(260, leftMaxW);
     const rightW = Math.min(280, rightMaxW);
 
     const leftRect = { x: topX, y: logoRect.y, w: leftW, h: panelH };
     const rightRect = { x: safe.x + safe.w - pad - rightW, y: logoRect.y, w: rightW, h: panelH };
 
-    // ----- Left Panel -----
+    // LEFT panel (username/coin/weapon)
     const player = state.player || {};
     const username = player.username ?? "Player";
     const weaponName = player.weaponName ?? "Silah Yok";
@@ -224,7 +285,6 @@ export class HomeScene {
     const coinValue = state.coins ?? 0;
     const yton = this.assets.getImage("yton");
     const iconSize = 16;
-
     let coinTextX = leftRect.x + linePadX;
     if (yton) {
       ctx.drawImage(yton, leftRect.x + linePadX, lineY2 - iconSize + 2, iconSize, iconSize);
@@ -239,17 +299,10 @@ export class HomeScene {
     ctx.fillStyle = "rgba(255,255,255,0.70)";
     ctx.fillText(`${weaponBonus}`, leftRect.x + linePadX, lineY3 + 14);
 
-    // ----- Logo -----
-    if (logoImg) {
-      ctx.drawImage(logoImg, logoRect.x, logoRect.y, logoRect.w, logoRect.h);
-    } else {
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.font = "24px system-ui";
-      ctx.fillText(this.i18n.t("home_title"), safe.x + safe.w / 2, logoRect.y + 32);
-    }
+    // LOGO
+    if (logoImg) ctx.drawImage(logoImg, logoRect.x, logoRect.y, logoRect.w, logoRect.h);
 
-    // ----- Right Panel (XP + ENERGY) -----
+    // RIGHT panel (XP + ENERGY)
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     fillRoundRect(ctx, rightRect.x, rightRect.y, rightRect.w, rightRect.h, 12);
     ctx.strokeStyle = "rgba(255,255,255,0.14)";
@@ -257,32 +310,25 @@ export class HomeScene {
 
     const barPad = 12;
     const barW = rightRect.w - barPad * 2;
-
-    // 2 bar üst üste: panel yüksekliğine sığdır
-    const totalBarsH = 28 + 10 + 28; // xp + gap + energy
+    const totalBarsH = 28 + 10 + 28;
     const startY = rightRect.y + Math.floor((rightRect.h - totalBarsH) / 2);
+    const barH = 28;
 
-    // XP BAR
     const xp = Math.max(0, Number(player.xp || 0));
     const xpToNext = Math.max(1, Number(player.xpToNext || 100));
     const xpPct = clamp01(xp / xpToNext);
 
     const xpX = rightRect.x + barPad;
     const xpY = startY;
-    const barH = 28;
-
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     fillRoundRect(ctx, xpX, xpY, barW, barH, 10);
     ctx.fillStyle = "rgba(255,255,255,0.22)";
     fillRoundRect(ctx, xpX, xpY, Math.max(8, barW * xpPct), barH, 10);
-
-    const lvl = player.level ?? 1;
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.font = "12px system-ui";
-    ctx.fillText(`LVL ${lvl} • XP ${xp}/${xpToNext}`, xpX + barW / 2, xpY + barH / 2 + 4);
+    ctx.fillText(`LVL ${player.level ?? 1} • XP ${xp}/${xpToNext}`, xpX + barW / 2, xpY + barH / 2 + 4);
 
-    // ENERGY BAR
     const e = Math.max(0, Number(player.energy || 0));
     const eMax = Math.max(1, Number(player.energyMax || 10));
     const ePct = clamp01(e / eMax);
@@ -294,26 +340,18 @@ export class HomeScene {
 
     const enX = xpX;
     const enY = xpY + barH + 10;
-
     ctx.fillStyle = "rgba(255,255,255,0.10)";
     fillRoundRect(ctx, enX, enY, barW, barH, 10);
     ctx.fillStyle = "rgba(255,255,255,0.22)";
     fillRoundRect(ctx, enX, enY, Math.max(8, barW * ePct), barH, 10);
 
+    const timeText = e >= eMax ? "FULL" : fmtMMSS(untilNext);
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.font = "12px system-ui";
-
-    const timeText = e >= eMax ? "FULL" : fmtMMSS(untilNext);
     ctx.fillText(`ENERJİ ${e}/${eMax} • ${timeText}`, enX + barW / 2, enY + barH / 2 + 4);
 
-    // ----- CTA -----
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.textAlign = "center";
-    ctx.font = "16px system-ui";
-    ctx.fillText(this.i18n.t("tap_to_earn"), safe.x + safe.w / 2, safe.y + safe.h * 0.55);
-
-    // ----- Bottom tabs -----
+    // ----- BOTTOM TABS -----
     const barSafeH = 58;
     const bottomY = safe.y + safe.h - barSafeH;
 
@@ -352,6 +390,114 @@ export class HomeScene {
 
       this._tabs.push({ rect, sceneKey: t.sceneKey });
     });
+
+    // ----- CENTER CAROUSEL -----
+    const items = this._carouselItems();
+    const idx = this.carousel.index;
+
+    // carousel alanı: üst panellerin altı ile bottom barın üstü arası
+    const carouselTop = logoRect.y + logoRect.h + 18;
+    const carouselBottom = bottomY - 18;
+    const areaH = Math.max(120, carouselBottom - carouselTop);
+
+    const cardW = Math.min(safe.w * 0.76, 360);
+    const cardH = Math.min(areaH * 0.72, 260);
+    const cx = safe.x + safe.w / 2;
+    const cy = carouselTop + areaH / 2;
+
+    const spacing = cardW + 26;
+
+    // sürükleme offset
+    const dragDX = this.carousel.dragging ? (this.carousel.dragNowX - this.carousel.dragStartX) : 0;
+
+    // kartları çiz (sadece 3 tane: prev, current, next)
+    const drawCard = (itemIndex) => {
+      if (itemIndex < 0 || itemIndex >= items.length) return;
+
+      const item = items[itemIndex];
+      const offset = (itemIndex - idx) * spacing + dragDX;
+      const x = cx - cardW / 2 + offset;
+      const y = cy - cardH / 2;
+
+      // kenardakiler biraz küçülsün
+      const dist = Math.abs(itemIndex - idx);
+      const scale = dist === 0 ? 1 : 0.92;
+      const w2 = cardW * scale;
+      const h2 = cardH * scale;
+      const x2 = cx - w2 / 2 + offset;
+      const y2 = cy - h2 / 2;
+
+      // shadow bg
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      fillRoundRect(ctx, x2, y2, w2, h2, 18);
+
+      // image
+      const img = this.assets.getImage(item.id);
+      if (img) {
+        // cover draw
+        const ar = img.width / img.height;
+        const targetAR = w2 / h2;
+        let sx = 0, sy = 0, sw = img.width, sh = img.height;
+
+        if (ar > targetAR) {
+          // image wider -> crop sides
+          sh = img.height;
+          sw = Math.floor(sh * targetAR);
+          sx = Math.floor((img.width - sw) / 2);
+        } else {
+          // image taller -> crop top/bottom
+          sw = img.width;
+          sh = Math.floor(sw / targetAR);
+          sy = Math.floor((img.height - sh) / 2);
+        }
+
+        // clip rounded
+        roundRectPath(ctx, x2, y2, w2, h2, 18);
+        ctx.save();
+        ctx.clip();
+        ctx.drawImage(img, sx, sy, sw, sh, x2, y2, w2, h2);
+        ctx.restore();
+
+        // dark overlay for text
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        fillRoundRect(ctx, x2, y2, w2, h2, 18);
+      }
+
+      // border
+      ctx.strokeStyle = dist === 0 ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.18)";
+      strokeRoundRect(ctx, x2 + 0.5, y2 + 0.5, w2 - 1, h2 - 1, 18);
+
+      // title
+      const title = (state.lang ?? "tr") === "tr" ? item.titleTR : item.titleEN;
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.font = dist === 0 ? "18px system-ui" : "16px system-ui";
+      ctx.fillText(title, x2 + w2 / 2, y2 + h2 - 22);
+
+      // Only current card is clickable for action
+      if (itemIndex === idx) {
+        this._cardRect = { x: x2, y: y2, w: w2, h: h2 };
+      }
+    };
+
+    drawCard(idx - 1);
+    drawCard(idx);
+    drawCard(idx + 1);
+
+    // küçük nokta göstergesi
+    const dotsY = Math.min(bottomY - 22, cy + cardH / 2 + 18);
+    const dotGap = 10;
+    const total = (items.length - 1) * dotGap;
+    const startX = cx - total / 2;
+
+    for (let i = 0; i < items.length; i++) {
+      ctx.beginPath();
+      const dx = startX + i * dotGap;
+      ctx.arc(dx, dotsY, 3, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = i === idx ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.28)";
+      ctx.fill();
+    }
 
     // Dil ipucu
     ctx.fillStyle = "rgba(255,255,255,0.70)";
