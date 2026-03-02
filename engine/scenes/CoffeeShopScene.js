@@ -1,474 +1,491 @@
 // src/scenes/CoffeeShopScene.js
+
 export class CoffeeShopScene {
   constructor({ assets, i18n, scenes, state }) {
     this.assets = assets;
     this.i18n = i18n;
     this.scenes = scenes;
+    // state yoksa güvenli fallback
+    this.state = state || {
+      coin: 0,
+      energy: 0,
+      energyMax: 10,
+    };
 
-    // Esnek state: state.player / state / window.gameState
-    this.state = state || null;
+    // UI
+    this._w = 0;
+    this._h = 0;
 
-    // Menü durumu
-    this.menuOpen = false;
-    this.page = 0;
-    this.perPage = 10;
+    // CoffeeShop
+    this._menuOpen = false;
+    this._page = 0;
 
-    // Pointer
-    this._ptr = { x: 0, y: 0, down: false, pressed: false };
+    // click handling
+    this._clickHandler = null;
+    this._canvas = null;
 
-    // Canvas bağlandı mı?
-    this._bound = false;
+    // addiction tracking (24h reset)
+    this._adKey = "tc_coffee_ad_v1";
 
-    // Menü görselinin orijinal boyutu (senin attığın görsel: 1024x1536)
-    this.MW = 1024;
-    this.MH = 1536;
+    // Products (30 item / 3 sayfa / sayfa başına 10 slot)
+    // NOT: İsimler kurgusal/oyun içi.
+    this._items = [
+      { id: "shadow_kush", name: "Shadow Kush", price: 10, energyPct: 5 },
+      { id: "blue_drift", name: "Blue Drift", price: 11, energyPct: 5 },
+      { id: "neon_haze", name: "Neon Haze", price: 12, energyPct: 5 },
+      { id: "lemon_sketch", name: "Lemon Sketch", price: 13, energyPct: 5 },
+      { id: "white_veil", name: "White Veil", price: 14, energyPct: 5 },
+      { id: "gelato_flux", name: "Gelato Flux", price: 15, energyPct: 5 },
+      { id: "zk_sugar", name: "ZK Sugar", price: 16, energyPct: 5 },
+      { id: "gsc_prime", name: "GSC Prime", price: 17, energyPct: 5 },
+      { id: "night_sherb", name: "Night Sherb", price: 18, energyPct: 5 },
+      { id: "island_gold", name: "Island Gold", price: 19, energyPct: 5 },
 
-    // Slot koordinatları (menü PNG içindeki gerçek yerleşim mantığıyla sabit)
-    // 5 satır, her satırda: sol slot + sağ slot
-    // Kutuların iç yazı alanı için (slotun içine biraz padding bırakacağız).
-    this.SLOTS = [
-      // row1
-      { l: this._r(120, 245, 360, 98), r: this._r(545, 245, 360, 98) },
-      // row2
-      { l: this._r(120, 375, 360, 98), r: this._r(545, 375, 360, 98) },
-      // row3
-      { l: this._r(120, 505, 360, 98), r: this._r(545, 505, 360, 98) },
-      // row4
-      { l: this._r(120, 635, 360, 98), r: this._r(545, 635, 360, 98) },
-      // row5
-      { l: this._r(120, 765, 360, 98), r: this._r(545, 765, 360, 98) },
+      { id: "street_mix", name: "Street Mix", price: 10, energyPct: 5 },
+      { id: "lava_kief", name: "Lava Kief", price: 19, energyPct: 5 },
+      { id: "noir_dust", name: "Noir Dust", price: 17, energyPct: 5 },
+      { id: "amber_shard", name: "Amber Shard", price: 23, energyPct: 5 },
+      { id: "viper_crush", name: "Viper Crush", price: 25, energyPct: 5 },
+      { id: "crystal_leaf", name: "Crystal Leaf", price: 24, energyPct: 5 },
+      { id: "velvet_stone", name: "Velvet Stone", price: 22, energyPct: 5 },
+      { id: "night_sheen", name: "Night Sheen", price: 21, energyPct: 5 },
+      { id: "island_black", name: "Island Black", price: 20, energyPct: 5 },
+      { id: "kush_x", name: "OG Kush X", price: 18, energyPct: 5 },
+
+      { id: "mono_crystal", name: "Mono Crystal", price: 26, energyPct: 5 },
+      { id: "eclipse_pow", name: "Eclipse Powder", price: 27, energyPct: 5 },
+      { id: "nova_chip", name: "Nova Chips", price: 28, energyPct: 5 },
+      { id: "ruby_spark", name: "Ruby Spark", price: 29, energyPct: 5 },
+      { id: "ghost_shard", name: "Ghost Shard", price: 30, energyPct: 5 },
+      { id: "obsidian_dust", name: "Obsidian Dust", price: 31, energyPct: 5 },
+      { id: "mint_crush", name: "Mint Crush", price: 32, energyPct: 5 },
+      { id: "delta_flake", name: "Delta Flake", price: 33, energyPct: 5 },
+      { id: "prime_pow", name: "Prime Powder", price: 34, energyPct: 5 },
+      { id: "velour_mix", name: "Velour Mix", price: 35, energyPct: 5 },
     ];
 
-    // Sayfa okları (menü üzerinde alt kısım)
-    this.ARROW_LEFT = this._r(360, 1385, 110, 110);
-    this.ARROW_RIGHT = this._r(555, 1385, 110, 110);
-
-    // Menü kapatma (sağ üst X yoksa ESC ile kapatacağız)
-    // İstersen buraya X alanı da eklersin:
-    this.CLOSE_RECT = this._r(900, 170, 90, 90);
-
-    // BG’deki kitap tıklama alanı (coffeeshop.png içinde kitap)
-    // Bu alanı ekrana göre ölçekleyeceğiz.
-    // (Bu değerler çoğu sahnede işe yarar; gerekirse tek yer burası.)
-    this.BOOK_HIT = { x: 0.33, y: 0.44, w: 0.18, h: 0.28 };
-
-    // Kurgusal ürün listesi (30 adet)
-    this.PRODUCTS = PRODUCTS_30;
+    // sayfa başına 10 item
+    this._perPage = 10;
   }
 
-  _r(x, y, w, h) {
-    return { x, y, w, h };
-  }
+  // -----------------------------
+  // lifecycle
+  // -----------------------------
+  async onEnter({ canvas } = {}) {
+    this._menuOpen = false;
+    this._page = 0;
 
-  // State çekme (player objesi)
-  _player() {
-    if (this.state?.player) return this.state.player;
-    if (this.state?.coin !== undefined || this.state?.yton !== undefined) return this.state;
-    if (window.gameState?.player) return window.gameState.player;
-    if (window.gameState) return window.gameState;
-    // fallback
-    return (this._fallbackPlayer ||= {
-      yton: 999,
-      energy: 5,
-      energyMax: 10,
-      addiction: {}, // key -> { uses, lastUseAt, penaltyPct }
-    });
-  }
+    // canvas referansı
+    this._canvas = canvas || null;
 
-  _getYton(p) {
-    return Number(p.yton ?? p.coin ?? 0);
-  }
-  _setYton(p, v) {
-    if (p.yton !== undefined) p.yton = v;
-    else p.coin = v;
-  }
-  _getEnergy(p) {
-    return Number(p.energy ?? 0);
-  }
-  _getEnergyMax(p) {
-    return Number(p.energyMax ?? 10);
-  }
-  _setEnergy(p, v) {
-    p.energy = v;
-  }
+    // addiction state load
+    this._ad = this._loadAddiction();
 
-  _now() {
-    return Date.now();
-  }
-
-  _ensureAddictionBucket(p) {
-    if (!p.addiction) p.addiction = {};
-    return p.addiction;
-  }
-
-  _getAddiction(p, key) {
-    const bucket = this._ensureAddictionBucket(p);
-    if (!bucket[key]) bucket[key] = { uses: 0, lastUseAt: 0, penaltyPct: 0 };
-    return bucket[key];
-  }
-
-  _resetIfExpired(entry) {
-    // 24 saat sonra reset
-    const DAY = 24 * 60 * 60 * 1000;
-    if (entry.lastUseAt && this._now() - entry.lastUseAt >= DAY) {
-      entry.uses = 0;
-      entry.penaltyPct = 0;
-      entry.lastUseAt = 0;
+    // click binding (engine input yerine direkt canvas click)
+    if (this._canvas && !this._clickHandler) {
+      this._clickHandler = (ev) => {
+        const p = this._clientToCanvas(ev);
+        if (!p) return;
+        this._handleClick(p.x, p.y);
+      };
+      this._canvas.addEventListener("click", this._clickHandler);
+      // mobil için:
+      this._canvas.addEventListener("touchend", (ev) => {
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        const p = this._clientToCanvas(t);
+        if (!p) return;
+        this._handleClick(p.x, p.y);
+      }, { passive: true });
     }
   }
 
-  _bindPointer(canvas) {
-    if (this._bound || !canvas) return;
-    this._bound = true;
-
-    const toLocal = (ev) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = (ev.clientX - rect.left) * (canvas.width / rect.width);
-      const y = (ev.clientY - rect.top) * (canvas.height / rect.height);
-      return { x, y };
-    };
-
-    canvas.addEventListener("pointerdown", (ev) => {
-      const p = toLocal(ev);
-      this._ptr.x = p.x;
-      this._ptr.y = p.y;
-      this._ptr.down = true;
-      this._ptr.pressed = true; // tek frame’lik click
-    });
-
-    canvas.addEventListener("pointermove", (ev) => {
-      const p = toLocal(ev);
-      this._ptr.x = p.x;
-      this._ptr.y = p.y;
-    });
-
-    const up = () => {
-      this._ptr.down = false;
-    };
-    canvas.addEventListener("pointerup", up);
-    canvas.addEventListener("pointercancel", up);
-
-    window.addEventListener("keydown", (ev) => {
-      if (ev.key === "Escape") this.menuOpen = false;
-      if (!this.menuOpen) return;
-      if (ev.key === "ArrowLeft") this._prevPage();
-      if (ev.key === "ArrowRight") this._nextPage();
-    });
-  }
-
-  _hitRect(px, py, r) {
-    return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
-  }
-
-  _fitText(ctx, text, maxW, startPx, minPx, weight = 800) {
-    let size = startPx;
-    while (size >= minPx) {
-      ctx.font = `${weight} ${size}px system-ui`;
-      if (ctx.measureText(text).width <= maxW) return size;
-      size -= 1;
+  onExit() {
+    if (this._canvas && this._clickHandler) {
+      this._canvas.removeEventListener("click", this._clickHandler);
     }
-    return minPx;
-  }
-
-  _ellipsis(ctx, text, maxW) {
-    if (ctx.measureText(text).width <= maxW) return text;
-    const ell = "…";
-    let t = text;
-    while (t.length > 0) {
-      t = t.slice(0, -1);
-      if (ctx.measureText(t + ell).width <= maxW) return t + ell;
-    }
-    return ell;
-  }
-
-  onEnter({ ctx } = {}) {
-    // Engine ctx veriyorsa kullanırız; vermiyorsa render’da yakalayıp bağlarız
-    if (ctx?.canvas) this._bindPointer(ctx.canvas);
+    this._clickHandler = null;
+    this._canvas = null;
   }
 
   update() {
-    // pressed flag’i sadece 1 tick çalışsın
-    // Engine update loop çağırıyorsa burada sıfırlarız; çağırmıyorsa render sonunda da sıfırlıyoruz.
+    // 24 saat reset kontrol
+    this._ensureAddictionFresh();
   }
 
+  // engine render çağırır
   render(ctx, w, h) {
-    // canvas bağla (en güvenlisi render anı)
-    if (ctx?.canvas) this._bindPointer(ctx.canvas);
+    this._w = w;
+    this._h = h;
 
-    // BG çiz
-    const bg = this.assets?.getImage?.("coffeeshop_bg");
-    if (bg) ctx.drawImage(bg, 0, 0, w, h);
-    else {
+    // BG (coffeeshop.png)
+    const bg = this.assets.getImage("coffeeshop_bg");
+    if (bg) {
+      this._drawCover(ctx, bg, 0, 0, w, h);
+    } else {
       ctx.fillStyle = "#0b0b0f";
       ctx.fillRect(0, 0, w, h);
     }
 
-    // Menü kapalıyken: kitap hotspot
-    if (!this.menuOpen) {
-      this._handleBookClick(w, h);
-      // İSTEK: “Kitaba tıkla -> Menü aç” yazısı OLMASIN, o yüzden çizmiyoruz.
-    } else {
-      this._drawMenu(ctx, w, h);
-      this._handleMenuClick(ctx, w, h);
-    }
-
-    // pressed tek frame
-    this._ptr.pressed = false;
-  }
-
-  _handleBookClick(w, h) {
-    if (!this._ptr.pressed) return;
-
-    const r = {
-      x: this.BOOK_HIT.x * w,
-      y: this.BOOK_HIT.y * h,
-      w: this.BOOK_HIT.w * w,
-      h: this.BOOK_HIT.h * h,
-    };
-
-    if (this._hitRect(this._ptr.x, this._ptr.y, r)) {
-      this.menuOpen = true;
-    }
-  }
-
-  _menuLayout(w, h) {
-    const menuImg = this.assets?.getImage?.("coffeeshop_menu");
-    const mw = menuImg?.width || this.MW;
-    const mh = menuImg?.height || this.MH;
-
-    // ekrana sığdır: yüksekliğin %88’i
-    const scale = Math.min((w * 0.92) / mw, (h * 0.88) / mh);
-    const drawW = mw * scale;
-    const drawH = mh * scale;
-    const ox = (w - drawW) / 2;
-    const oy = (h - drawH) / 2;
-    return { ox, oy, scale, drawW, drawH, mw, mh };
-  }
-
-  _toScreenRect(layout, r) {
-    return {
-      x: layout.ox + r.x * layout.scale,
-      y: layout.oy + r.y * layout.scale,
-      w: r.w * layout.scale,
-      h: r.h * layout.scale,
-    };
-  }
-
-  _drawMenu(ctx, w, h) {
-    const menuImg = this.assets?.getImage?.("coffeeshop_menu");
-    if (!menuImg) {
-      // görsel yoksa crash olmasın
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
+    // Menü açıksa overlay + menu png
+    if (this._menuOpen) {
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = "#fff";
-      ctx.font = "16px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText("Menu image missing: coffeeshop_menu", w / 2, h / 2);
+      ctx.restore();
+
+      const menuImg = this.assets.getImage("coffeeshop_menu");
+      if (menuImg) {
+        const layout = this._menuLayout(menuImg, w, h);
+        this._drawMenu(ctx, menuImg, layout);
+      }
       return;
     }
 
-    // arka karartma
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.fillRect(0, 0, w, h);
+    // Menü kapalıyken: kitap görseli overlay (coffeeshop_book.png)
+    // Eğer bg'nin üstüne ekstra kitap çizmek istemiyorsun: aşağıdaki blok zaten küçük + tıklanabilir alan oluşturuyor.
+    const book = this.assets.getImage("coffeeshop_book");
+    if (book) {
+      const bx = w * 0.37;
+      const by = h * 0.36;
+      const bw = w * 0.26;
+      const bh = bw * (book.height / book.width);
+      this._bookRect = { x: bx, y: by, w: bw, h: bh };
+      ctx.drawImage(book, bx, by, bw, bh);
+    } else {
+      // kitap yoksa da bg üzerinde merkezde tıklama alanı bırak
+      this._bookRect = { x: w * 0.35, y: h * 0.35, w: w * 0.30, h: h * 0.40 };
+    }
+  }
 
-    const layout = this._menuLayout(w, h);
+  // -----------------------------
+  // click logic
+  // -----------------------------
+  _handleClick(x, y) {
+    if (this._menuOpen) {
+      // menüde: oklar + slotlar + kapatma (ESC yok)
+      const menuImg = this.assets.getImage("coffeeshop_menu");
+      if (!menuImg) return;
 
-    // Menü PNG
-    ctx.drawImage(menuImg, layout.ox, layout.oy, layout.drawW, layout.drawH);
+      const layout = this._menuLayout(menuImg, this._w, this._h);
 
-    // ürünler
-    const pageCount = Math.ceil(this.PRODUCTS.length / this.perPage);
-    const items = this.PRODUCTS.slice(this.page * this.perPage, (this.page + 1) * this.perPage);
+      // sağ/sol ok butonları
+      if (this._inRect(x, y, layout.btnPrev)) {
+        this._page = (this._page - 1 + this._pageCount()) % this._pageCount();
+        return;
+      }
+      if (this._inRect(x, y, layout.btnNext)) {
+        this._page = (this._page + 1) % this._pageCount();
+        return;
+      }
 
-    // 10 slot: 5 satır x 2 kolon
-    const slots = [];
-    for (let i = 0; i < 5; i++) {
-      slots.push(this._toScreenRect(layout, this.SLOTS[i].l));
-      slots.push(this._toScreenRect(layout, this.SLOTS[i].r));
+      // menüyü kapatma: menü dışına tıkla
+      if (!this._inRect(x, y, layout.menuRect)) {
+        this._menuOpen = false;
+        return;
+      }
+
+      // slot click
+      for (let i = 0; i < layout.slots.length; i++) {
+        const slot = layout.slots[i];
+        if (!this._inRect(x, y, slot)) continue;
+        const idx = this._page * this._perPage + i;
+        const item = this._items[idx];
+        if (!item) return;
+
+        this._buyAndUse(item);
+        return;
+      }
+
+      return;
     }
 
-    ctx.textAlign = "left";
-    ctx.fillStyle = "#f5f7ff";
+    // menü kapalıysa: kitap alanı tıkla -> menü aç
+    if (this._bookRect && this._inRect(x, y, this._bookRect)) {
+      this._menuOpen = true;
+      return;
+    }
+  }
 
-    for (let i = 0; i < slots.length; i++) {
-      const slot = slots[i];
-      const item = items[i];
+  // -----------------------------
+  // gameplay (coin/energy + addiction)
+  // -----------------------------
+  _buyAndUse(item) {
+    // coin check
+    const coin = Number(this.state.coin || 0);
+    if (coin < item.price) return;
+
+    // addiction tracking per item (10 kullanım sonrası)
+    this._ensureAddictionFresh();
+    const ad = this._ad.items[item.id] || { uses: 0, penalized: false };
+
+    // satın al
+    this.state.coin = coin - item.price;
+
+    // enerji kazanımı:
+    // - normal: +%5 of energyMax (min 1)
+    // - 10+ kullanım sonrası: +%2'ye düşer (senin kuralın)
+    const pct = ad.uses >= 10 ? 2 : item.energyPct; // 5 veya 2
+    const gain = Math.max(1, Math.round((Number(this.state.energyMax || 10) * pct) / 100));
+
+    const curE = Number(this.state.energy || 0);
+    const maxE = Number(this.state.energyMax || 10);
+    this.state.energy = Math.min(maxE, curE + gain);
+
+    // kullanım say
+    ad.uses = (ad.uses || 0) + 1;
+    this._ad.items[item.id] = ad;
+    this._saveAddiction();
+  }
+
+  _ensureAddictionFresh() {
+    const now = Date.now();
+    if (!this._ad || !this._ad.resetAt) return;
+    if (now >= this._ad.resetAt) {
+      // 24h reset
+      this._ad = this._freshAddiction();
+      this._saveAddiction();
+    }
+  }
+
+  _freshAddiction() {
+    const now = Date.now();
+    return {
+      resetAt: now + 24 * 60 * 60 * 1000,
+      items: {},
+    };
+  }
+
+  _loadAddiction() {
+    try {
+      const raw = localStorage.getItem(this._adKey);
+      if (!raw) return this._freshAddiction();
+      const obj = JSON.parse(raw);
+      if (!obj || typeof obj !== "object") return this._freshAddiction();
+      if (!obj.resetAt || !obj.items) return this._freshAddiction();
+      return obj;
+    } catch {
+      return this._freshAddiction();
+    }
+  }
+
+  _saveAddiction() {
+    try {
+      localStorage.setItem(this._adKey, JSON.stringify(this._ad));
+    } catch {}
+  }
+
+  // -----------------------------
+  // menu layout + drawing
+  // -----------------------------
+  _menuLayout(menuImg, w, h) {
+    // Menü görselini ekrana düzgün oturt (küçülme/taşma yok)
+    // hedef: ekranın %88 yüksekliği
+    const targetH = h * 0.88;
+    const scale = targetH / menuImg.height;
+    const mw = menuImg.width * scale;
+    const mh = menuImg.height * scale;
+
+    const mx = (w - mw) / 2;
+    const my = (h - mh) / 2;
+
+    const menuRect = { x: mx, y: my, w: mw, h: mh };
+
+    // SLOT koordinatları (menu png 1024x1536 referans alınarak)
+    // Bu değerler senin attığın “boş yazısız menü” görselindeki çerçevelere göre ayarlı.
+    // 5 sol + 5 sağ = 10 slot
+    const n = (v) => v * scale; // px -> scaled px
+
+    // referans rect'ler (1024x1536 içinde)
+    const Lx = 130, Rx = 545;
+    const slotW = 330, slotH = 125;
+    const ys = [415, 565, 715, 865, 1015]; // 5 sıra
+
+    const slots = [];
+    for (let r = 0; r < 5; r++) {
+      slots.push({ x: mx + n(Lx), y: my + n(ys[r]), w: n(slotW), h: n(slotH) }); // sol
+    }
+    for (let r = 0; r < 5; r++) {
+      slots.push({ x: mx + n(Rx), y: my + n(ys[r]), w: n(slotW), h: n(slotH) }); // sağ
+    }
+
+    // Ok butonları (menu altı)
+    const btnPrev = {
+      x: mx + mw * 0.12,
+      y: my + mh * 0.90,
+      w: mw * 0.10,
+      h: mh * 0.07,
+    };
+    const btnNext = {
+      x: mx + mw * 0.78,
+      y: my + mh * 0.90,
+      w: mw * 0.10,
+      h: mh * 0.07,
+    };
+
+    return { menuRect, mx, my, mw, mh, slots, btnPrev, btnNext, scale };
+  }
+
+  _drawMenu(ctx, menuImg, layout) {
+    // menu background
+    ctx.drawImage(menuImg, layout.mx, layout.my, layout.mw, layout.mh);
+
+    // items (page)
+    const start = this._page * this._perPage;
+    const pageItems = this._items.slice(start, start + this._perPage);
+
+    // text style
+    ctx.save();
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur = 6;
+
+    for (let i = 0; i < layout.slots.length; i++) {
+      const slot = layout.slots[i];
+      const item = pageItems[i];
       if (!item) continue;
 
-      // slot içine padding
-      const padX = slot.w * 0.06;
-      const padY = slot.h * 0.14;
+      const ad = (this._ad.items[item.id] || { uses: 0 });
+      const effectivePct = ad.uses >= 10 ? 2 : item.energyPct;
+
+      // === YAZIYI AŞAĞI OTURT (senin istediğin) ===
+      // slot içinde padding (daha aşağı)
+      const padX = slot.w * 0.07;
+      const padY = slot.h * 0.24;   // kritik: daha aşağı başlat
+      const yShift = slot.h * 0.10; // kritik: komple aşağı kaydır
+
       const tx = slot.x + padX;
       const maxW = slot.w - padX * 2;
 
-      // 3 satır yazı: ad / fiyat+enerji / kullanım
-      // Boyutları slot yüksekliğine göre dinamik ayarla
-      const titleSize = this._fitText(ctx, item.name.toUpperCase(), maxW, Math.max(20, slot.h * 0.32), Math.max(12, slot.h * 0.22), 900);
-      ctx.font = `900 ${titleSize}px system-ui`;
-      const title = this._ellipsis(ctx, item.name.toUpperCase(), maxW);
-      ctx.fillText(title, tx, slot.y + padY + titleSize);
+      // 1) isim (upper)
+      const titleText = item.name.toUpperCase();
+      const titleSize = this._fitText(ctx, titleText, maxW, slot.h * 0.30, slot.h * 0.18, 900);
+      ctx.font = `900 ${Math.round(titleSize)}px system-ui`;
+      ctx.fillStyle = "rgba(255,255,255,0.98)";
+      ctx.fillText(this._ellipsis(ctx, titleText, maxW), tx, slot.y + padY + yShift + titleSize);
 
-      const line2 = `${item.price} YTON  |  +%${item.energyPct} Enerji`;
-      const line2Size = this._fitText(ctx, line2, maxW, Math.max(16, slot.h * 0.22), Math.max(11, slot.h * 0.17), 800);
-      ctx.font = `800 ${line2Size}px system-ui`;
-      ctx.fillText(this._ellipsis(ctx, line2, maxW), tx, slot.y + padY + titleSize + slot.h * 0.28);
+      // 2) price + energy
+      const line2 = `${item.price} YTON  |  +%${effectivePct} Enerji`;
+      const line2Size = this._fitText(ctx, line2, maxW, slot.h * 0.22, slot.h * 0.16, 800);
+      ctx.font = `800 ${Math.round(line2Size)}px system-ui`;
+      ctx.fillStyle = "rgba(255,255,255,0.93)";
+      ctx.fillText(this._ellipsis(ctx, line2, maxW), tx, slot.y + padY + yShift + titleSize + slot.h * 0.30);
 
-      const p = this._player();
-      const ad = this._getAddiction(p, item.key);
-      this._resetIfExpired(ad);
+      // 3) usage
+      const usedTxt = `Kullanım: ${Math.min(ad.uses || 0, 99)}/10`;
+      const line3Size = Math.max(11, slot.h * 0.15);
+      ctx.font = `700 ${Math.round(line3Size)}px system-ui`;
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.fillText(usedTxt, tx, slot.y + slot.h - padY * 0.20);
 
-      const usedTxt = `Kullanım: ${ad.uses}/10`;
-      const line3Size = Math.max(11, slot.h * 0.16);
-      ctx.font = `700 ${line3Size}px system-ui`;
-      ctx.fillStyle = "rgba(255,255,255,0.82)";
-      ctx.fillText(usedTxt, tx, slot.y + slot.h - padY * 0.55);
-      ctx.fillStyle = "#f5f7ff";
+      // (isteğe bağlı) 24h reset kalan süreyi gösterme istemiyorsun diye eklemedim.
     }
 
-    // Sayfa yazısı + oklar
+    ctx.restore();
+
+    // page indicator
+    ctx.save();
     ctx.textAlign = "center";
-    ctx.font = `800 ${Math.max(14, h * 0.018)}px system-ui`;
+    ctx.textBaseline = "middle";
+    ctx.font = `800 ${Math.round(layout.mh * 0.028)}px system-ui`;
     ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.fillText(`Sayfa ${this.page + 1}/${pageCount}`, w / 2, layout.oy + layout.drawH - 12);
+    ctx.shadowColor = "rgba(0,0,0,0.55)";
+    ctx.shadowBlur = 6;
+    ctx.fillText(`Sayfa ${this._page + 1}/${this._pageCount()}`, layout.mx + layout.mw / 2, layout.my + layout.mh * 0.935);
+    ctx.restore();
 
-    // okları görünür yap (görselde yoksa bile)
-    const L = this._toScreenRect(layout, this.ARROW_LEFT);
-    const R = this._toScreenRect(layout, this.ARROW_RIGHT);
+    // arrows (tıklanabilir alan)
+    this._drawArrow(ctx, layout.btnPrev, "left");
+    this._drawArrow(ctx, layout.btnNext, "right");
+  }
+
+  _drawArrow(ctx, r, dir) {
+    // sade ok (senin “tuş yok” dediğin problem için)
+    ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.25)";
-    ctx.beginPath(); ctx.roundRect(L.x, L.y, L.w, L.h, 16); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(R.x, R.y, R.w, R.h, 16); ctx.fill();
+    ctx.fillRect(r.x, r.y, r.w, r.h);
 
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.font = `900 ${Math.max(28, L.h * 0.45)}px system-ui`;
-    ctx.fillText("‹", L.x + L.w / 2, L.y + L.h * 0.68);
-    ctx.fillText("›", R.x + R.w / 2, R.y + R.h * 0.68);
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.lineWidth = Math.max(2, r.h * 0.12);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    const cx = r.x + r.w / 2;
+    const cy = r.y + r.h / 2;
+    const s = Math.min(r.w, r.h) * 0.32;
+
+    ctx.beginPath();
+    if (dir === "left") {
+      ctx.moveTo(cx + s, cy - s);
+      ctx.lineTo(cx - s, cy);
+      ctx.lineTo(cx + s, cy + s);
+    } else {
+      ctx.moveTo(cx - s, cy - s);
+      ctx.lineTo(cx + s, cy);
+      ctx.lineTo(cx - s, cy + s);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
-  _handleMenuClick(ctx, w, h) {
-    if (!this._ptr.pressed) return;
-
-    const layout = this._menuLayout(w, h);
-
-    // Menü dışına tıklayınca kapat
-    const inside = this._hitRect(this._ptr.x, this._ptr.y, { x: layout.ox, y: layout.oy, w: layout.drawW, h: layout.drawH });
-    if (!inside) {
-      this.menuOpen = false;
-      return;
-    }
-
-    // Oklar
-    const L = this._toScreenRect(layout, this.ARROW_LEFT);
-    const R = this._toScreenRect(layout, this.ARROW_RIGHT);
-    if (this._hitRect(this._ptr.x, this._ptr.y, L)) {
-      this._prevPage();
-      return;
-    }
-    if (this._hitRect(this._ptr.x, this._ptr.y, R)) {
-      this._nextPage();
-      return;
-    }
-
-    // Slot tıklayınca satın al
-    const pageItems = this.PRODUCTS.slice(this.page * this.perPage, (this.page + 1) * this.perPage);
-    const slots = [];
-    for (let i = 0; i < 5; i++) {
-      slots.push(this._toScreenRect(layout, this.SLOTS[i].l));
-      slots.push(this._toScreenRect(layout, this.SLOTS[i].r));
-    }
-
-    for (let i = 0; i < slots.length; i++) {
-      const item = pageItems[i];
-      if (!item) continue;
-      if (this._hitRect(this._ptr.x, this._ptr.y, slots[i])) {
-        this._buy(item);
-        return;
-      }
-    }
+  _pageCount() {
+    return Math.max(1, Math.ceil(this._items.length / this._perPage));
   }
 
-  _prevPage() {
-    const pageCount = Math.ceil(this.PRODUCTS.length / this.perPage);
-    this.page = (this.page - 1 + pageCount) % pageCount;
+  // -----------------------------
+  // helpers
+  // -----------------------------
+  _inRect(x, y, r) {
+    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
   }
 
-  _nextPage() {
-    const pageCount = Math.ceil(this.PRODUCTS.length / this.perPage);
-    this.page = (this.page + 1) % pageCount;
+  _clientToCanvas(ev) {
+    const c = this._canvas;
+    if (!c) return null;
+
+    const rect = c.getBoundingClientRect();
+    const cx = ev.clientX - rect.left;
+    const cy = ev.clientY - rect.top;
+
+    // canvas gerçek boyut/ekran boyut oranı
+    const sx = c.width / rect.width;
+    const sy = c.height / rect.height;
+
+    return { x: cx * sx, y: cy * sy };
   }
 
-  _buy(item) {
-    const p = this._player();
+  _drawCover(ctx, img, x, y, w, h) {
+    // CSS background-size: cover gibi
+    const iw = img.width;
+    const ih = img.height;
+    const s = Math.max(w / iw, h / ih);
+    const dw = iw * s;
+    const dh = ih * s;
+    const dx = x + (w - dw) / 2;
+    const dy = y + (h - dh) / 2;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
 
-    const yton = this._getYton(p);
-    if (yton < item.price) return; // paran yoksa alma
-
-    const ad = this._getAddiction(p, item.key);
-    this._resetIfExpired(ad);
-
-    // 10 kullanım sonrası: enerji kazancı %2 düşer (penaltyPct = 2)
-    // Burada “aynı ürünü 10 defa kullanınca bağımlılık yapar” kuralını uyguluyoruz.
-    // ceza sadece o üründe; 24 saatte reset.
-    let gainPct = item.energyPct;
-
-    // ceza uygula
-    if (ad.penaltyPct > 0) {
-      gainPct = Math.max(0, gainPct - ad.penaltyPct);
+  _fitText(ctx, text, maxWidth, startPx, minPx, weight = 800) {
+    let size = Math.floor(startPx);
+    const min = Math.floor(minPx);
+    while (size >= min) {
+      ctx.font = `${weight} ${size}px system-ui`;
+      if (ctx.measureText(text).width <= maxWidth) return size;
+      size -= 1;
     }
-
-    // parayı düş
-    this._setYton(p, yton - item.price);
-
-    // enerji ekle (energyMax üzerinden %)
-    const e = this._getEnergy(p);
-    const eMax = this._getEnergyMax(p);
-    const add = (eMax * gainPct) / 100;
-    this._setEnergy(p, Math.min(eMax, e + add));
-
-    // kullanım say
-    ad.uses += 1;
-    ad.lastUseAt = this._now();
-
-    if (ad.uses >= 10) {
-      ad.penaltyPct = 2; // %2 düşür
-    }
+    return min;
   }
-}
 
-// 30 kurgusal ürün (isimleri istersen sen değiştir)
-const PRODUCTS_30 = [
-  { key: "shadow_kush", name: "Shadow Kush", price: 10, energyPct: 5 },
-  { key: "blue_drift", name: "Blue Drift", price: 11, energyPct: 5 },
-  { key: "neon_haze", name: "Neon Haze", price: 12, energyPct: 5 },
-  { key: "lemon_sketch", name: "Lemon Sketch", price: 13, energyPct: 5 },
-  { key: "white_veil", name: "White Veil", price: 14, energyPct: 5 },
-
-  { key: "gelato_flux", name: "Gelato Flux", price: 15, energyPct: 5 },
-  { key: "zk_sugar", name: "ZK Sugar", price: 16, energyPct: 5 },
-  { key: "gsc_prime", name: "GSC Prime", price: 17, energyPct: 5 },
-  { key: "night_sherb", name: "Night Sherb", price: 18, energyPct: 5 },
-  { key: "island_gold", name: "Island Gold", price: 19, energyPct: 5 },
-
-  { key: "street_mix", name: "Street Mix", price: 10, energyPct: 5 },
-  { key: "lava_kief", name: "Lava Kief", price: 19, energyPct: 5 },
-  { key: "noir_dust", name: "Noir Dust", price: 17, energyPct: 5 },
-  { key: "amber_shard", name: "Amber Shard", price: 23, energyPct: 5 },
-  { key: "viper_crush", name: "Viper Crush", price: 25, energyPct: 5 },
-
-  { key: "crystal_leaf", name: "Crystal Leaf", price: 24, energyPct: 5 },
-  { key: "velvet_stone", name: "Velvet Stone", price: 22, energyPct: 5 },
-  { key: "night_bloom", name: "Night Bloom", price: 21, energyPct: 5 },
-  { key: "isle_mint", name: "Isle Mint", price: 14, energyPct: 5 },
-  { key: "blue_ember", name: "Blue Ember", price: 16, energyPct: 5 },
-
-  { key: "golden_spark", name: "Golden Spark", price: 18, energyPct: 5 },
-  { key: "black_lotus", name: "Black Lotus", price: 20, energyPct: 5 },
-  { key: "ghost_sugar", name: "Ghost Sugar", price: 15, energyPct: 5 },
-  { key: "mint_shroud", name: "Mint Shroud", price: 12, energyPct: 5 },
-  { key: "violet_rush", name: "Violet Rush", price: 17, energyPct: 5 },
-
-  { key: "cinder_wave", name: "Cinder Wave", price: 13, energyPct: 5 },
-  { key: "silver_static", name: "Silver Static", price: 16, energyPct: 5 },
-  { key: "emerald_hush", name: "Emerald Hush", price: 19, energyPct: 5 },
-  { key: "sunset_glint", name: "Sunset Glint", price: 21, energyPct: 5 },
-  { key: "royal_fog", name: "Royal Fog", price: 22, energyPct: 5 },
-];
+  _ellipsis(ctx, text, maxWidth) {
+    if (ctx.measureText(text).width <= maxWidth) return text;
+    const ell = "...";
+    let t = text;
+    while (t.length > 0) {
+      t = t.slice(0, -1);
+      if (ctx.measureText(t + ell).width <= maxWidth) return t + ell;
+    }
+    return ell;
+  }
+        }
