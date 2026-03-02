@@ -12,14 +12,12 @@ import { SimpleScreenScene } from "./scenes/SimpleScreenScene.js";
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d", { alpha: false });
 
-// Safe-area ölçüsü
 function getSafeArea() {
   const safe = document.getElementById("safe");
   const r = safe.getBoundingClientRect();
   return { x: r.left, y: r.top, w: r.width, h: r.height };
 }
 
-// Canvas fit (DPR)
 function fitCanvas() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   const cssW = Math.floor(window.innerWidth);
@@ -29,26 +27,22 @@ function fitCanvas() {
   canvas.height = Math.floor(cssH * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
-
 window.addEventListener("resize", () => fitCanvas());
 
-// Telegram WebApp varsa genişlet
 try {
   const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-  }
+  if (tg) { tg.ready(); tg.expand(); }
 } catch (_) {}
 
 fitCanvas();
 
-// ===== CHAT (kalıcı) =====
-function initChat(store) {
+/* ===== CHAT MOTOR (kalıcı + her sayfada) ===== */
+function ChatMotor(store) {
   const KEY_MSG = "toncrime_chat_messages_v1";
   const KEY_OPEN = "toncrime_chat_open_v1";
 
   const drawer = document.getElementById("chatDrawer");
+  const header = document.getElementById("chatHeader");
   const toggleBtn = document.getElementById("chatToggle");
   const msgBox = document.getElementById("chatMessages");
   const input = document.getElementById("chatInput");
@@ -61,15 +55,11 @@ function initChat(store) {
       const raw = localStorage.getItem(KEY_MSG);
       const arr = raw ? JSON.parse(raw) : [];
       return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
   function saveMessages(arr) {
-    try {
-      localStorage.setItem(KEY_MSG, JSON.stringify(arr));
-    } catch {}
+    try { localStorage.setItem(KEY_MSG, JSON.stringify(arr)); } catch {}
   }
 
   function renderMessages() {
@@ -101,24 +91,16 @@ function initChat(store) {
       drawer.classList.remove("open");
       toggleBtn.textContent = "Aç";
     }
-    try {
-      localStorage.setItem(KEY_OPEN, isOpen ? "1" : "0");
-    } catch {}
+    try { localStorage.setItem(KEY_OPEN, isOpen ? "1" : "0"); } catch {}
   }
 
   function getOpen() {
-    try {
-      return localStorage.getItem(KEY_OPEN) === "1";
-    } catch {
-      return false;
-    }
+    try { return localStorage.getItem(KEY_OPEN) === "1"; } catch { return false; }
   }
 
   function nowHHMM() {
     const d = new Date();
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${hh}:${mm}`;
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   }
 
   function send() {
@@ -127,8 +109,6 @@ function initChat(store) {
 
     const msgs = loadMessages();
     msgs.push({ user: username(), text, time: nowHHMM() });
-
-    // çok büyümesin: son 200 mesaj kalsın
     if (msgs.length > 200) msgs.splice(0, msgs.length - 200);
 
     saveMessages(msgs);
@@ -136,27 +116,49 @@ function initChat(store) {
     renderMessages();
   }
 
-  // Toggle
-  toggleBtn.addEventListener("click", () => setOpen(!drawer.classList.contains("open")));
+  /* ✅ KRİTİK: pointerdown + capture => engine input bozamasın */
+  function hardBindPointer(el, handler) {
+    el.addEventListener(
+      "pointerdown",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handler(e);
+      },
+      { capture: true }
+    );
+  }
 
-  // Header’a tıklayınca da aç/kapat (buton hariç)
-  document.getElementById("chatHeader").addEventListener("click", (e) => {
+  hardBindPointer(toggleBtn, () => setOpen(!drawer.classList.contains("open")));
+  hardBindPointer(header, (e) => {
+    // butona basınca header toggle tekrar çalışmasın
     if (e.target === toggleBtn) return;
     setOpen(!drawer.classList.contains("open"));
   });
 
-  // Send
-  sendBtn.addEventListener("click", send);
+  // send button
+  hardBindPointer(sendBtn, () => send());
+
+  // input: yazı yazabilsin
+  input.addEventListener("pointerdown", (e) => e.stopPropagation(), { capture: true });
+
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") send();
   });
 
-  // İlk yükleme
+  // ilk yükleme
   renderMessages();
   setOpen(getOpen());
+
+  // dışarıdan kontrol için API
+  return {
+    open: () => setOpen(true),
+    close: () => setOpen(false),
+    toggle: () => setOpen(!drawer.classList.contains("open")),
+  };
 }
 
-// ===== STORE / I18N / SCENES =====
+/* ===== STORE / I18N / SCENES ===== */
 const store = new Store({
   lang: "tr",
   coins: 0,
@@ -166,28 +168,8 @@ const store = new Store({
 
 const i18n = new I18n(store);
 i18n.register({
-  tr: {
-    loading: "Yükleniyor...",
-    home_title: "TonCrime",
-    tap_to_earn: "Kazanmak için tıkla",
-    coins: "Coin",
-    tab_home: "Ana",
-    tab_missions: "Görevler",
-    tab_dealer: "Silah Kaçakçısı",
-    tab_pvp: "PvP",
-    tab_clan: "Klan",
-  },
-  en: {
-    loading: "Loading...",
-    home_title: "TonCrime",
-    tap_to_earn: "Tap to earn",
-    coins: "Coins",
-    tab_home: "Home",
-    tab_missions: "Missions",
-    tab_dealer: "Arms Dealer",
-    tab_pvp: "PvP",
-    tab_clan: "Clan",
-  },
+  tr: { loading: "Yükleniyor...", home_title: "TonCrime", tap_to_earn: "Kazanmak için tıkla" },
+  en: { loading: "Loading...", home_title: "TonCrime", tap_to_earn: "Tap to earn" },
 });
 
 const assets = new Assets();
@@ -197,23 +179,23 @@ const scenes = new SceneManager();
 scenes.register("boot", new BootScene({ assets, i18n, scenes }));
 scenes.register("home", new HomeScene({ store, input, i18n, assets, scenes }));
 
-// placeholder scene’ler
-scenes.register("missions", new SimpleScreenScene({ i18n, titleKey: "tab_missions" }));
-scenes.register("dealer", new SimpleScreenScene({ i18n, titleKey: "tab_dealer" }));
-scenes.register("pvp", new SimpleScreenScene({ i18n, titleKey: "tab_pvp" }));
-scenes.register("clan", new SimpleScreenScene({ i18n, titleKey: "tab_clan" }));
+// placeholderlar
+scenes.register("missions", new SimpleScreenScene({ i18n, titleKey: "Missions" }));
+scenes.register("dealer", new SimpleScreenScene({ i18n, titleKey: "Dealer" }));
+scenes.register("pvp", new SimpleScreenScene({ i18n, titleKey: "PvP" }));
+scenes.register("clan", new SimpleScreenScene({ i18n, titleKey: "Clan" }));
 
 const engine = new Engine({ canvas, ctx, input, scenes });
 
-// Safe-area sürekli güncelle
+// Safe-area güncelle
 function updateSafeAreaLoop() {
   store.set({ ui: { ...store.get().ui, safe: getSafeArea() } });
   requestAnimationFrame(updateSafeAreaLoop);
 }
 updateSafeAreaLoop();
 
-// Chat’i başlat
-initChat(store);
+// Chat motoru başlat (her sayfada)
+ChatMotor(store);
 
 scenes.go("boot");
 engine.start();
