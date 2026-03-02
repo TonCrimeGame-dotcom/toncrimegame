@@ -23,12 +23,6 @@ function strokeRoundRect(ctx, x, y, w, h, r) {
 function clamp01(n) {
   return Math.max(0, Math.min(1, n));
 }
-function fmtMMSS(ms) {
-  const totalSec = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
 
 export class HomeScene {
   constructor({ store, input, i18n, assets, scenes }) {
@@ -52,14 +46,7 @@ export class HomeScene {
   }
 
   onEnter() {
-    this._onKey = (e) => {
-      if (e.key.toLowerCase() === "l") {
-        const s = this.store.get();
-        this.store.set({ lang: s.lang === "tr" ? "en" : "tr" });
-      }
-    };
-    window.addEventListener("keydown", this._onKey);
-
+    // player default patch (resetlememek için sadece eksikleri tamamlar)
     const s = this.store.get();
     if (!s.player) {
       this.store.set({
@@ -70,7 +57,6 @@ export class HomeScene {
           xpToNext: 100,
           weaponName: "Silah Yok",
           weaponBonus: "+0%",
-
           energy: 10,
           energyMax: 10,
           energyIntervalMs: 5 * 60 * 1000,
@@ -88,36 +74,15 @@ export class HomeScene {
     }
   }
 
-  onExit() {
-    window.removeEventListener("keydown", this._onKey);
-  }
-
-  _tickEnergy() {
-    const s = this.store.get();
-    const p = s.player;
-    if (!p) return;
-
-    const now = Date.now();
-    const interval = Math.max(10_000, Number(p.energyIntervalMs || 300000));
-    const maxE = Math.max(1, Number(p.energyMax || 10));
-    let e = Math.max(0, Math.min(maxE, Number(p.energy || 0)));
-
-    if (e >= maxE) {
-      if (p.lastEnergyAt !== now) {
-        this.store.set({ player: { ...p, energy: maxE, lastEnergyAt: now } });
-      }
-      return;
-    }
-
-    const elapsed = now - Number(p.lastEnergyAt || now);
-    if (elapsed < interval) return;
-
-    const gained = Math.floor(elapsed / interval);
-    if (gained <= 0) return;
-
-    const newE = Math.min(maxE, e + gained);
-    const newLast = Number(p.lastEnergyAt || now) + gained * interval;
-    this.store.set({ player: { ...p, energy: newE, lastEnergyAt: newLast } });
+  _carouselItems() {
+    return [
+      { id: "missions", titleTR: "Görevler", titleEN: "Missions", sceneKey: "missions" },
+      { id: "pvp", titleTR: "PvP", titleEN: "PvP", sceneKey: "pvp" },
+      { id: "weapons", titleTR: "Silah Kaçakçısı", titleEN: "Arms Dealer", sceneKey: "dealer" },
+      { id: "nightclub", titleTR: "Gece Kulübü", titleEN: "Nightclub", sceneKey: "nightclub" },
+      { id: "coffeeshop", titleTR: "Coffeeshop", titleEN: "Coffeeshop", sceneKey: "coffeeshop" },
+      { id: "xxx", titleTR: "Genel Ev", titleEN: "Brothel", sceneKey: "xxx" },
+    ];
   }
 
   _spendEnergy(amount) {
@@ -130,20 +95,7 @@ export class HomeScene {
     return true;
   }
 
-  _carouselItems() {
-    return [
-      { id: "missions", titleTR: "Görevler", titleEN: "Missions", sceneKey: "missions" },
-      { id: "pvp", titleTR: "PvP", titleEN: "PvP", sceneKey: "pvp" },
-      { id: "weapons", titleTR: "Silah Kaçakçısı", titleEN: "Arms Dealer", sceneKey: "dealer" },
-      { id: "nightclub", titleTR: "Gece Kulübü", titleEN: "Nightclub", sceneKey: "nightclub" },
-      { id: "coffeeshop", titleTR: "Coffeeshop", titleEN: "Coffeeshop", sceneKey: "coffeeshop" },
-      { id: "xxx", titleTR: "Genel Ev", titleEN: "Brothel", sceneKey: "xxx" },
-    ];
-  }
-
   update() {
-    this._tickEnergy();
-
     const c = this.carousel;
     const px = this.input.pointer.x;
     const py = this.input.pointer.y;
@@ -175,7 +127,7 @@ export class HomeScene {
       if (dragDX > threshold) c.index = Math.max(0, c.index - 1);
       else if (dragDX < -threshold) c.index = Math.min(items.length - 1, c.index + 1);
 
-      // Kart tıklaması: 1 enerji harca + sahneye git (şimdilik yoksa coin artır)
+      // kart tıklaması: 1 enerji harca + sahneye git (yoksa coin test)
       if (c.clickCandidate && pointInRect(px, py, this._cardRect)) {
         if (this._spendEnergy(1)) {
           const item = items[c.index];
@@ -193,7 +145,6 @@ export class HomeScene {
   render(ctx, w, h) {
     const state = this.store.get();
     const safe = state?.ui?.safe ?? { x: 0, y: 0, w, h };
-    const pad = 14;
 
     // BG
     const bg = this.assets.getImage("background");
@@ -205,131 +156,22 @@ export class HomeScene {
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, w, h);
 
-    // TOP layout: logo + left/right panels
-    const topX = safe.x + pad;
-    const topY = safe.y + pad;
-    const topW = safe.w - pad * 2;
+    // ✅ HUD ve chat için boşluk bırakıyoruz (HTML overlay)
+    const HUD_TOP_RESERVED = 96;   // üst panel yüksekliği yaklaşık
+    const CHAT_BOTTOM_RESERVED = 74; // chat kapalıyken başlık + nefes payı
 
-    const logoImg = this.assets.getImage("logo");
-    let logoW = Math.min(240, topW * 0.32);
-    let logoH = 60;
-    if (logoImg) {
-      const ratio = logoImg.height / logoImg.width;
-      logoH = Math.min(90, logoW * ratio);
-      logoW = logoH / ratio;
-    }
-    const logoX = safe.x + (safe.w - logoW) / 2;
-    const logoY = topY + 6;
-    const logoRect = { x: logoX, y: logoY, w: logoW, h: logoH };
+    const carouselTop = safe.y + HUD_TOP_RESERVED;
+    const carouselBottom = safe.y + safe.h - CHAT_BOTTOM_RESERVED;
 
-    const panelH = logoRect.h;
-    const gap = 10;
-    const leftMaxW = Math.max(160, (logoRect.x - topX) - gap);
-    const rightMaxW = Math.max(160, (safe.x + safe.w - (logoRect.x + logoRect.w)) - gap);
-    const leftW = Math.min(260, leftMaxW);
-    const rightW = Math.min(280, rightMaxW);
+    const areaH = Math.max(160, carouselBottom - carouselTop);
+    const cx = safe.x + safe.w / 2;
+    const cy = carouselTop + areaH / 2;
 
-    const leftRect = { x: topX, y: logoRect.y, w: leftW, h: panelH };
-    const rightRect = { x: safe.x + safe.w - pad - rightW, y: logoRect.y, w: rightW, h: panelH };
-
-    // LEFT panel
-    const player = state.player || {};
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
-    fillRoundRect(ctx, leftRect.x, leftRect.y, leftRect.w, leftRect.h, 12);
-    ctx.strokeStyle = "rgba(255,255,255,0.14)";
-    strokeRoundRect(ctx, leftRect.x + 0.5, leftRect.y + 0.5, leftRect.w - 1, leftRect.h - 1, 12);
-
-    const linePadX = 12;
-    const lineY1 = leftRect.y + 18;
-    const lineY2 = leftRect.y + leftRect.h / 2;
-    const lineY3 = leftRect.y + leftRect.h - 16;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "left";
-    ctx.font = "14px system-ui";
-    ctx.fillText(player.username ?? "Player", leftRect.x + linePadX, lineY1);
-
-    const coinValue = state.coins ?? 0;
-    const yton = this.assets.getImage("yton");
-    const iconSize = 16;
-
-    let coinTextX = leftRect.x + linePadX;
-    if (yton) {
-      ctx.drawImage(yton, leftRect.x + linePadX, lineY2 - iconSize + 2, iconSize, iconSize);
-      coinTextX = leftRect.x + linePadX + iconSize + 8;
-    }
-    ctx.font = "13px system-ui";
-    ctx.fillText(`Coin: ${coinValue}`, coinTextX, lineY2);
-
-    ctx.font = "12px system-ui";
-    ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.fillText(player.weaponName ?? "Silah Yok", leftRect.x + linePadX, lineY3);
-    ctx.fillStyle = "rgba(255,255,255,0.70)";
-    ctx.fillText(player.weaponBonus ?? "+0%", leftRect.x + linePadX, lineY3 + 14);
-
-    // LOGO
-    if (logoImg) ctx.drawImage(logoImg, logoRect.x, logoRect.y, logoRect.w, logoRect.h);
-
-    // RIGHT panel (XP + ENERGY)
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
-    fillRoundRect(ctx, rightRect.x, rightRect.y, rightRect.w, rightRect.h, 12);
-    ctx.strokeStyle = "rgba(255,255,255,0.14)";
-    strokeRoundRect(ctx, rightRect.x + 0.5, rightRect.y + 0.5, rightRect.w - 1, rightRect.h - 1, 12);
-
-    const barPad = 12;
-    const barW = rightRect.w - barPad * 2;
-    const totalBarsH = 28 + 10 + 28;
-    const startY = rightRect.y + Math.floor((rightRect.h - totalBarsH) / 2);
-    const barH = 28;
-
-    const xp = Math.max(0, Number(player.xp || 0));
-    const xpToNext = Math.max(1, Number(player.xpToNext || 100));
-    const xpPct = clamp01(xp / xpToNext);
-
-    const xpX = rightRect.x + barPad;
-    const xpY = startY;
-    ctx.fillStyle = "rgba(255,255,255,0.10)";
-    fillRoundRect(ctx, xpX, xpY, barW, barH, 10);
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
-    fillRoundRect(ctx, xpX, xpY, Math.max(8, barW * xpPct), barH, 10);
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.font = "12px system-ui";
-    ctx.fillText(`LVL ${player.level ?? 1} • XP ${xp}/${xpToNext}`, xpX + barW / 2, xpY + barH / 2 + 4);
-
-    const e = Math.max(0, Number(player.energy || 0));
-    const eMax = Math.max(1, Number(player.energyMax || 10));
-    const ePct = clamp01(e / eMax);
-    const interval = Math.max(10_000, Number(player.energyIntervalMs || 300000));
-    const lastAt = Number(player.lastEnergyAt || Date.now());
-    const now = Date.now();
-    const untilNext = e >= eMax ? 0 : Math.max(0, interval - (now - lastAt));
-    const timeText = e >= eMax ? "FULL" : fmtMMSS(untilNext);
-
-    const enX = xpX;
-    const enY = xpY + barH + 10;
-    ctx.fillStyle = "rgba(255,255,255,0.10)";
-    fillRoundRect(ctx, enX, enY, barW, barH, 10);
-    ctx.fillStyle = "rgba(255,255,255,0.22)";
-    fillRoundRect(ctx, enX, enY, Math.max(8, barW * ePct), barH, 10);
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.font = "12px system-ui";
-    ctx.fillText(`ENERJİ ${e}/${eMax} • ${timeText}`, enX + barW / 2, enY + barH / 2 + 4);
-
-    // ----- CENTER CAROUSEL (CONTAIN: resim tam görünsün) -----
     const items = this._carouselItems();
     const idx = this.carousel.index;
 
-    const carouselTop = logoRect.y + logoRect.h + 18;
-    const carouselBottom = safe.y + safe.h - 18; // alt bar kalktı
-    const areaH = Math.max(140, carouselBottom - carouselTop);
-
-    const cardW = Math.min(safe.w * 0.80, 380);
-    const cardH = Math.min(areaH * 0.78, 280);
-
-    const cx = safe.x + safe.w / 2;
-    const cy = carouselTop + areaH / 2;
+    const cardW = Math.min(safe.w * 0.82, 390);
+    const cardH = Math.min(areaH * 0.78, 290);
 
     const spacing = cardW + 28;
     const dragDX = this.carousel.dragging ? (this.carousel.dragNowX - this.carousel.dragStartX) : 0;
@@ -357,7 +199,7 @@ export class HomeScene {
       roundRectPath(ctx, x2, y2, w2, h2, 18);
       ctx.clip();
 
-      // image (CONTAIN)
+      // image (contain: tam görünsün)
       const img = this.assets.getImage(item.id);
       if (img) {
         const s = Math.min(w2 / img.width, h2 / img.height);
@@ -367,8 +209,7 @@ export class HomeScene {
         const dy = y2 + (h2 - dh) / 2;
         ctx.drawImage(img, dx, dy, dw, dh);
 
-        // overlay text readability
-        ctx.fillStyle = "rgba(0,0,0,0.20)";
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
         ctx.fillRect(x2, y2, w2, h2);
       }
 
@@ -393,7 +234,7 @@ export class HomeScene {
     drawCard(idx + 1);
 
     // dots
-    const dotsY = Math.min(safe.y + safe.h - 22, cy + cardH / 2 + 18);
+    const dotsY = Math.min(carouselBottom - 10, cy + cardH / 2 + 18);
     const dotGap = 10;
     const total = (items.length - 1) * dotGap;
     const startX = cx - total / 2;
@@ -407,4 +248,4 @@ export class HomeScene {
       ctx.fill();
     }
   }
-       }
+      }
