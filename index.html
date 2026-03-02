@@ -4,699 +4,732 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>TonCrime - Shell</title>
-
   <style>
     :root{
       --tc-design-w: 390;
       --tc-design-h: 844;
       --tc-scale: 1;
 
-      --tc-radius: 14px;
-      --tc-ui: rgba(10,15,30,0.82);
-      --tc-ui2: rgba(0,0,0,0.65);
-      --tc-border: rgba(255,255,255,0.10);
-      --tc-text: rgba(255,255,255,0.92);
-      --tc-muted: rgba(255,255,255,0.65);
+      --tc-bg: #071a3a;
+      --tc-panel: rgba(10, 18, 30, .72);
+      --tc-panel-2: rgba(10, 18, 30, .60);
+      --tc-stroke: rgba(255,255,255,.12);
+      --tc-text: rgba(255,255,255,.92);
+      --tc-muted: rgba(255,255,255,.70);
+      --tc-gold: #f2d36b;
+      --tc-cyan: #6ef2ff;
+      --tc-green: #43e38d;
 
-      --tc-topbar-h: 92px; /* 2 bar yüksekliği hissi için */
-      --tc-logo-scale: 1.30; /* LOGO %30 BÜYÜT */
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
+    *{ box-sizing: border-box; }
     html, body{
       width:100%;
       height:100%;
       margin:0;
       padding:0;
+      background: var(--tc-bg);
       overflow:hidden;
-      background:#050a14;
-      color:var(--tc-text);
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      touch-action: manipulation;
+      color: var(--tc-text);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
-    /* Ekran: ortada sabit sahne + ölçek */
+    /* Dış kabuk (ekran) */
     #tc-root{
-      position:fixed;
-      inset:0;
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(70% 70% at 50% 20%, rgba(255,255,255,.06), transparent 65%),
+        linear-gradient(180deg, rgba(255,255,255,.03), transparent 50%),
+        var(--tc-bg);
       display:flex;
       align-items:center;
       justify-content:center;
-      overflow:hidden;
     }
 
+    /* Tasarım alanı (390x844) */
     #tc-stage{
-      position:relative;
+      position: relative;
       width: calc(var(--tc-design-w) * 1px);
       height: calc(var(--tc-design-h) * 1px);
       transform: scale(var(--tc-scale));
       transform-origin: center center;
-      border-radius: var(--tc-radius);
-      overflow:hidden;
-
-      /* ARKA PLAN */
-      background:
-        linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.60)),
-        url("assets/background.jpg") center center / cover no-repeat;
+      border-radius: 22px;
+      overflow: hidden;
+      background: #0a1a3a;
+      box-shadow: 0 20px 80px rgba(0,0,0,.45);
     }
 
-    /* ===================== TOPBAR ===================== */
-    #tc-topbar{
+    /* Arkaplan görsel */
+    #tc-bg{
       position:absolute;
-      top:0;
-      left:0;
-      right:0;
-      height: var(--tc-topbar-h);
-      z-index: 260;
-      pointer-events:none; /* sadece içte pointer açık */
+      inset:0;
+      background: url("assets/background.jpg") center/cover no-repeat;
+      filter: saturate(1.05) contrast(1.05);
+    }
+    #tc-bg::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(180deg, rgba(0,0,0,.30), rgba(0,0,0,.15) 35%, rgba(0,0,0,.35));
     }
 
-    .tc-topbar-inner{
-      height:100%;
+    /* İç katman */
+    #tc-ui{
+      position:absolute;
+      inset:0;
+      display:flex;
+      flex-direction:column;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    /* ============ TOPBAR ============ */
+    #tc-topbar{
+      position: relative;
+      z-index: 50;
+      width: 100%;
+      padding: 10px 12px 8px;
+    }
+
+    .tb-wrap{
       display:grid;
       grid-template-columns: 1fr auto 1fr;
-      align-items:center;
-      padding: 10px 12px;
-      box-sizing:border-box;
+      align-items: center;
       gap: 10px;
     }
 
-    .tc-topbox{
-      background: rgba(0,0,0,0.38);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 14px;
-      padding: 10px 10px;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      pointer-events:auto;
-    }
-
-    .tc-leftinfo{
+    .tb-left, .tb-right{
       display:flex;
       flex-direction:column;
-      gap:6px;
+      gap: 6px;
       min-width: 0;
     }
-    .tc-leftinfo .tc-user{
-      font-weight: 900;
-      letter-spacing: 0.2px;
+
+    .tb-left{
+      align-items:flex-start;
+    }
+    .tb-right{
+      align-items:flex-end;
+    }
+
+    .pill{
+      background: var(--tc-panel);
+      border: 1px solid var(--tc-stroke);
+      border-radius: 14px;
+      padding: 8px 10px;
+      backdrop-filter: blur(10px);
+    }
+
+    .tb-user{
+      line-height: 1.05;
+    }
+    .tb-user .name{
+      font-weight: 800;
+      letter-spacing: .2px;
       font-size: 14px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 150px;
     }
-    .tc-leftinfo .tc-weapon{
-      font-weight: 800;
+    .tb-user .weapon{
+      margin-top: 4px;
       font-size: 12px;
-      color: rgba(255,255,255,0.80);
+      color: var(--tc-muted);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
-    .tc-leftinfo .tc-bonus{
-      font-weight: 900;
+    .tb-user .bonus{
+      margin-top: 2px;
       font-size: 12px;
-      color: rgba(120,255,190,0.95);
+      color: var(--tc-green);
+      font-weight: 800;
+      white-space: nowrap;
     }
 
-    /* Logo: tam ortada, büyük, 2 bar yüksekliği + %30 büyüt */
-    .tc-logo-wrap{
-      height: calc(var(--tc-topbar-h) - 20px);
+    /* Logo: %30 büyüt + tam orta, iki bar yüksekliği hissi */
+    .tb-logo{
       display:flex;
       align-items:center;
       justify-content:center;
       pointer-events:none;
-      overflow:visible;
     }
-    .tc-logo{
-      height: calc(100% * var(--tc-logo-scale));
-      width: auto;
-      object-fit: contain;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,0.45));
-      transform: translateY(2px); /* çok az aşağı, daha “ortalı” görünür */
+    .tb-logo img{
+      height: 56px;          /* temel */
+      transform: scale(1.30);/* %30 büyüt */
+      transform-origin: center;
+      filter: drop-shadow(0 6px 14px rgba(0,0,0,.55));
     }
 
-    .tc-rightstats{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      align-items:stretch;
+    .tb-right .pill{
+      width: 168px;
     }
 
-    .tc-statrow{
+    .bar-row{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      font-size:12px;
-      font-weight:800;
-      color: rgba(255,255,255,0.82);
+      gap: 10px;
+      margin-bottom: 7px;
     }
-
-    .tc-bar{
+    .bar-label{
+      font-size: 12px;
+      color: var(--tc-muted);
+      font-weight: 700;
+    }
+    .bar-val{
+      font-size: 12px;
+      color: var(--tc-text);
+      font-weight: 800;
+    }
+    .bar{
+      width: 100%;
       height: 10px;
       border-radius: 999px;
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.06);
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.10);
       overflow:hidden;
     }
-    .tc-bar > i{
+    .bar > i{
       display:block;
       height:100%;
-      width:50%;
-      background: linear-gradient(90deg, rgba(90,230,255,0.95), rgba(120,255,190,0.95));
+      width: 50%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(110,242,255,.95), rgba(67,227,141,.95));
+    }
+    .bar.xp > i{
+      background: linear-gradient(90deg, rgba(242,211,107,.95), rgba(255,255,255,.35));
     }
 
-    .tc-bar.xp > i{
-      background: linear-gradient(90deg, rgba(255,220,90,0.95), rgba(255,170,70,0.95));
-    }
-
-    .tc-yton{
+    .yton-line{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
-      font-size:12px;
-      font-weight:900;
+      gap: 10px;
+      margin-top: 2px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,.10);
     }
-    .tc-yton span:last-child{
-      color: rgba(120,255,190,0.95);
+    .yton-line .k{
+      font-size: 12px;
+      color: var(--tc-muted);
+      font-weight: 800;
+      letter-spacing: .2px;
     }
-
-    /* Topbar, içerik alanını kaplamasın: altta “safe area” */
-    #tc-content-pad{
-      position:absolute;
-      top: var(--tc-topbar-h);
-      left:0;
-      right:0;
-      bottom: 52px; /* chat kapalı hali */
-      z-index: 50;
-      pointer-events:none;
+    .yton-line .v{
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--tc-gold);
     }
 
-    /* ===================== MENU BUTTON + MENU ===================== */
-    /* 1) MENÜ BUTONU ORTADA (TOPBAR ALTINDA) */
-    #tc-menu-btn{
-      position:absolute;
-      top: calc(var(--tc-topbar-h) + 10px);
-      left:50%;
-      transform: translateX(-50%);
-      z-index: 300;
-      background: rgba(0,0,0,0.55);
-      border:1px solid rgba(255,255,255,0.12);
-      color:var(--tc-text);
-      padding:10px 14px;
-      border-radius:12px;
-      font-weight:900;
-      cursor:pointer;
-      user-select:none;
-      pointer-events:auto;
+    /* ============ CONTENT (CAROUSEL) ============ */
+    #tc-content{
+      position: relative;
+      z-index: 10;
+      flex: 1;
       display:flex;
       align-items:center;
-      gap:8px;
+      justify-content:center;
+      padding: 10px 0 0;
     }
-    #tc-menu-btn:active{ transform: translateX(-50%) scale(0.98); }
 
-    #tc-menu-overlay{
+    .carousel{
+      width: 100%;
+      height: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 14px;
+    }
+
+    .carousel-viewport{
+      position: relative;
+      width: 100%;
+      max-width: 360px;
+      height: 420px;
+      border-radius: 22px;
+      overflow: hidden;
+      background: rgba(0,0,0,.10);
+      border: 1px solid rgba(255,255,255,.10);
+      backdrop-filter: blur(6px);
+    }
+
+    .track{
       position:absolute;
       inset:0;
-      background: rgba(0,0,0,0.60);
-      opacity:0;
-      pointer-events:none;
-      transition: 200ms ease;
-      z-index: 280;
+      display:flex;
+      will-change: transform;
+      touch-action: pan-y; /* dikey scroll değil, yatay swipe hedef */
     }
 
-    /* 1) MENU SLIDE */
-    #tc-menu{
+    .slide{
+      min-width: 100%;
+      height: 100%;
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+
+    .card{
+      flex: 1;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      position: relative;
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+    }
+
+    .card .img{
       position:absolute;
-      top:0;
-      left:-290px;
-      width:290px;
-      height:100%;
-      background: rgba(10,15,30,0.96);
-      border-right:1px solid rgba(255,255,255,0.10);
-      padding:18px 16px;
-      transition: 240ms ease;
-      z-index: 290;
-      box-sizing:border-box;
+      inset:0;
+      background-size: cover;
+      background-position: center;
+      filter: contrast(1.04) saturate(1.03);
+      transform: scale(1.02);
     }
-    #tc-menu.open{ left:0; }
-    #tc-menu-overlay.open{ opacity:1; pointer-events:auto; }
+    .card .shade{
+      position:absolute;
+      inset:0;
+      background: linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,.45));
+    }
+    .card .title{
+      position:absolute;
+      left: 14px;
+      bottom: 14px;
+      right: 14px;
+      font-weight: 950;
+      letter-spacing: .3px;
+      font-size: 18px;
+      color: var(--tc-gold);
+      text-shadow: 0 6px 18px rgba(0,0,0,.70);
+    }
 
-    .tc-menu-header{
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:0.5px;
-      margin-bottom:14px;
-      opacity:0.95;
+    .carousel-controls{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .navbtn{
+      pointer-events:auto;
+      position:absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(10,18,30,.55);
+      backdrop-filter: blur(10px);
       display:flex;
       align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .tc-menu-close{
+      justify-content:center;
+      font-weight: 900;
+      color: rgba(255,255,255,.92);
       cursor:pointer;
-      padding:6px 10px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(255,255,255,0.05);
-      user-select:none;
-      font-weight:900;
     }
+    .navbtn:active{ transform: translateY(-50%) scale(.98); }
+    .navbtn.prev{ left: 10px; }
+    .navbtn.next{ right: 10px; }
 
-    .tc-menu-item{
-      padding:14px 10px;
-      font-weight:900;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      cursor:pointer;
-      user-select:none;
-      border-radius:12px;
-    }
-    .tc-menu-item:hover{ background:rgba(255,255,255,0.06); }
-
-    .tc-menu-sub{
-      font-size:12px;
-      margin-top:10px;
-      color:var(--tc-muted);
-      line-height:1.35;
-    }
-
-    /* Debug küçük bilgi */
-    #tc-debug{
+    .dots{
       position:absolute;
-      top: calc(var(--tc-topbar-h) + 10px);
-      right:12px;
-      z-index: 300;
-      font-size:12px;
-      color:rgba(255,255,255,0.70);
-      background:rgba(0,0,0,0.35);
-      border:1px solid rgba(255,255,255,0.10);
-      padding:8px 10px;
-      border-radius:10px;
-      user-select:none;
+      left: 0;
+      right: 0;
+      bottom: 10px;
+      display:flex;
+      justify-content:center;
+      gap: 8px;
       pointer-events:none;
     }
+    .dot{
+      width: 8px; height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.28);
+    }
+    .dot.on{
+      background: rgba(255,255,255,.78);
+    }
 
-    /* ===================== CHAT ===================== */
-    /* 2) CHAT AÇ/KAPA GARANTİ */
+    /* ============ CHAT ============ */
     #tc-chat{
-      position:absolute;
-      left:0;
-      right:0;
-      bottom:0;
-      height:52px;
-      background: rgba(0,0,0,0.82);
-      border-top:1px solid rgba(255,255,255,0.10);
-      z-index:120;
-      overflow:hidden;
-      transition: height 260ms ease;
-      will-change: height;
-      pointer-events:auto;
+      position: relative;
+      z-index: 60;
+      width: 100%;
+      padding: 0 14px 10px;
     }
-    #tc-chat.open{ height:260px; }
 
-    .tc-chat-header{
-      height:52px;
+    .chat-shell{
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(10,18,30,.62);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+      height: 54px;
+      transition: height .22s ease;
+    }
+    .chat-shell.open{
+      height: 260px; /* yukarı açılma */
+    }
+
+    .chat-head{
+      height: 54px;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-weight:900;
+      font-weight: 950;
+      letter-spacing: .4px;
       cursor:pointer;
-      user-select:none;
-      letter-spacing:1px;
-      pointer-events:auto;
+      position: relative;
     }
-    .tc-chat-body{
-      height: calc(260px - 52px);
-      padding:10px 12px;
-      box-sizing:border-box;
-      overflow:auto;
-      font-size:12px;
-      color:rgba(255,255,255,0.88);
-      position:relative;
-    }
-    .tc-chat-msg{
-      margin:0 0 8px 0;
-      line-height:1.35;
-    }
-    .tc-chat-name{ font-weight:900; }
-    .tc-chat-inputbar{
+    .chat-head::before{
+      content:"";
       position:absolute;
-      left:10px;
-      right:10px;
-      bottom:10px;
-      display:flex;
-      gap:8px;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 54px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.18);
     }
-    .tc-chat-input{
-      flex:1;
-      padding:10px 12px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.10);
+
+    .chat-body{
+      height: calc(260px - 54px);
+      display:flex;
+      flex-direction:column;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .chat-log{
+      flex: 1;
+      overflow:auto;
+      border-radius: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,.85);
+      user-select:text;
+    }
+    .msg{ margin: 0 0 8px; }
+    .msg b{ color: rgba(255,255,255,.95); }
+
+    .chat-row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+    .chat-input{
+      flex: 1;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25);
+      color: rgba(255,255,255,.92);
+      padding: 0 12px;
       outline:none;
-      background:rgba(255,255,255,0.06);
-      color:rgba(255,255,255,0.92);
+      user-select:text;
     }
-    .tc-chat-send{
-      padding:10px 14px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(255,255,255,0.08);
-      color:rgba(255,255,255,0.92);
-      font-weight:900;
+    .chat-send{
+      height: 42px;
+      min-width: 92px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(242,211,107,.18);
+      color: rgba(255,255,255,.92);
+      font-weight: 900;
       cursor:pointer;
     }
-    .tc-chat-send:active{ transform: scale(0.98); }
+    .chat-send:active{ transform: scale(.99); }
 
-    /* ===================== LEADERBOARD ===================== */
-    #tc-lb{
+    /* küçük debug */
+    .debug{
       position:absolute;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:rgba(0,0,0,0.55);
-      opacity:0;
+      left: 10px;
+      top: 10px;
+      z-index: 80;
+      font-size: 11px;
+      color: rgba(255,255,255,.75);
+      opacity: .55;
       pointer-events:none;
-      transition:220ms ease;
-      z-index:220;
-      padding:16px;
-      box-sizing:border-box;
     }
-    #tc-lb.open{ opacity:1; pointer-events:auto; }
-
-    .tc-lb-box{
-      width:100%;
-      max-width:340px;
-      background:rgba(10,15,30,0.96);
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:14px;
-      overflow:hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-    }
-    .tc-lb-head{
-      padding:14px 14px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      font-weight:900;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-    }
-    .tc-lb-close{
-      cursor:pointer;
-      padding:6px 10px;
-      border-radius:10px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:rgba(255,255,255,0.05);
-      user-select:none;
-    }
-    .tc-lb-list{
-      padding:10px 14px 14px 14px;
-      box-sizing:border-box;
-      max-height:380px;
-      overflow:auto;
-    }
-    .tc-lb-row{
-      display:flex;
-      justify-content:space-between;
-      padding:10px 0;
-      border-bottom:1px solid rgba(255,255,255,0.06);
-      font-size:13px;
-    }
-    .tc-lb-rank{ font-weight:900; }
-    .tc-lb-score{ color: rgba(255,255,255,0.85); font-weight:800; }
   </style>
 </head>
 
 <body>
   <div id="tc-root">
     <div id="tc-stage">
+      <div id="tc-bg"></div>
+      <div id="tc-ui">
 
-      <!-- TOPBAR -->
-      <div id="tc-topbar" aria-label="Topbar">
-        <div class="tc-topbar-inner">
-          <!-- Sol -->
-          <div class="tc-topbox tc-leftinfo">
-            <div class="tc-user" id="tc-user">Player01</div>
-            <div class="tc-weapon" id="tc-weapon">Tabanca</div>
-            <div class="tc-bonus" id="tc-bonus">(+10%)</div>
-          </div>
-
-          <!-- Orta logo -->
-          <div class="tc-logo-wrap">
-            <img class="tc-logo" src="assets/logo.png" alt="TonCrime Logo" />
-          </div>
-
-          <!-- Sağ -->
-          <div class="tc-topbox tc-rightstats">
-            <div class="tc-statrow">
-              <div>Enerji</div>
-              <div id="tc-energy-text">85/100</div>
-            </div>
-            <div class="tc-bar" aria-label="Enerji bar">
-              <i id="tc-energy-bar" style="width:85%"></i>
+        <div id="tc-topbar">
+          <div class="tb-wrap">
+            <!-- LEFT -->
+            <div class="tb-left">
+              <div class="pill tb-user">
+                <div class="name" id="tbName">Player01</div>
+                <div class="weapon" id="tbWeapon">Tabanca</div>
+                <div class="bonus" id="tbBonus">(+10%)</div>
+              </div>
             </div>
 
-            <div class="tc-statrow" style="margin-top:4px;">
-              <div>XP</div>
-              <div id="tc-xp-text">118/1000</div>
-            </div>
-            <div class="tc-bar xp" aria-label="XP bar">
-              <i id="tc-xp-bar" style="width:11.8%"></i>
+            <!-- CENTER LOGO -->
+            <div class="tb-logo">
+              <img src="assets/logo.png" alt="TonCrime Logo" />
             </div>
 
-            <div class="tc-yton" style="margin-top:4px;">
-              <span>YTON</span>
-              <span id="tc-yton">1031</span>
+            <!-- RIGHT -->
+            <div class="tb-right">
+              <div class="pill">
+                <div class="bar-row">
+                  <div class="bar-label">Enerji</div>
+                  <div class="bar-val" id="tbEnergyText">85/100</div>
+                </div>
+                <div class="bar">
+                  <i id="tbEnergyFill" style="width:85%"></i>
+                </div>
+
+                <div style="height:10px"></div>
+
+                <div class="bar-row">
+                  <div class="bar-label">XP</div>
+                  <div class="bar-val" id="tbXpText">118/1000</div>
+                </div>
+                <div class="bar xp">
+                  <i id="tbXpFill" style="width:12%"></i>
+                </div>
+
+                <div class="yton-line">
+                  <div class="k">YTON</div>
+                  <div class="v" id="tbYton">1031</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- CONTENT: CAROUSEL -->
+        <div id="tc-content">
+          <div class="carousel">
+            <div class="carousel-viewport" id="cv">
+              <div class="track" id="track">
+                <div class="slide">
+                  <div class="card" data-route="quests">
+                    <div class="img" style="background-image:url('assets/card_quests.jpg');"></div>
+                    <div class="shade"></div>
+                    <div class="title">Görevler</div>
+                  </div>
+                </div>
+
+                <div class="slide">
+                  <div class="card" data-route="pvp">
+                    <div class="img" style="background-image:url('assets/card_pvp.jpg');"></div>
+                    <div class="shade"></div>
+                    <div class="title">PvP</div>
+                  </div>
+                </div>
+
+                <div class="slide">
+                  <div class="card" data-route="leaderboard">
+                    <div class="img" style="background-image:url('assets/card_leaderboard.jpg');"></div>
+                    <div class="shade"></div>
+                    <div class="title">Leaderboard</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="carousel-controls">
+                <button class="navbtn prev" id="prevBtn" aria-label="Önceki">‹</button>
+                <button class="navbtn next" id="nextBtn" aria-label="Sonraki">›</button>
+                <div class="dots" id="dots"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHAT -->
+        <div id="tc-chat">
+          <div class="chat-shell" id="chatShell">
+            <div class="chat-head" id="chatHead">CHAT</div>
+            <div class="chat-body">
+              <div class="chat-log" id="chatLog">
+                <p class="msg"><b>Sistem:</b> Chat hazır.</p>
+              </div>
+              <div class="chat-row">
+                <input class="chat-input" id="chatInput" placeholder="Mesaj yaz..." />
+                <button class="chat-send" id="chatSend">Gönder</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="debug" id="dbg"></div>
       </div>
-
-      <!-- içerik alanı -->
-      <div id="tc-content-pad"></div>
-
-      <!-- MENU BUTTON (ORTA) -->
-      <div id="tc-menu-btn"><span>☰</span><span>Menü</span></div>
-
-      <!-- MENU -->
-      <div id="tc-menu-overlay"></div>
-      <div id="tc-menu">
-        <div class="tc-menu-header">
-          <div>TonCrime</div>
-          <div class="tc-menu-close" id="tc-menu-close">✕</div>
-        </div>
-
-        <div class="tc-menu-item" id="tc-open-lb">Leaderboard</div>
-        <div class="tc-menu-item" id="tc-menu-gorevler">Görevler</div>
-        <div class="tc-menu-item" id="tc-menu-coffee">Coffee Shop</div>
-        <div class="tc-menu-item" id="tc-menu-silah">Silah Kaçakçısı</div>
-
-        <div class="tc-menu-sub">
-          Shell sabit. Buradan sonra sadece ekleme.
-        </div>
-      </div>
-
-      <!-- DEBUG -->
-      <div id="tc-debug">390×844 / scale</div>
-
-      <!-- CHAT -->
-      <div id="tc-chat">
-        <div class="tc-chat-header" id="tc-chat-toggle">CHAT</div>
-
-        <div class="tc-chat-body" id="tc-chat-body">
-          <div class="tc-chat-msg"><span class="tc-chat-name">Player01</span>: Selam</div>
-          <div class="tc-chat-msg"><span class="tc-chat-name">Player02</span>: Hoşgeldin</div>
-
-          <div class="tc-chat-inputbar">
-            <input class="tc-chat-input" id="tc-chat-input" placeholder="Mesaj yaz..." />
-            <button class="tc-chat-send" id="tc-chat-send">Gönder</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- LEADERBOARD -->
-      <div id="tc-lb">
-        <div class="tc-lb-box">
-          <div class="tc-lb-head">
-            <div>Leaderboard</div>
-            <div class="tc-lb-close" id="tc-lb-close">✕</div>
-          </div>
-          <div class="tc-lb-list" id="tc-lb-list"></div>
-        </div>
-      </div>
-
     </div>
   </div>
 
   <script>
-    ;(() => {
-      // ========= SCALE ENGINE (390x844 fixed design) =========
-      const DESIGN_W = 390;
-      const DESIGN_H = 844;
+    // ====== LAYOUT SCALE ENGINE (390x844) ======
+    (function tcLayout(){
+      const DESIGN_W = 390, DESIGN_H = 844;
+      const root = document.documentElement;
+      const dbg = document.getElementById('dbg');
 
-      function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-
-      function applyScale(){
+      function apply(){
         const vw = window.innerWidth;
         const vh = window.innerHeight;
-
-        const s = Math.min(vw / DESIGN_W, vh / DESIGN_H);
-        const scale = clamp(s, 0.25, 2);
-
-        document.documentElement.style.setProperty("--tc-design-w", DESIGN_W);
-        document.documentElement.style.setProperty("--tc-design-h", DESIGN_H);
-        document.documentElement.style.setProperty("--tc-scale", String(scale));
-
-        const dbg = document.getElementById("tc-debug");
-        if (dbg) dbg.textContent = `${DESIGN_W}×${DESIGN_H} / scale ${scale.toFixed(3)}`;
+        const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+        root.style.setProperty('--tc-scale', scale.toFixed(6));
+        dbg.textContent = `${DESIGN_W}x${DESIGN_H} / scale ${scale.toFixed(3)}`;
       }
 
-      window.addEventListener("resize", applyScale, { passive:true });
-      applyScale();
+      window.addEventListener('resize', apply, {passive:true});
+      window.addEventListener('orientationchange', apply, {passive:true});
+      apply();
+    })();
 
-      // ========= UTIL =========
-      function escapeHtml(str){
-        return String(str).replace(/[&<>"']/g, m => ({
-          "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-        }[m]));
+    // ====== TOPBAR DATA SETTER (demo) ======
+    function setTopbar({name, weapon, bonus, energyNow, energyMax, xpNow, xpMax, yton}){
+      document.getElementById('tbName').textContent = name;
+      document.getElementById('tbWeapon').textContent = weapon;
+      document.getElementById('tbBonus').textContent = bonus;
+
+      const ePct = Math.max(0, Math.min(1, energyNow / energyMax));
+      document.getElementById('tbEnergyText').textContent = `${energyNow}/${energyMax}`;
+      document.getElementById('tbEnergyFill').style.width = `${(ePct*100).toFixed(1)}%`;
+
+      const xPct = Math.max(0, Math.min(1, xpNow / xpMax));
+      document.getElementById('tbXpText').textContent = `${xpNow}/${xpMax}`;
+      document.getElementById('tbXpFill').style.width = `${(xPct*100).toFixed(1)}%`;
+
+      document.getElementById('tbYton').textContent = String(yton);
+    }
+    // demo init
+    setTopbar({
+      name: "Player01",
+      weapon: "Tabanca",
+      bonus: "(+10%)",
+      energyNow: 85, energyMax: 100,
+      xpNow: 118, xpMax: 1000,
+      yton: 1031
+    });
+
+    // ====== CAROUSEL ENGINE (swipe + buttons) ======
+    (function tcCarousel(){
+      const track = document.getElementById('track');
+      const viewport = document.getElementById('cv');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const dotsWrap = document.getElementById('dots');
+
+      const slides = Array.from(track.children);
+      const count = slides.length;
+      let index = 0;
+
+      // dots
+      const dots = [];
+      for(let i=0;i<count;i++){
+        const d = document.createElement('div');
+        d.className = 'dot' + (i===0 ? ' on' : '');
+        dotsWrap.appendChild(d);
+        dots.push(d);
       }
 
-      // ========= TOPBAR DATA (demo) =========
-      const state = {
-        user: "Player01",
-        weapon: "Tabanca",
-        bonus: "(+10%)",
-        energyNow: 85,
-        energyMax: 100,
-        xpNow: 118,
-        xpMax: 1000,
-        yton: 1031
-      };
-
-      function renderTopbar(){
-        const user = document.getElementById("tc-user");
-        const weapon = document.getElementById("tc-weapon");
-        const bonus = document.getElementById("tc-bonus");
-
-        const eText = document.getElementById("tc-energy-text");
-        const eBar  = document.getElementById("tc-energy-bar");
-
-        const xText = document.getElementById("tc-xp-text");
-        const xBar  = document.getElementById("tc-xp-bar");
-
-        const yton  = document.getElementById("tc-yton");
-
-        if(user) user.textContent = state.user;
-        if(weapon) weapon.textContent = state.weapon;
-        if(bonus) bonus.textContent = state.bonus;
-
-        const ePct = (state.energyMax>0) ? (state.energyNow/state.energyMax)*100 : 0;
-        const xPct = (state.xpMax>0) ? (state.xpNow/state.xpMax)*100 : 0;
-
-        if(eText) eText.textContent = `${state.energyNow}/${state.energyMax}`;
-        if(eBar) eBar.style.width = `${Math.max(0, Math.min(100, ePct))}%`;
-
-        if(xText) xText.textContent = `${state.xpNow}/${state.xpMax}`;
-        if(xBar) xBar.style.width = `${Math.max(0, Math.min(100, xPct))}%`;
-
-        if(yton) yton.textContent = String(state.yton);
+      function update(){
+        track.style.transition = 'transform .22s ease';
+        track.style.transform = `translateX(${-index * 100}%)`;
+        dots.forEach((d,i)=> d.classList.toggle('on', i===index));
       }
 
-      renderTopbar();
-
-      // ========= SLIDE MENU =========
-      const menu = document.getElementById("tc-menu");
-      const overlay = document.getElementById("tc-menu-overlay");
-      const btn = document.getElementById("tc-menu-btn");
-      const closeBtn = document.getElementById("tc-menu-close");
-
-      function openMenu(){
-        menu.classList.add("open");
-        overlay.classList.add("open");
-      }
-      function closeMenu(){
-        menu.classList.remove("open");
-        overlay.classList.remove("open");
+      function go(i){
+        index = Math.max(0, Math.min(count-1, i));
+        update();
       }
 
-      btn.addEventListener("click", () => {
-        if (menu.classList.contains("open")) closeMenu();
-        else openMenu();
+      prevBtn.addEventListener('click', ()=>go(index-1));
+      nextBtn.addEventListener('click', ()=>go(index+1));
+
+      // Swipe
+      let startX = 0, lastX = 0, dragging = false, dx = 0;
+
+      function onDown(clientX){
+        dragging = true;
+        startX = lastX = clientX;
+        dx = 0;
+        track.style.transition = 'none';
+      }
+      function onMove(clientX){
+        if(!dragging) return;
+        lastX = clientX;
+        dx = lastX - startX;
+
+        // px -> % (viewport genişliğine göre)
+        const w = viewport.clientWidth || 1;
+        const offsetPct = (dx / w) * 100;
+        track.style.transform = `translateX(${(-index*100) + offsetPct}%)`;
+      }
+      function onUp(){
+        if(!dragging) return;
+        dragging = false;
+
+        const w = viewport.clientWidth || 1;
+        const threshold = w * 0.18; // %18 swipe yeter
+        if(dx > threshold) index = Math.max(0, index-1);
+        else if(dx < -threshold) index = Math.min(count-1, index+1);
+
+        update();
+      }
+
+      viewport.addEventListener('touchstart', (e)=> onDown(e.touches[0].clientX), {passive:true});
+      viewport.addEventListener('touchmove',  (e)=> onMove(e.touches[0].clientX), {passive:true});
+      viewport.addEventListener('touchend',   onUp, {passive:true});
+
+      viewport.addEventListener('mousedown', (e)=> { e.preventDefault(); onDown(e.clientX); });
+      window.addEventListener('mousemove', (e)=> onMove(e.clientX));
+      window.addEventListener('mouseup', onUp);
+
+      // Card click (demo route)
+      track.addEventListener('click', (e)=>{
+        const card = e.target.closest('.card');
+        if(!card) return;
+        const route = card.getAttribute('data-route') || '';
+        console.log('route:', route);
       });
 
-      overlay.addEventListener("click", closeMenu);
-      closeBtn.addEventListener("click", closeMenu);
+      update();
+    })();
 
-      // ========= CHAT (2) AÇ/KAPA GARANTİ =========
-      const chat = document.getElementById("tc-chat");
-      const chatToggle = document.getElementById("tc-chat-toggle");
-      const chatBody = document.getElementById("tc-chat-body");
-      const chatInput = document.getElementById("tc-chat-input");
-      const chatSend = document.getElementById("tc-chat-send");
+    // ====== CHAT ENGINE (toggle + send) ======
+    (function tcChat(){
+      const shell = document.getElementById('chatShell');
+      const head = document.getElementById('chatHead');
+      const log = document.getElementById('chatLog');
+      const input = document.getElementById('chatInput');
+      const send = document.getElementById('chatSend');
 
-      function openChat(){ chat.classList.add("open"); }
-      function closeChat(){ chat.classList.remove("open"); }
-      function toggleChat(){
-        if (chat.classList.contains("open")) closeChat();
-        else openChat();
+      function toggle(){
+        shell.classList.toggle('open');
+        if(shell.classList.contains('open')){
+          setTimeout(()=>input.focus(), 120);
+        }else{
+          input.blur();
+        }
       }
 
-      // click + touchstart (mobil garanti)
-      chatToggle.addEventListener("click", (e) => { e.preventDefault(); toggleChat(); });
-      chatToggle.addEventListener("touchstart", (e) => { e.preventDefault(); toggleChat(); }, { passive:false });
+      head.addEventListener('click', toggle);
+      head.addEventListener('touchend', (e)=>{ e.preventDefault(); toggle(); }, {passive:false});
 
-      function addMsg(name, text){
-        const p = document.createElement("div");
-        p.className = "tc-chat-msg";
-        p.innerHTML = `<span class="tc-chat-name">${escapeHtml(name)}</span>: ${escapeHtml(text)}`;
-        const inputbar = chatBody.querySelector(".tc-chat-inputbar");
-        chatBody.insertBefore(p, inputbar);
-        chatBody.scrollTop = chatBody.scrollHeight;
-      }
-
-      function sendChat(){
-        const v = (chatInput.value || "").trim();
-        if (!v) return;
-        addMsg(state.user, v);
-        chatInput.value = "";
-        if (!chat.classList.contains("open")) openChat();
-      }
-
-      chatSend.addEventListener("click", (e)=>{ e.preventDefault(); sendChat(); });
-      chatSend.addEventListener("touchstart", (e)=>{ e.preventDefault(); sendChat(); }, { passive:false });
-
-      chatInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendChat();
-      });
-
-      // ========= LEADERBOARD =========
-      const lb = document.getElementById("tc-lb");
-      const lbList = document.getElementById("tc-lb-list");
-      const lbClose = document.getElementById("tc-lb-close");
-      const openLbBtn = document.getElementById("tc-open-lb");
-
-      function openLeaderboard(){ lb.classList.add("open"); }
-      function closeLeaderboard(){ lb.classList.remove("open"); }
-
-      lbClose.addEventListener("click", closeLeaderboard);
-      lb.addEventListener("click", (e) => { if (e.target === lb) closeLeaderboard(); });
-
-      openLbBtn.addEventListener("click", () => {
-        closeMenu();
-        openLeaderboard();
-      });
-
-      const data = [
-        { name: "PlayerX", score: 9999 },
-        { name: "PlayerY", score: 8500 },
-        { name: "Player01", score: 7000 },
-        { name: "PlayerZ", score: 5400 },
-        { name: "PlayerA", score: 4100 },
-      ];
-
-      function renderLB(){
-        lbList.innerHTML = "";
-        data.forEach((row, i)
+      function addMsg(text){
+        const p = document.createElement('p');
+        p.className = 'msg';
+        p.innerHTML = `<b>Sen:</b> ${text.replace(/</g,'&lt;')}`;
+        log.appendChild(p);
+                                                                                                    
