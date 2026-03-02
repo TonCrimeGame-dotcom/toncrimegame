@@ -22,7 +22,6 @@ function fitCanvas() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   const cssW = Math.floor(window.innerWidth);
   const cssH = Math.floor(window.innerHeight);
-
   canvas.width = Math.floor(cssW * dpr);
   canvas.height = Math.floor(cssH * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -31,12 +30,167 @@ window.addEventListener("resize", () => fitCanvas());
 
 try {
   const tg = window.Telegram?.WebApp;
-  if (tg) { tg.ready(); tg.expand(); }
+  if (tg) {
+    tg.ready();
+    tg.expand();
+  }
 } catch (_) {}
 
 fitCanvas();
 
-/* ===== CHAT MOTOR (kalıcı + her sayfada) ===== */
+/* ===== KALICI STORE ===== */
+const STORE_KEY = "toncrime_store_v1";
+
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === "object" ? obj : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveStore(state) {
+  try {
+    // UI safe gibi runtime şeyleri kaydetme
+    const copy = JSON.parse(JSON.stringify(state));
+    if (copy.ui) delete copy.ui.safe;
+    localStorage.setItem(STORE_KEY, JSON.stringify(copy));
+  } catch {}
+}
+
+// default state
+const defaultState = {
+  lang: "tr",
+  coins: 0,
+  premium: false,
+  player: {
+    username: "Player",
+    level: 1,
+    xp: 30,
+    xpToNext: 100,
+    weaponName: "Silah Yok",
+    weaponBonus: "+0%",
+    energy: 10,
+    energyMax: 10,
+    energyIntervalMs: 5 * 60 * 1000,
+    lastEnergyAt: Date.now(),
+  },
+  ui: { safe: getSafeArea() },
+};
+
+const loaded = loadStore();
+const initial = loaded
+  ? {
+      ...defaultState,
+      ...loaded,
+      player: { ...defaultState.player, ...(loaded.player || {}) },
+      ui: { safe: getSafeArea() },
+    }
+  : defaultState;
+
+const store = new Store(initial);
+
+/* store değiştikçe kaydet */
+let _lastSaveAt = 0;
+function autosaveLoop() {
+  const now = Date.now();
+  // 300ms debounce
+  if (now - _lastSaveAt > 300) {
+    saveStore(store.get());
+    _lastSaveAt = now;
+  }
+  requestAnimationFrame(autosaveLoop);
+}
+autosaveLoop();
+
+/* ===== Enerji regen (global) ===== */
+function tickEnergy() {
+  const s = store.get();
+  const p = s.player;
+  if (!p) return;
+
+  const now = Date.now();
+  const interval = Math.max(10_000, Number(p.energyIntervalMs || 300000));
+  const maxE = Math.max(1, Number(p.energyMax || 10));
+  let e = Math.max(0, Math.min(maxE, Number(p.energy || 0)));
+
+  if (e >= maxE) {
+    if (p.lastEnergyAt !== now) {
+      store.set({ player: { ...p, energy: maxE, lastEnergyAt: now } });
+    }
+    return;
+  }
+
+  const elapsed = now - Number(p.lastEnergyAt || now);
+  if (elapsed < interval) return;
+
+  const gained = Math.floor(elapsed / interval);
+  if (gained <= 0) return;
+
+  const newE = Math.min(maxE, e + gained);
+  const newLast = Number(p.lastEnergyAt || now) + gained * interval;
+  store.set({ player: { ...p, energy: newE, lastEnergyAt: newLast } });
+}
+setInterval(tickEnergy, 1000);
+
+/* ===== HUD MOTOR (global) ===== */
+function HUDMotor(store) {
+  const elUsername = document.getElementById("hudUsername");
+  const elCoins = document.getElementById("hudCoins");
+  const elWeaponName = document.getElementById("hudWeaponName");
+  const elWeaponBonus = document.getElementById("hudWeaponBonus");
+  const elXpFill = document.getElementById("hudXpFill");
+  const elXpText = document.getElementById("hudXpText");
+  const elEnergyFill = document.getElementById("hudEnergyFill");
+  const elEnergyText = document.getElementById("hudEnergyText");
+
+  function clamp01(n) {
+    return Math.max(0, Math.min(1, n));
+  }
+  function fmtMMSS(ms) {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function render() {
+    const s = store.get();
+    const p = s.player || {};
+
+    elUsername.textContent = p.username ?? "Player";
+    elCoins.textContent = `Coin: ${s.coins ?? 0}`;
+    elWeaponName.textContent = p.weaponName ?? "Silah Yok";
+    elWeaponBonus.textContent = ` ${p.weaponBonus ?? "+0%"}`;
+
+    const xp = Math.max(0, Number(p.xp || 0));
+    const xpToNext = Math.max(1, Number(p.xpToNext || 100));
+    const xpPct = clamp01(xp / xpToNext);
+    elXpFill.style.width = `${Math.max(2, xpPct * 100)}%`;
+    elXpText.textContent = `LVL ${p.level ?? 1} • XP ${xp}/${xpToNext}`;
+
+    const e = Math.max(0, Number(p.energy || 0));
+    const eMax = Math.max(1, Number(p.energyMax || 10));
+    const ePct = clamp01(e / eMax);
+    elEnergyFill.style.width = `${Math.max(2, ePct * 100)}%`;
+
+    const interval = Math.max(10_000, Number(p.energyIntervalMs || 300000));
+    const lastAt = Number(p.lastEnergyAt || Date.now());
+    const now = Date.now();
+    const untilNext = e >= eMax ? 0 : Math.max(0, interval - (now - lastAt));
+    const timeText = e >= eMax ? "FULL" : fmtMMSS(untilNext);
+    elEnergyText.textContent = `ENERJİ ${e}/${eMax} • ${timeText}`;
+
+    requestAnimationFrame(render);
+  }
+
+  render();
+}
+
+/* ===== CHAT MOTOR (global, kalıcı) ===== */
 function ChatMotor(store) {
   const KEY_MSG = "toncrime_chat_messages_v1";
   const KEY_OPEN = "toncrime_chat_open_v1";
@@ -57,11 +211,9 @@ function ChatMotor(store) {
       return Array.isArray(arr) ? arr : [];
     } catch { return []; }
   }
-
   function saveMessages(arr) {
     try { localStorage.setItem(KEY_MSG, JSON.stringify(arr)); } catch {}
   }
-
   function renderMessages() {
     const msgs = loadMessages();
     msgBox.innerHTML = "";
@@ -93,30 +245,24 @@ function ChatMotor(store) {
     }
     try { localStorage.setItem(KEY_OPEN, isOpen ? "1" : "0"); } catch {}
   }
-
   function getOpen() {
     try { return localStorage.getItem(KEY_OPEN) === "1"; } catch { return false; }
   }
-
   function nowHHMM() {
     const d = new Date();
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   }
-
   function send() {
     const text = (input.value || "").trim();
     if (!text) return;
-
     const msgs = loadMessages();
     msgs.push({ user: username(), text, time: nowHHMM() });
     if (msgs.length > 200) msgs.splice(0, msgs.length - 200);
-
     saveMessages(msgs);
     input.value = "";
     renderMessages();
   }
 
-  /* ✅ KRİTİK: pointerdown + capture => engine input bozamasın */
   function hardBindPointer(el, handler) {
     el.addEventListener(
       "pointerdown",
@@ -131,45 +277,23 @@ function ChatMotor(store) {
 
   hardBindPointer(toggleBtn, () => setOpen(!drawer.classList.contains("open")));
   hardBindPointer(header, (e) => {
-    // butona basınca header toggle tekrar çalışmasın
     if (e.target === toggleBtn) return;
     setOpen(!drawer.classList.contains("open"));
   });
-
-  // send button
   hardBindPointer(sendBtn, () => send());
 
-  // input: yazı yazabilsin
   input.addEventListener("pointerdown", (e) => e.stopPropagation(), { capture: true });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") send();
-  });
-
-  // ilk yükleme
   renderMessages();
   setOpen(getOpen());
-
-  // dışarıdan kontrol için API
-  return {
-    open: () => setOpen(true),
-    close: () => setOpen(false),
-    toggle: () => setOpen(!drawer.classList.contains("open")),
-  };
 }
 
-/* ===== STORE / I18N / SCENES ===== */
-const store = new Store({
-  lang: "tr",
-  coins: 0,
-  premium: false,
-  ui: { safe: getSafeArea() },
-});
-
+/* ===== I18N / SCENES / ENGINE ===== */
 const i18n = new I18n(store);
 i18n.register({
-  tr: { loading: "Yükleniyor...", home_title: "TonCrime", tap_to_earn: "Kazanmak için tıkla" },
-  en: { loading: "Loading...", home_title: "TonCrime", tap_to_earn: "Tap to earn" },
+  tr: { loading: "Yükleniyor..." },
+  en: { loading: "Loading..." },
 });
 
 const assets = new Assets();
@@ -179,7 +303,7 @@ const scenes = new SceneManager();
 scenes.register("boot", new BootScene({ assets, i18n, scenes }));
 scenes.register("home", new HomeScene({ store, input, i18n, assets, scenes }));
 
-// placeholderlar
+// placeholder sahneler
 scenes.register("missions", new SimpleScreenScene({ i18n, titleKey: "Missions" }));
 scenes.register("dealer", new SimpleScreenScene({ i18n, titleKey: "Dealer" }));
 scenes.register("pvp", new SimpleScreenScene({ i18n, titleKey: "PvP" }));
@@ -187,14 +311,14 @@ scenes.register("clan", new SimpleScreenScene({ i18n, titleKey: "Clan" }));
 
 const engine = new Engine({ canvas, ctx, input, scenes });
 
-// Safe-area güncelle
 function updateSafeAreaLoop() {
   store.set({ ui: { ...store.get().ui, safe: getSafeArea() } });
   requestAnimationFrame(updateSafeAreaLoop);
 }
 updateSafeAreaLoop();
 
-// Chat motoru başlat (her sayfada)
+// Global motorlar
+HUDMotor(store);
 ChatMotor(store);
 
 scenes.go("boot");
