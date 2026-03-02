@@ -8,6 +8,7 @@ import { I18n } from "./engine/I18n.js";
 import { BootScene } from "./scenes/BootScene.js";
 import { HomeScene } from "./scenes/HomeScene.js";
 import { SimpleScreenScene } from "./scenes/SimpleScreenScene.js";
+import { CoffeeShopScene } from "./scenes/CoffeeShopScene.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d", { alpha: false });
@@ -22,8 +23,11 @@ function fitCanvas() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   const cssW = Math.floor(window.innerWidth);
   const cssH = Math.floor(window.innerHeight);
+
   canvas.width = Math.floor(cssW * dpr);
   canvas.height = Math.floor(cssH * dpr);
+
+  // Draw in CSS pixels
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 window.addEventListener("resize", () => fitCanvas());
@@ -38,7 +42,9 @@ try {
 
 fitCanvas();
 
-/* ===== KALICI STORE ===== */
+/* =========================
+   PERSISTENT STORE
+========================= */
 const STORE_KEY = "toncrime_store_v1";
 
 function loadStore() {
@@ -54,14 +60,13 @@ function loadStore() {
 
 function saveStore(state) {
   try {
-    // UI safe gibi runtime şeyleri kaydetme
     const copy = JSON.parse(JSON.stringify(state));
+    // runtime-only
     if (copy.ui) delete copy.ui.safe;
     localStorage.setItem(STORE_KEY, JSON.stringify(copy));
   } catch {}
 }
 
-// default state
 const defaultState = {
   lang: "tr",
   coins: 0,
@@ -93,11 +98,10 @@ const initial = loaded
 
 const store = new Store(initial);
 
-/* store değiştikçe kaydet */
+// autosave (debounced)
 let _lastSaveAt = 0;
 function autosaveLoop() {
   const now = Date.now();
-  // 300ms debounce
   if (now - _lastSaveAt > 300) {
     saveStore(store.get());
     _lastSaveAt = now;
@@ -106,7 +110,9 @@ function autosaveLoop() {
 }
 autosaveLoop();
 
-/* ===== Enerji regen (global) ===== */
+/* =========================
+   ENERGY REGEN (GLOBAL)
+========================= */
 function tickEnergy() {
   const s = store.get();
   const p = s.player;
@@ -118,6 +124,7 @@ function tickEnergy() {
   let e = Math.max(0, Math.min(maxE, Number(p.energy || 0)));
 
   if (e >= maxE) {
+    // keep lastEnergyAt fresh-ish
     if (p.lastEnergyAt !== now) {
       store.set({ player: { ...p, energy: maxE, lastEnergyAt: now } });
     }
@@ -136,7 +143,9 @@ function tickEnergy() {
 }
 setInterval(tickEnergy, 1000);
 
-/* ===== HUD MOTOR (global) ===== */
+/* =========================
+   HUD MOTOR (HTML OVERLAY)
+========================= */
 function HUDMotor(store) {
   const elUsername = document.getElementById("hudUsername");
   const elCoins = document.getElementById("hudCoins");
@@ -190,7 +199,9 @@ function HUDMotor(store) {
   render();
 }
 
-/* ===== CHAT MOTOR (global, kalıcı) ===== */
+/* =========================
+   CHAT MOTOR (HTML OVERLAY)
+========================= */
 function ChatMotor(store) {
   const KEY_MSG = "toncrime_chat_messages_v1";
   const KEY_OPEN = "toncrime_chat_open_v1";
@@ -209,10 +220,14 @@ function ChatMotor(store) {
       const raw = localStorage.getItem(KEY_MSG);
       const arr = raw ? JSON.parse(raw) : [];
       return Array.isArray(arr) ? arr : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
   function saveMessages(arr) {
-    try { localStorage.setItem(KEY_MSG, JSON.stringify(arr)); } catch {}
+    try {
+      localStorage.setItem(KEY_MSG, JSON.stringify(arr));
+    } catch {}
   }
   function renderMessages() {
     const msgs = loadMessages();
@@ -243,21 +258,34 @@ function ChatMotor(store) {
       drawer.classList.remove("open");
       toggleBtn.textContent = "Aç";
     }
-    try { localStorage.setItem(KEY_OPEN, isOpen ? "1" : "0"); } catch {}
+    try {
+      localStorage.setItem(KEY_OPEN, isOpen ? "1" : "0");
+    } catch {}
   }
   function getOpen() {
-    try { return localStorage.getItem(KEY_OPEN) === "1"; } catch { return false; }
+    try {
+      return localStorage.getItem(KEY_OPEN) === "1";
+    } catch {
+      return false;
+    }
   }
+
   function nowHHMM() {
     const d = new Date();
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(
+      2,
+      "0"
+    )}`;
   }
+
   function send() {
     const text = (input.value || "").trim();
     if (!text) return;
+
     const msgs = loadMessages();
     msgs.push({ user: username(), text, time: nowHHMM() });
     if (msgs.length > 200) msgs.splice(0, msgs.length - 200);
+
     saveMessages(msgs);
     input.value = "";
     renderMessages();
@@ -283,31 +311,61 @@ function ChatMotor(store) {
   hardBindPointer(sendBtn, () => send());
 
   input.addEventListener("pointerdown", (e) => e.stopPropagation(), { capture: true });
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") send();
+  });
 
   renderMessages();
   setOpen(getOpen());
 }
 
-/* ===== I18N / SCENES / ENGINE ===== */
+/* =========================
+   I18N
+========================= */
 const i18n = new I18n(store);
 i18n.register({
   tr: { loading: "Yükleniyor..." },
   en: { loading: "Loading..." },
 });
 
+/* =========================
+   ASSETS
+========================= */
 const assets = new Assets();
+
+// Home background
+assets.image("background", "./src/assets/ui/background.jpg");
+
+// menu carousel images
+assets.image("missions", "./src/assets/missions.jpg");
+assets.image("pvp", "./src/assets/pvp.jpg");
+assets.image("weapons", "./src/assets/weapons.jpg");
+assets.image("nightclub", "./src/assets/nightclub.jpg");
+assets.image("coffeeshop", "./src/assets/coffeeshop.jpg");
+assets.image("xxx", "./src/assets/xxx.jpg");
+
+// NOTE: coffeeshop_book.png ve coffeeshop_menu.png CoffeeShopScene içinde Image() ile yükleniyor
+// logo/yton icon index.html'de img tag ile yüklü
+
+/* =========================
+   INPUT / SCENES / ENGINE
+========================= */
 const input = new Input(canvas);
 
 const scenes = new SceneManager();
 scenes.register("boot", new BootScene({ assets, i18n, scenes }));
 scenes.register("home", new HomeScene({ store, input, i18n, assets, scenes }));
 
-// placeholder sahneler
+// CoffeeShop
+scenes.register("coffeeshop", new CoffeeShopScene({ store, input, i18n, assets, scenes }));
+
+// diğer sahneler şimdilik basit placeholder
 scenes.register("missions", new SimpleScreenScene({ i18n, titleKey: "Missions" }));
 scenes.register("dealer", new SimpleScreenScene({ i18n, titleKey: "Dealer" }));
 scenes.register("pvp", new SimpleScreenScene({ i18n, titleKey: "PvP" }));
 scenes.register("clan", new SimpleScreenScene({ i18n, titleKey: "Clan" }));
+scenes.register("nightclub", new SimpleScreenScene({ i18n, titleKey: "Nightclub" }));
+scenes.register("xxx", new SimpleScreenScene({ i18n, titleKey: "XXX" }));
 
 const engine = new Engine({ canvas, ctx, input, scenes });
 
@@ -317,9 +375,10 @@ function updateSafeAreaLoop() {
 }
 updateSafeAreaLoop();
 
-// Global motorlar
+// Global HTML overlay motors
 HUDMotor(store);
 ChatMotor(store);
 
+// Start
 scenes.go("boot");
 engine.start();
