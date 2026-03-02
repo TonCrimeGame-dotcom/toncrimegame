@@ -1,27 +1,24 @@
 export class Assets {
   constructor() {
     this.images = new Map();
-    this.promises = [];
   }
 
-  // --- Yükleme (tek resim) ---
+  // Tek resim yükle
   loadImage(key, src) {
     const img = new Image();
 
     const p = new Promise((resolve, reject) => {
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`Image failed: ${src}`));
+      img.onerror = () => reject(new Error(`Image failed to load: ${src}`));
     });
 
     img.src = src;
+    this.images.set(key, { img, promise: p });
 
-    this.images.set(key, img);
-    this.promises.push(p);
-
-    return img;
+    return p;
   }
 
-  // --- Alias'lar (main.js / scene'ler farklı isim çağırabilir) ---
+  // Alias'lar (bazı yerler image/addImage çağırabilir)
   image(key, src) {
     return this.loadImage(key, src);
   }
@@ -30,21 +27,27 @@ export class Assets {
     return this.loadImage(key, src);
   }
 
-  // --- Get ---
+  // ✅ BootScene bunu çağırıyor: loadImages([{key,src},...])
+  async loadImages(list = []) {
+    const promises = [];
+
+    for (const item of list) {
+      if (!item || !item.key || !item.src) continue;
+      promises.push(this.loadImage(item.key, item.src));
+    }
+
+    // Hepsini bekle
+    await Promise.all(promises);
+  }
+
+  // Get image (img elementini döndürür)
   getImage(key) {
-    return this.images.get(key);
+    const entry = this.images.get(key);
+    return entry ? entry.img : null;
   }
 
+  // Alias
   get(key) {
-    return this.images.get(key);
-  }
-
-  // --- BootScene'nin beklediği: hepsini yükle ---
-  async loadImages() {
-    await Promise.all(this.promises);
-  }
-
-  async ready() {
-    await Promise.all(this.promises);
+    return this.getImage(key);
   }
 }
