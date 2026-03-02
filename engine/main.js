@@ -15,7 +15,7 @@ function fitCanvas() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   canvas.width = Math.floor(window.innerWidth * dpr);
   canvas.height = Math.floor(window.innerHeight * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // render in CSS pixels
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 window.addEventListener("resize", fitCanvas);
 fitCanvas();
@@ -47,10 +47,9 @@ const input = new Input(canvas);
 
 const scenes = new SceneManager();
 scenes.register("boot", new BootScene({ assets, i18n, scenes }));
-scenes.register("home", new HomeScene({ store, input, i18n }));
+scenes.register("home", new HomeScene({ store, input, i18n, assets }));
 
 const engine = new Engine({ canvas, ctx, input, scenes });
 
-// Boot ile aç
 scenes.go("boot");
 engine.start();
