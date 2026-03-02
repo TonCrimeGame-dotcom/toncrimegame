@@ -42,7 +42,121 @@
         pointer-events: none;
       }
 
-      /* ===== CHAT DRAWER ===== */
+      /* ===== TOP HUD (GLOBAL) ===== */
+      #hudTop {
+        position: fixed;
+        left: var(--sal);
+        right: var(--sar);
+        top: var(--sat);
+        padding: 10px 12px 0;
+        z-index: 9998;
+        pointer-events: auto;
+      }
+
+      #hudTop, #hudTop * {
+        touch-action: auto;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      #hudRow {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /* Sol panel */
+      .hudPanel {
+        background: rgba(0,0,0,0.55);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 8px 10px;
+        backdrop-filter: blur(6px);
+      }
+
+      #hudLeft {
+        justify-self: start;
+        width: min(270px, 100%);
+      }
+
+      #hudLeft .line1 {
+        color: rgba(255,255,255,0.92);
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      #hudLeft .line2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255,255,255,0.92);
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      #hudCoinIcon {
+        width: 16px;
+        height: 16px;
+        display: inline-block;
+      }
+
+      #hudLeft .line3 {
+        color: rgba(255,255,255,0.82);
+        font-size: 12px;
+      }
+      #hudLeft .line3 small {
+        color: rgba(255,255,255,0.60);
+        font-size: 11px;
+      }
+
+      /* Logo */
+      #hudLogoWrap {
+        justify-self: center;
+        pointer-events: none;
+      }
+      #hudLogo {
+        height: 64px;
+        width: auto;
+        display: block;
+        filter: drop-shadow(0 6px 16px rgba(0,0,0,0.35));
+      }
+
+      /* Sağ panel */
+      #hudRight {
+        justify-self: end;
+        width: min(300px, 100%);
+        display: grid;
+        gap: 8px;
+      }
+
+      .bar {
+        height: 28px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.10);
+        border: 1px solid rgba(255,255,255,0.12);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .barFill {
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.22);
+      }
+
+      .barText {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,0.92);
+        font-size: 12px;
+        pointer-events: none;
+      }
+
+      /* ===== CHAT DRAWER (GLOBAL) ===== */
       #chatDrawer {
         position: fixed;
         left: var(--sal);
@@ -55,7 +169,6 @@
         pointer-events: auto;
       }
 
-      /* ✅ kritik: chat alanında touch-action geri aç */
       #chatDrawer, #chatDrawer * {
         touch-action: auto;
         -webkit-user-select: none;
@@ -173,6 +286,39 @@
     <canvas id="game"></canvas>
     <div id="safe"></div>
 
+    <!-- TOP HUD -->
+    <div id="hudTop">
+      <div id="hudRow">
+        <div id="hudLeft" class="hudPanel">
+          <div class="line1" id="hudUsername">Player</div>
+          <div class="line2">
+            <img id="hudCoinIcon" src="./src/assets/yton.png" alt="coin" />
+            <div id="hudCoins">Coin: 0</div>
+          </div>
+          <div class="line3">
+            <span id="hudWeaponName">Silah Yok</span>
+            <small id="hudWeaponBonus"> +0%</small>
+          </div>
+        </div>
+
+        <div id="hudLogoWrap">
+          <img id="hudLogo" src="./src/assets/logo.png" alt="TonCrime" />
+        </div>
+
+        <div id="hudRight" class="hudPanel">
+          <div class="bar">
+            <div class="barFill" id="hudXpFill"></div>
+            <div class="barText" id="hudXpText">LVL 1 • XP 0/100</div>
+          </div>
+          <div class="bar">
+            <div class="barFill" id="hudEnergyFill"></div>
+            <div class="barText" id="hudEnergyText">ENERJİ 0/10 • --:--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
     <div id="chatDrawer">
       <div id="chatHeader">
         <div id="chatTitle">💬 Sohbet</div>
