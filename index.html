@@ -707,4 +707,57 @@
       head.addEventListener('click', toggle);
 
       function addMsg(text){
-    
+const safe = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const p = document.createElement('p');
+        p.className = 'msg';
+        p.innerHTML = `<b>Sen:</b> ${safe}`;
+        log.appendChild(p);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function doSend(){
+        const t = (input.value||'').trim();
+        if(!t) return;
+        addMsg(t);
+        input.value = '';
+      }
+
+      send.addEventListener('click', doSend);
+      input.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){ e.preventDefault(); doSend(); }
+      });
+    }
+
+    // ================== BOOT ==================
+    (function boot(){
+      try{
+        tcBuildDOM();
+        tcApplyScale();
+        window.addEventListener('resize', tcApplyScale, {passive:true});
+        window.addEventListener('orientationchange', tcApplyScale, {passive:true});
+
+        setTopbar({
+          name:"Player01",
+          weapon:"Tabanca",
+          bonus:"(+10%)",
+          energyNow:85, energyMax:100,
+          xpNow:118, xpMax:1000,
+          yton:1031
+        });
+
+        tcInitCarousel();
+        tcInitChat();
+      }catch(err){
+        console.error(err);
+        const root = document.getElementById('tc-root');
+        if(root){
+          root.innerHTML = `<div style="color:#fff;padding:20px;font-family:system-ui">
+            <b>BOOT ERROR:</b> ${String(err)}
+            <div style="opacity:.7;margin-top:8px">Console'u aç ve bu mesajı bana gönder.</div>
+          </div>`;
+        }
+      }
+    })();
+  </script>
+</body>
+</html>    
