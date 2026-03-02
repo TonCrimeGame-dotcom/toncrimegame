@@ -11,6 +11,9 @@ export class BootScene {
 
       // Logo yolu: sende src/assets/logo.png varsayımı
       { key: "logo", src: "./src/assets/logo.png" },
+
+      // Coin icon (yton)
+      { key: "yton", src: "./src/assets/yton.png" },
     ]);
 
     this.scenes.go("home");
