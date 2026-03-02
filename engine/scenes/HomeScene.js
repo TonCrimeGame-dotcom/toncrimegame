@@ -23,6 +23,19 @@ function strokeRoundRect(ctx, x, y, w, h, r) {
   ctx.stroke();
 }
 
+function clamp01(n) {
+  return Math.max(0, Math.min(1, n));
+}
+
+function fmtMMSS(ms) {
+  const totalSec = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
 export class HomeScene {
   constructor({ store, input, i18n, assets, scenes }) {
     this.assets = assets;
@@ -44,19 +57,36 @@ export class HomeScene {
     };
     window.addEventListener("keydown", this._onKey);
 
-    // Default stateler yoksa ekle (main.js değiştirmeden de çalışsın)
+    // Player defaultları
     const s = this.store.get();
     if (!s.player) {
       this.store.set({
         player: {
           username: "Player",
           level: 1,
-          xp: 0,
+          xp: 30,
           xpToNext: 100,
           weaponName: "Silah Yok",
           weaponBonus: "+0%",
+
+          // ENERGY
+          energy: 10,
+          energyMax: 10,
+          energyIntervalMs: 5 * 60 * 1000, // 5 dakika
+          lastEnergyAt: Date.now(), // son dolum referansı
         },
       });
+    } else {
+      // eksik enerji alanları varsa ekle
+      const p = s.player;
+      const patch = {};
+      if (p.energy == null) patch.energy = 10;
+      if (p.energyMax == null) patch.energyMax = 10;
+      if (p.energyIntervalMs == null) patch.energyIntervalMs = 5 * 60 * 1000;
+      if (p.lastEnergyAt == null) patch.lastEnergyAt = Date.now();
+      if (Object.keys(patch).length) {
+        this.store.set({ player: { ...p, ...patch } });
+      }
     }
   }
 
@@ -64,7 +94,47 @@ export class HomeScene {
     window.removeEventListener("keydown", this._onKey);
   }
 
+  _tickEnergy() {
+    const s = this.store.get();
+    const p = s.player;
+    if (!p) return;
+
+    const now = Date.now();
+    const interval = Math.max(10_000, Number(p.energyIntervalMs || 300000)); // min 10sn güvenlik
+    const maxE = Math.max(1, Number(p.energyMax || 10));
+    let e = Math.max(0, Math.min(maxE, Number(p.energy || 0)));
+
+    if (e >= maxE) {
+      // full ise referansı şimdiye çek (geri sayım düzgün dursun)
+      if (p.lastEnergyAt !== now) {
+        this.store.set({ player: { ...p, energy: maxE, lastEnergyAt: now } });
+      }
+      return;
+    }
+
+    const elapsed = now - Number(p.lastEnergyAt || now);
+    if (elapsed < interval) return;
+
+    const gained = Math.floor(elapsed / interval);
+    if (gained <= 0) return;
+
+    const newE = Math.min(maxE, e + gained);
+    // lastEnergyAt'i kalan süreyi koruyacak şekilde ileri taşı
+    const newLast = Number(p.lastEnergyAt || now) + gained * interval;
+
+    this.store.set({
+      player: {
+        ...p,
+        energy: newE,
+        lastEnergyAt: newLast,
+      },
+    });
+  }
+
   update() {
+    // enerji regen tick
+    this._tickEnergy();
+
     if (this.input.justPressed()) {
       const { x, y } = this.input.pointer;
 
@@ -94,8 +164,6 @@ export class HomeScene {
       ctx.fillStyle = "#0b0b0f";
       ctx.fillRect(0, 0, w, h);
     }
-
-    // gece hissi
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(0, 0, w, h);
 
@@ -106,63 +174,40 @@ export class HomeScene {
 
     const logoImg = this.assets.getImage("logo");
 
-    // Logo boyutlandırma (safe-area içinde, üstte)
     let logoW = Math.min(240, topW * 0.32);
     let logoH = 60;
 
     if (logoImg) {
       const ratio = logoImg.height / logoImg.width;
       logoH = logoW * ratio;
-      // aşırı büyümesin
       logoH = Math.min(90, logoH);
       logoW = logoH / ratio;
     }
 
     const logoX = safe.x + (safe.w - logoW) / 2;
     const logoY = topY + 6;
-
-    // Logo rect = referans alan
     const logoRect = { x: logoX, y: logoY, w: logoW, h: logoH };
 
-    // Panel'ler logo yüksekliğini geçmesin
     const panelH = logoRect.h;
 
-    // Panel genişliği: kalan alanın yarısı, ama min/max sınırla
     const gap = 10;
     const leftMaxW = Math.max(160, (logoRect.x - topX) - gap);
     const rightMaxW = Math.max(160, (safe.x + safe.w - (logoRect.x + logoRect.w)) - gap);
 
     const leftW = Math.min(260, leftMaxW);
-    const rightW = Math.min(260, rightMaxW);
+    const rightW = Math.min(280, rightMaxW);
 
-    const leftRect = {
-      x: topX,
-      y: logoRect.y,
-      w: leftW,
-      h: panelH,
-    };
+    const leftRect = { x: topX, y: logoRect.y, w: leftW, h: panelH };
+    const rightRect = { x: safe.x + safe.w - pad - rightW, y: logoRect.y, w: rightW, h: panelH };
 
-    const rightRect = {
-      x: safe.x + safe.w - pad - rightW,
-      y: logoRect.y,
-      w: rightW,
-      h: panelH,
-    };
+    // ----- Left Panel -----
+    const player = state.player || {};
+    const username = player.username ?? "Player";
+    const weaponName = player.weaponName ?? "Silah Yok";
+    const weaponBonus = player.weaponBonus ?? "+0%";
 
-    // ----- Draw Left Panel (username, coin+icon, weapon) -----
-    const player = state.player || {
-      username: "Player",
-      level: 1,
-      xp: 0,
-      xpToNext: 100,
-      weaponName: "Silah Yok",
-      weaponBonus: "+0%",
-    };
-
-    // panel bg
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     fillRoundRect(ctx, leftRect.x, leftRect.y, leftRect.w, leftRect.h, 12);
-
     ctx.strokeStyle = "rgba(255,255,255,0.14)";
     strokeRoundRect(ctx, leftRect.x + 0.5, leftRect.y + 0.5, leftRect.w - 1, leftRect.h - 1, 12);
 
@@ -171,13 +216,11 @@ export class HomeScene {
     const lineY2 = leftRect.y + leftRect.h / 2;
     const lineY3 = leftRect.y + leftRect.h - 16;
 
-    // username
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left";
     ctx.font = "14px system-ui";
-    ctx.fillText(player.username, leftRect.x + linePadX, lineY1);
+    ctx.fillText(username, leftRect.x + linePadX, lineY1);
 
-    // coin + icon
     const coinValue = state.coins ?? 0;
     const yton = this.assets.getImage("yton");
     const iconSize = 16;
@@ -188,16 +231,15 @@ export class HomeScene {
       coinTextX = leftRect.x + linePadX + iconSize + 8;
     }
     ctx.font = "13px system-ui";
-    ctx.fillText(`${this.i18n.t("coins")}: ${coinValue}`, coinTextX, lineY2);
+    ctx.fillText(`Coin: ${coinValue}`, coinTextX, lineY2);
 
-    // weapon info (alt alta)
     ctx.font = "12px system-ui";
     ctx.fillStyle = "rgba(255,255,255,0.92)";
-    ctx.fillText(`${player.weaponName}`, leftRect.x + linePadX, lineY3);
+    ctx.fillText(`${weaponName}`, leftRect.x + linePadX, lineY3);
     ctx.fillStyle = "rgba(255,255,255,0.70)";
-    ctx.fillText(`${player.weaponBonus}`, leftRect.x + linePadX, lineY3 + 14);
+    ctx.fillText(`${weaponBonus}`, leftRect.x + linePadX, lineY3 + 14);
 
-    // ----- Draw Logo (center) -----
+    // ----- Logo -----
     if (logoImg) {
       ctx.drawImage(logoImg, logoRect.x, logoRect.y, logoRect.w, logoRect.h);
     } else {
@@ -207,48 +249,71 @@ export class HomeScene {
       ctx.fillText(this.i18n.t("home_title"), safe.x + safe.w / 2, logoRect.y + 32);
     }
 
-    // ----- Draw Right Panel (XP + Level bar) -----
+    // ----- Right Panel (XP + ENERGY) -----
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     fillRoundRect(ctx, rightRect.x, rightRect.y, rightRect.w, rightRect.h, 12);
-
     ctx.strokeStyle = "rgba(255,255,255,0.14)";
     strokeRoundRect(ctx, rightRect.x + 0.5, rightRect.y + 0.5, rightRect.w - 1, rightRect.h - 1, 12);
 
-    // XP bar geometry (bar panel içinde, yazılar barın içinde)
     const barPad = 12;
-    const barX = rightRect.x + barPad;
-    const barY = rightRect.y + Math.floor(rightRect.h / 2) - 14;
     const barW = rightRect.w - barPad * 2;
-    const barH = 28;
 
+    // 2 bar üst üste: panel yüksekliğine sığdır
+    const totalBarsH = 28 + 10 + 28; // xp + gap + energy
+    const startY = rightRect.y + Math.floor((rightRect.h - totalBarsH) / 2);
+
+    // XP BAR
     const xp = Math.max(0, Number(player.xp || 0));
     const xpToNext = Math.max(1, Number(player.xpToNext || 100));
-    const pct = Math.max(0, Math.min(1, xp / xpToNext));
+    const xpPct = clamp01(xp / xpToNext);
 
-    // bar bg
+    const xpX = rightRect.x + barPad;
+    const xpY = startY;
+    const barH = 28;
+
     ctx.fillStyle = "rgba(255,255,255,0.10)";
-    fillRoundRect(ctx, barX, barY, barW, barH, 10);
-
-    // bar fill
+    fillRoundRect(ctx, xpX, xpY, barW, barH, 10);
     ctx.fillStyle = "rgba(255,255,255,0.22)";
-    fillRoundRect(ctx, barX, barY, Math.max(8, barW * pct), barH, 10);
+    fillRoundRect(ctx, xpX, xpY, Math.max(8, barW * xpPct), barH, 10);
 
-    // text inside bar (center)
-    const levelText = `LVL ${player.level ?? 1}`;
-    const xpText = `XP ${xp}/${xpToNext}`;
+    const lvl = player.level ?? 1;
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.font = "12px system-ui";
+    ctx.fillText(`LVL ${lvl} • XP ${xp}/${xpToNext}`, xpX + barW / 2, xpY + barH / 2 + 4);
+
+    // ENERGY BAR
+    const e = Math.max(0, Number(player.energy || 0));
+    const eMax = Math.max(1, Number(player.energyMax || 10));
+    const ePct = clamp01(e / eMax);
+
+    const interval = Math.max(10_000, Number(player.energyIntervalMs || 300000));
+    const lastAt = Number(player.lastEnergyAt || Date.now());
+    const now = Date.now();
+    const untilNext = e >= eMax ? 0 : Math.max(0, interval - (now - lastAt));
+
+    const enX = xpX;
+    const enY = xpY + barH + 10;
+
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    fillRoundRect(ctx, enX, enY, barW, barH, 10);
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    fillRoundRect(ctx, enX, enY, Math.max(8, barW * ePct), barH, 10);
 
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
     ctx.font = "12px system-ui";
-    ctx.fillText(`${levelText}  •  ${xpText}`, barX + barW / 2, barY + barH / 2 + 4);
 
-    // ----- CTA (orta) -----
+    const timeText = e >= eMax ? "FULL" : fmtMMSS(untilNext);
+    ctx.fillText(`ENERJİ ${e}/${eMax} • ${timeText}`, enX + barW / 2, enY + barH / 2 + 4);
+
+    // ----- CTA -----
     ctx.fillStyle = "rgba(255,255,255,0.92)";
     ctx.textAlign = "center";
     ctx.font = "16px system-ui";
     ctx.fillText(this.i18n.t("tap_to_earn"), safe.x + safe.w / 2, safe.y + safe.h * 0.55);
 
-    // ----- Bottom tabs (safe-area içinde) -----
+    // ----- Bottom tabs -----
     const barSafeH = 58;
     const bottomY = safe.y + safe.h - barSafeH;
 
@@ -288,7 +353,7 @@ export class HomeScene {
       this._tabs.push({ rect, sceneKey: t.sceneKey });
     });
 
-    // Dil ipucu (safe içinde)
+    // Dil ipucu
     ctx.fillStyle = "rgba(255,255,255,0.70)";
     ctx.textAlign = "left";
     ctx.font = "12px system-ui";
