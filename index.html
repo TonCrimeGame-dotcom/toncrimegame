@@ -364,7 +364,34 @@
 
     <!-- OYUN -->
     <script type="module" src="./src/main.js"></script>
+<script src="./src/pvp.js" defer></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // PvP init
+    window.TonCrimePVP.init({
+      arenaId: "arena",
+      statusId: "pvpStatus",
+      enemyFillId: "enemyFill",
+      meFillId: "meFill",
+      enemyHpTextId: "enemyHpText",
+      meHpTextId: "meHpText"
+    });
 
+    // PvP UI
+    const wrap = document.getElementById("pvpWrap");
+    const fab  = document.getElementById("pvpFab");
+
+    document.getElementById("pvpStart").onclick = () => window.TonCrimePVP.start();
+    document.getElementById("pvpStop").onclick  = () => window.TonCrimePVP.stop();
+    document.getElementById("pvpReset").onclick = () => window.TonCrimePVP.reset();
+
+    fab.onclick = () => {
+      const open = !wrap.classList.contains("open");
+      if (open) wrap.classList.add("open");
+      else { wrap.classList.remove("open"); window.TonCrimePVP.stop(); }
+    };
+  });
+</script>
       });
     </script>
   </body>
