@@ -492,7 +492,233 @@
 
     <!-- PVP (global window.TonCrimePVP bekleniyor) -->
     <script src="./src/pvp.js" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // ---- HUD helpers ----
+  function setHud({ yton, xp, energy, energyMax }) {
+    const hudCoins = document.getElementById("hudCoins");
+    if (hudCoins) hudCoins.textContent = `Coin: ${yton}`;
 
+    const hudXpText = document.getElementById("hudXpText");
+    if (hudXpText) hudXpText.textContent = `XP ${xp}`;
+
+    const hudEnergyText = document.getElementById("hudEnergyText");
+    if (hudEnergyText) hudEnergyText.textContent = `ENERJİ ${energy}/${energyMax}`;
+  }
+
+  // ---- wallet (localStorage) ----
+  const DEFAULTS = { yton: 100, xp: 0, energy: 10, energyMax: 10 };
+
+  function getWallet() {
+    return {
+      yton: Number(localStorage.getItem("yton") ?? DEFAULTS.yton),
+      xp: Number(localStorage.getItem("xp") ?? DEFAULTS.xp),
+      energy: Number(localStorage.getItem("energy") ?? DEFAULTS.energy),
+      energyMax: Number(localStorage.getItem("energyMax") ?? DEFAULTS.energyMax),
+    };
+  }
+
+  function setWallet(next) {
+    localStorage.setItem("yton", String(next.yton));
+    localStorage.setItem("xp", String(next.xp));
+    localStorage.setItem("energy", String(next.energy));
+    localStorage.setItem("energyMax", String(next.energyMax));
+    setHud(next);
+  }
+
+  // ilk bas
+  setWallet(getWallet());
+
+  // ---- Toast ----
+  function showPvpResult(message) {
+    let el = document.getElementById("pvpResultToast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "pvpResultToast";
+      el.style.position = "fixed";
+      el.style.left = "50%";
+      el.style.top = "18%";
+      el.style.transform = "translateX(-50%)";
+      el.style.zIndex = "10000";
+      el.style.padding = "12px 14px";
+      el.style.borderRadius = "14px";
+      el.style.border = "1px solid rgba(255,255,255,0.18)";
+      el.style.background = "rgba(0,0,0,0.65)";
+      el.style.color = "rgba(255,255,255,0.92)";
+      el.style.fontWeight = "900";
+      el.style.fontSize = "14px";
+      el.style.backdropFilter = "blur(6px)";
+      el.style.pointerEvents = "none";
+      document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.style.opacity = "1";
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.opacity = "0"; }, 1400);
+  }
+
+  // ---- History ----
+  function loadPvpHistory() {
+    try { return JSON.parse(localStorage.getItem("pvpHistory") || "[]"); }
+    catch { return []; }
+  }
+  function savePvpHistory(list) {
+    localStorage.setItem("pvpHistory", JSON.stringify(list.slice(-200)));
+  }
+  function recordPvpResult(payload) {
+    const h = loadPvpHistory();
+    h.push(payload);
+    savePvpHistory(h);
+  }
+
+  // ---- Economy rules ----
+  function canEnterMatch() {
+    const w = getWallet();
+    return w.yton >= 6 && w.energy >= 10;
+  }
+
+  function applyEnterCost() {
+    const w = getWallet();
+    setWallet({
+      ...w,
+      yton: w.yton - 6,
+      energy: w.energy - 10
+    });
+  }
+
+  function applyWin() {
+    const w = getWallet();
+    setWallet({
+      ...w,
+      yton: w.yton + 10,
+      xp: w.xp + 10
+    });
+  }
+
+  function applyLose() {
+    const w = getWallet();
+    setWallet({
+      ...w,
+      yton: w.yton - 6,
+      xp: Math.max(0, w.xp - 5)
+    });
+  }
+
+  // ---- Matchmaking (şimdilik bot fallback) ----
+  async function findOpponent() {
+    const status = document.getElementById("pvpStatus");
+    if (status) status.textContent = "PvP • Rakip aranıyor...";
+
+    const names = ["Mert","Kerem","Deniz","Arda","Sena","Ece","Yusuf","Atlas","Shadow","Noir","Raven","Kobra"];
+    const tags = ["","TR","34","06","x","pro","01"];
+    const pick = () => names[Math.floor(Math.random()*names.length)] +
+      (Math.random()<0.6 ? "" : "_" + tags[Math.floor(Math.random()*tags.length)]);
+
+    const delay = 2000 + Math.floor(Math.random()*3500);
+    await new Promise(r => setTimeout(r, delay));
+
+    // şimdilik her zaman "isBot true"
+    return { username: pick(), isBot: true };
+  }
+
+  // ---- PvP UI ----
+  const wrap = document.getElementById("pvpWrap");
+  const fab  = document.getElementById("pvpFab");
+
+  function openOverlay() { wrap.classList.add("open"); }
+  function closeOverlay() {
+    wrap.classList.remove("open");
+    window.TonCrimePVP?.stop?.();
+  }
+
+  fab.onclick = () => {
+    const open = !wrap.classList.contains("open");
+    if (open) openOverlay();
+    else closeOverlay();
+  };
+
+  document.getElementById("pvpStart").onclick = () => window.TonCrimePVP?.start?.();
+  document.getElementById("pvpStop").onclick  = () => window.TonCrimePVP?.stop?.();
+  document.getElementById("pvpReset").onclick = () => window.TonCrimePVP?.reset?.();
+
+  // ---- Open PvP from canvas menu ----
+  let entering = false;
+
+  window.addEventListener("tc:openPvp", async () => {
+    if (!window.TonCrimePVP) {
+      console.error("TonCrimePVP yok. pvp.js export kontrol et.");
+      return;
+    }
+    if (entering) return;
+    entering = true;
+
+    openOverlay();
+
+    // yeterli mi?
+    if (!canEnterMatch()) {
+      const status = document.getElementById("pvpStatus");
+      if (status) status.textContent = "PvP • Yetersiz YTON / ENERJİ";
+      showPvpResult("Yetersiz enerji/yton");
+      entering = false;
+      return;
+    }
+
+    // Rakip ara (önce ara, sonra kes; kullanıcı hissi için)
+    const opp = await findOpponent();
+    window.TonCrimePVP.setOpponent?.(opp);
+
+    const status = document.getElementById("pvpStatus");
+    if (status) status.textContent = `PvP • Rakip bulundu: ${opp.username}`;
+
+    // giriş bedeli
+    applyEnterCost();
+
+    // maçı başlat
+    window.TonCrimePVP.reset?.();
+    window.TonCrimePVP.start?.();
+
+    entering = false;
+  });
+
+  // ---- Results from pvp.js ----
+  window.addEventListener("tc:pvp:win", (e) => {
+    showPvpResult("İyi becerdin");
+    applyWin();
+
+    const detail = e.detail || {};
+    recordPvpResult({
+      matchId: detail.matchId || ("m_" + Date.now()),
+      opponent: detail.opponent || { username: "Rakip", isBot: true },
+      result: "win",
+      ts: Date.now(),
+      dmgDone: detail.dmgDone ?? null,
+      dmgTaken: detail.dmgTaken ?? null
+    });
+
+    // HUD üstüne main.js yazsa bile geri basalım
+    setHud(getWallet());
+  });
+
+  window.addEventListener("tc:pvp:lose", (e) => {
+    showPvpResult("Beceriksiz");
+    applyLose();
+
+    const detail = e.detail || {};
+    recordPvpResult({
+      matchId: detail.matchId || ("m_" + Date.now()),
+      opponent: detail.opponent || { username: "Rakip", isBot: true },
+      result: "lose",
+      ts: Date.now(),
+      dmgDone: detail.dmgDone ?? null,
+      dmgTaken: detail.dmgTaken ?? null
+    });
+
+    setHud(getWallet());
+  });
+
+  // ---- HUD sürekli güncel kalsın (main.js üstüne yazarsa düzeltir) ----
+  setInterval(() => setHud(getWallet()), 1000);
+});
    
     </script>
   </body>
