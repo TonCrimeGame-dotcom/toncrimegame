@@ -552,6 +552,32 @@ window.addEventListener("tc:openPvp", () => {
           if (e.key === "Escape" && wrap.classList.contains("open")) closePvp();
         });
       });
+      function showPvpResult(message) {
+  let el = document.getElementById("pvpResultToast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "pvpResultToast";
+    el.style.position = "fixed";
+    el.style.left = "50%";
+    el.style.top = "18%";
+    el.style.transform = "translateX(-50%)";
+    el.style.zIndex = "10000";
+    el.style.padding = "12px 14px";
+    el.style.borderRadius = "14px";
+    el.style.border = "1px solid rgba(255,255,255,0.18)";
+    el.style.background = "rgba(0,0,0,0.65)";
+    el.style.color = "rgba(255,255,255,0.92)";
+    el.style.fontWeight = "800";
+    el.style.fontSize = "14px";
+    el.style.backdropFilter = "blur(6px)";
+    el.style.pointerEvents = "none";
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.style.opacity = "1";
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = "0"; }, 1400);
+      }
     </script>
   </body>
 </html>
