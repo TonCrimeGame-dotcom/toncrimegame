@@ -152,7 +152,34 @@
         font-size: 12px;
         pointer-events: none;
       }
+<!-- PVP LAYER (canvas üstü) -->
+<div id="pvpLayer">
+  <div id="pvpWrap">
+    <div id="pvpHeader">
+      <div id="pvpStatus">PvP • Hazır</div>
+      <div class="pvpBtns">
+        <button class="pvpBtn" id="pvpStart" type="button">Başlat</button>
+        <button class="pvpBtn" id="pvpStop" type="button">Durdur</button>
+        <button class="pvpBtn" id="pvpReset" type="button">Sıfırla</button>
+      </div>
+    </div>
 
+    <div id="pvpBars">
+      <div>
+        <div class="pvpBar"><div class="pvpFill" id="enemyFill"></div></div>
+        <div class="pvpBarLabel"><span>Düşman</span><span id="enemyHpText">100</span></div>
+      </div>
+      <div>
+        <div class="pvpBar"><div class="pvpFill" id="meFill"></div></div>
+        <div class="pvpBarLabel"><span>Sen</span><span id="meHpText">100</span></div>
+      </div>
+    </div>
+
+    <div id="arena"></div>
+  </div>
+</div>
+
+<button id="pvpFab" type="button">PvP</button>
       /* ===== CHAT DRAWER (GLOBAL) ===== */
       #chatDrawer {
         position: fixed;
