@@ -152,34 +152,7 @@
         font-size: 12px;
         pointer-events: none;
       }
-<!-- PVP LAYER (canvas üstü) -->
-<div id="pvpLayer">
-  <div id="pvpWrap">
-    <div id="pvpHeader">
-      <div id="pvpStatus">PvP • Hazır</div>
-      <div class="pvpBtns">
-        <button class="pvpBtn" id="pvpStart" type="button">Başlat</button>
-        <button class="pvpBtn" id="pvpStop" type="button">Durdur</button>
-        <button class="pvpBtn" id="pvpReset" type="button">Sıfırla</button>
-      </div>
-    </div>
 
-    <div id="pvpBars">
-      <div>
-        <div class="pvpBar"><div class="pvpFill" id="enemyFill"></div></div>
-        <div class="pvpBarLabel"><span>Düşman</span><span id="enemyHpText">100</span></div>
-      </div>
-      <div>
-        <div class="pvpBar"><div class="pvpFill" id="meFill"></div></div>
-        <div class="pvpBarLabel"><span>Sen</span><span id="meHpText">100</span></div>
-      </div>
-    </div>
-
-    <div id="arena"></div>
-  </div>
-</div>
-
-<button id="pvpFab" type="button">PvP</button>
       /* ===== CHAT DRAWER (GLOBAL) ===== */
       #chatDrawer {
         position: fixed;
@@ -304,132 +277,132 @@
         font-size: 13px;
       }
 
-        backdrop-filter: blur(6px);
+      /* ===== PVP OVERLAY ===== */
+      #pvpLayer {
+        position: fixed;
+        left: var(--sal);
+        right: var(--sar);
+        top: calc(var(--sat) + 92px);
+        bottom: calc(var(--sab) + 56px);
+        z-index: 5000; /* canvas üstü, hud altı */
+        pointer-events: none;
       }
-/* ===== PVP OVERLAY ===== */
-#pvpLayer {
-  position: fixed;
-  left: var(--sal);
-  right: var(--sar);
-  top: calc(var(--sat) + 92px);
-  bottom: calc(var(--sab) + 56px);
-  z-index: 5000; /* canvas üstü, hud altı */
-  pointer-events: none;
-}
-#pvpWrap {
-  position: absolute;
-  inset: 0;
-  margin: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(20,27,46,0.28);
-  backdrop-filter: blur(4px);
-  display: none;
-  pointer-events: auto;
-}
-#pvpWrap.open { display: block; }
+      #pvpWrap {
+        position: absolute;
+        inset: 0;
+        margin: 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(20,27,46,0.28);
+        backdrop-filter: blur(4px);
+        display: none;
+        pointer-events: auto;
+      }
+      #pvpWrap.open { display: block; }
 
-#pvpHeader{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding: 10px 10px 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.10);
-}
-#pvpStatus{
-  font-weight: 800;
-  font-size: 13px;
-  color: rgba(255,255,255,0.92);
-}
-.pvpBtns{ display:flex; gap:8px; }
-.pvpBtn{
-  appearance:none;
-  border:1px solid rgba(255,255,255,0.16);
-  background: rgba(0,0,0,0.35);
-  color: rgba(255,255,255,0.92);
-  border-radius: 10px;
-  height: 30px;
-  padding: 0 10px;
-  font-size: 12px;
-  font-weight: 700;
-}
+      #pvpHeader{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding: 10px 10px 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.10);
+      }
+      #pvpStatus{
+        font-weight: 800;
+        font-size: 13px;
+        color: rgba(255,255,255,0.92);
+      }
+      .pvpBtns{ display:flex; gap:8px; }
+      .pvpBtn{
+        appearance:none;
+        border:1px solid rgba(255,255,255,0.16);
+        background: rgba(0,0,0,0.35);
+        color: rgba(255,255,255,0.92);
+        border-radius: 10px;
+        height: 30px;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
 
-#pvpBars{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 10px;
-}
-.pvpBar{
-  height: 14px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  overflow:hidden;
-}
-.pvpFill{
-  height:100%;
-  width:100%;
-  transform-origin: left center;
-  transform: scaleX(1);
-  background: rgba(255,255,255,0.65);
-}
-.pvpBarLabel{
-  display:flex;
-  justify-content:space-between;
-  font-size: 12px;
-  color: rgba(255,255,255,0.78);
-  margin-top: 6px;
-}
+      #pvpBars{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 10px;
+      }
+      .pvpBar{
+        height: 14px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.12);
+        overflow:hidden;
+      }
+      .pvpFill{
+        height:100%;
+        width:100%;
+        transform-origin: left center;
+        transform: scaleX(1);
+        background: rgba(255,255,255,0.65);
+      }
+      .pvpBarLabel{
+        display:flex;
+        justify-content:space-between;
+        font-size: 12px;
+        color: rgba(255,255,255,0.78);
+        margin-top: 6px;
+      }
 
-#arena{
-  position:absolute;
-  left:10px;
-  right:10px;
-  top: 110px;
-  bottom: 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(0,0,0,0.28);
-  overflow:hidden;
-  touch-action: manipulation;
-}
+      #arena{
+        position:absolute;
+        left:10px;
+        right:10px;
+        top: 110px;
+        bottom: 10px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(0,0,0,0.28);
+        overflow:hidden;
+        touch-action: manipulation;
+      }
 
-/* pvp ikonları */
-.action{
-  position:absolute;
-  width:64px;
-  height:64px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,0.12);
-  background: rgba(20,27,46,.92);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  user-select:none;
-  cursor:pointer;
-  box-shadow:0 8px 24px rgba(0,0,0,.28);
-}
-.emoji{ font-size:30px; line-height:1; }
+      /* pvp ikonları */
+      .action{
+        position:absolute;
+        width:64px;
+        height:64px;
+        border-radius:16px;
+        border:1px solid rgba(255,255,255,0.12);
+        background: rgba(20,27,46,.92);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        user-select:none;
+        cursor:pointer;
+        box-shadow:0 8px 24px rgba(0,0,0,.28);
+      }
+      .emoji{ font-size:30px; line-height:1; }
 
-/* sağ alt PvP butonu */
-#pvpFab {
-  position: fixed;
-  right: calc(var(--sar) + 12px);
-  bottom: calc(var(--sab) + 56px);
-  z-index: 9997;
-  pointer-events: auto;
-  appearance:none;
-  border:1px solid rgba(255,255,255,0.18);
-  background: rgba(0,0,0,0.55);
-  color: rgba(255,255,255,0.92);
-  border-radius: 14px;
-  height: 40px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 800;
-  backdrop-filter: blur(6px);
-}
+      /* sağ alt PvP butonu (fallback) */
+      #pvpFab {
+        position: fixed;
+        right: calc(var(--sar) + 12px);
+        bottom: calc(var(--sab) + 56px);
+        z-index: 9997;
+        pointer-events: auto;
+        appearance:none;
+        border:1px solid rgba(255,255,255,0.18);
+        background: rgba(0,0,0,0.55);
+        color: rgba(255,255,255,0.92);
+        border-radius: 14px;
+        height: 40px;
+        padding: 0 14px;
+        font-size: 13px;
+        font-weight: 800;
+        backdrop-filter: blur(6px);
+        cursor: pointer;
+      }
     </style>
   </head>
 
@@ -496,6 +469,7 @@
       </div>
     </div>
 
+    <!-- Fallback PvP button -->
     <button id="pvpFab" type="button">PvP</button>
 
     <!-- CHAT -->
@@ -515,34 +489,69 @@
 
     <!-- OYUN -->
     <script type="module" src="./src/main.js"></script>
-<script src="./src/pvp.js" defer></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // PvP init
-    window.TonCrimePVP.init({
-      arenaId: "arena",
-      statusId: "pvpStatus",
-      enemyFillId: "enemyFill",
-      meFillId: "meFill",
-      enemyHpTextId: "enemyHpText",
-      meHpTextId: "meHpText"
-    });
 
-    // PvP UI
-    const wrap = document.getElementById("pvpWrap");
-    const fab  = document.getElementById("pvpFab");
+    <!-- PVP (global window.TonCrimePVP bekleniyor) -->
+    <script src="./src/pvp.js" defer></script>
 
-    document.getElementById("pvpStart").onclick = () => window.TonCrimePVP.start();
-    document.getElementById("pvpStop").onclick  = () => window.TonCrimePVP.stop();
-    document.getElementById("pvpReset").onclick = () => window.TonCrimePVP.reset();
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // PvP init
+        if (!window.TonCrimePVP) {
+          console.error("TonCrimePVP bulunamadı. src/pvp.js window.TonCrimePVP export etmiyor olabilir.");
+          return;
+        }
 
-    fab.onclick = () => {
-      const open = !wrap.classList.contains("open");
-      if (open) wrap.classList.add("open");
-      else { wrap.classList.remove("open"); window.TonCrimePVP.stop(); }
-    };
-  });
-</script>
+        window.TonCrimePVP.init({
+          arenaId: "arena",
+          statusId: "pvpStatus",
+          enemyFillId: "enemyFill",
+          meFillId: "meFill",
+          enemyHpTextId: "enemyHpText",
+          meHpTextId: "meHpText"
+        });
+
+        const wrap = document.getElementById("pvpWrap");
+        const fab  = document.getElementById("pvpFab");
+
+        function openPvp() {
+          wrap.classList.add("open");
+        }
+        function closePvp() {
+          wrap.classList.remove("open");
+          window.TonCrimePVP.stop();
+        }
+        function togglePvp() {
+          const open = !wrap.classList.contains("open");
+          if (open) openPvp();
+          else closePvp();
+        }
+
+        // PvP overlay içi butonlar
+        document.getElementById("pvpStart").onclick = () => window.TonCrimePVP.start();
+        document.getElementById("pvpStop").onclick  = () => window.TonCrimePVP.stop();
+        document.getElementById("pvpReset").onclick = () => window.TonCrimePVP.reset();
+
+        // Fallback buton
+        fab.onclick = togglePvp;
+
+        // Menüdeki "PvP" kartı HTML ise tıklamayı yakala (canvas değilse çalışır)
+        // "PvP" yazısı taşıyan en yakın tıklanabilir kapsayıcıya click bağlar.
+        const pvpTextNodes = Array.from(document.querySelectorAll("*"))
+          .filter(el => (el.childElementCount === 0) && (el.textContent || "").trim().toLowerCase() === "pvp");
+
+        for (const t of pvpTextNodes) {
+          const clickable = t.closest("button,a,[role='button'],.card,.menuItem,.tile") || t;
+          clickable.style.pointerEvents = "auto";
+          clickable.addEventListener("click", (e) => {
+            // menü kendi click’ini de çalıştırabilir; burada sadece PvP açıyoruz
+            openPvp();
+          });
+        }
+
+        // ESC ile kapat (masaüstü)
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && wrap.classList.contains("open")) closePvp();
+        });
       });
     </script>
   </body>
