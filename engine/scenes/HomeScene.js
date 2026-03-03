@@ -12,14 +12,17 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
 }
+
 function fillRoundRect(ctx, x, y, w, h, r) {
   roundRectPath(ctx, x, y, w, h, r);
   ctx.fill();
 }
+
 function strokeRoundRect(ctx, x, y, w, h, r) {
   roundRectPath(ctx, x, y, w, h, r);
   ctx.stroke();
 }
+
 function clamp01(n) {
   return Math.max(0, Math.min(1, n));
 }
@@ -127,10 +130,18 @@ export class HomeScene {
       if (dragDX > threshold) c.index = Math.max(0, c.index - 1);
       else if (dragDX < -threshold) c.index = Math.min(items.length - 1, c.index + 1);
 
-      // kart tıklaması: 1 enerji harca + sahneye git (yoksa coin test)
+      // kart tıklaması: 1 enerji harca + sahneye git
       if (c.clickCandidate && pointInRect(px, py, this._cardRect)) {
         if (this._spendEnergy(1)) {
           const item = items[c.index];
+
+          // ✅ PvP seçildiyse HTML overlay'i açtır
+          if (item.sceneKey === "pvp") {
+            try {
+              window.dispatchEvent(new Event("tc:openPvp"));
+            } catch (_) {}
+          }
+
           try {
             this.scenes.go(item.sceneKey);
           } catch (_) {
@@ -157,8 +168,8 @@ export class HomeScene {
     ctx.fillRect(0, 0, w, h);
 
     // ✅ HUD ve chat için boşluk bırakıyoruz (HTML overlay)
-    const HUD_TOP_RESERVED = 96;   // üst panel yüksekliği yaklaşık
-    const CHAT_BOTTOM_RESERVED = 74; // chat kapalıyken başlık + nefes payı
+    const HUD_TOP_RESERVED = 96;
+    const CHAT_BOTTOM_RESERVED = 74;
 
     const carouselTop = safe.y + HUD_TOP_RESERVED;
     const carouselBottom = safe.y + safe.h - CHAT_BOTTOM_RESERVED;
@@ -199,7 +210,7 @@ export class HomeScene {
       roundRectPath(ctx, x2, y2, w2, h2, 18);
       ctx.clip();
 
-      // image (contain: tam görünsün)
+      // image (contain)
       const img = this.assets.getImage(item.id);
       if (img) {
         const s = Math.min(w2 / img.width, h2 / img.height);
@@ -248,4 +259,4 @@ export class HomeScene {
       ctx.fill();
     }
   }
-      }
+          }
