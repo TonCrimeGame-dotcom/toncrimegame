@@ -45,13 +45,11 @@ i18n.register({
 
 /* ===== ASSETS ===== */
 const assets = new Assets();
-
 function addImage(key, url) {
   if (typeof assets.image === "function") return assets.image(key, url);
   if (typeof assets.loadImage === "function") return assets.loadImage(key, url);
   if (typeof assets.addImage === "function") return assets.addImage(key, url);
 }
-
 addImage("background", "./src/assets/ui/background.jpg");
 addImage("missions", "./src/assets/missions.jpg");
 addImage("pvp", "./src/assets/pvp.jpg");
@@ -62,10 +60,10 @@ addImage("xxx", "./src/assets/xxx.jpg");
 
 /* ===== INPUT / SCENES ===== */
 const input = new Input(canvas);
-
 const scenes = new SceneManager();
 
-// ✅ DEBUG GLOBALS BURADA OLACAK
+// ✅ GLOBAL DEBUG (SADECE BURADA OLSUN)
+// ⚠️ main.js içinde başka yerde window.tcScenes = scenes varsa SİL
 window.tcStore = store;
 window.tcScenes = scenes;
 
@@ -73,6 +71,7 @@ scenes.register("boot", new BootScene({ assets, i18n, scenes }));
 scenes.register("home", new HomeScene({ store, input, i18n, assets, scenes }));
 scenes.register("coffeeshop", new CoffeeShopScene({ store, input, i18n, assets, scenes }));
 
+// placeholders
 scenes.register("missions", new SimpleScreenScene({ i18n, titleKey: "Missions" }));
 scenes.register("dealer", new SimpleScreenScene({ i18n, titleKey: "Dealer" }));
 scenes.register("pvp", new SimpleScreenScene({ i18n, titleKey: "PvP" }));
@@ -82,14 +81,17 @@ scenes.register("xxx", new SimpleScreenScene({ i18n, titleKey: "XXX" }));
 
 const engine = new Engine({ canvas, ctx, input, scenes });
 
+// keep safe area updated
 (function safeAreaLoop() {
   store.set({ ui: { ...store.get().ui, safe: getSafeArea() } });
   requestAnimationFrame(safeAreaLoop);
 })();
 
+// start overlay motors
 startHud(store);
 startChat(store);
 startMenu(store);
 
+// start game
 scenes.go("boot");
 engine.start();
