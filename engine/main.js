@@ -94,7 +94,9 @@ const initial = loaded
   : defaultState;
 
 const store = new Store(initial);
-
+// DEBUG (local test)
+window.tcStore = store;
+window.tcScenes = scenes;
 // autosave
 let _lastSaveAt = 0;
 (function autosaveLoop() {
