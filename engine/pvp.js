@@ -1,5 +1,5 @@
 // TonCrime PvP (GLOBAL)
-// index.html -> window.TonCrimePVP.init/start/stop/reset kullanır.
+// index.html -> window.TonCrimePVP.init/start/stop/reset/setOpponent kullanır.
 
 (function () {
   "use strict";
@@ -13,7 +13,17 @@
     spawnMaxMs: 700,
     ttlMinMs: 900,
     ttlMaxMs: 1400,
-    missSelfDmg: 4
+    missSelfDmg: 4,
+
+    // Rakip (bot/insan simülasyonu) - anlaşılmasın diye tutarsız
+    oppEnabled: true,
+    oppTickMinMs: 650,
+    oppTickMaxMs: 1200,
+    oppHitChance: 0.72,       // her tick'te vurma ihtimali
+    oppMissChance: 0.18,      // bazen "kaçırmış" gibi davran
+    oppDmgMin: 4,
+    oppDmgMax: 12,
+    oppBurstChance: 0.12,     // bazen üst üste 2 vuruş
   };
 
   const ACTIONS = [
@@ -29,11 +39,20 @@
   let enemyHp = 100;
   let meHp = 100;
 
+  // match meta
+  let opponent = { username: "Rakip", isBot: true };
+  let matchId = null;
+  let dmgDone = 0;
+  let dmgTaken = 0;
+  let ended = false;
+
   let occupied = [];
   const timers = new Set();
 
   function clamp01(x) { return Math.max(0, Math.min(1, x)); }
   function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function randFloat() { return Math.random(); }
+  function uid() { return "m_" + Date.now() + "_" + Math.floor(Math.random() * 999999); }
 
   function setStatus(txt) {
     if (statusEl) statusEl.textContent = "PvP • " + txt;
@@ -81,27 +100,64 @@
     if (el && el.parentNode) el.parentNode.removeChild(el);
   }
 
-  function applyDamageToEnemy(dmg) {
-    enemyHp = Math.max(0, enemyHp - dmg);
-    updateBars();
-    if (enemyHp === 0) {
-      stop();
-      setStatus("Kazandın!");
+  function emitResult(kind) {
+    // kind: "win" | "lose"
+    if (ended) return;
+    ended = true;
+
+    const detail = { matchId, opponent, dmgDone, dmgTaken };
+    const evtName = kind === "win" ? "tc:pvp:win" : "tc:pvp:lose";
+
+    try {
+      window.dispatchEvent(new CustomEvent(evtName, { detail }));
+    } catch (_) {
+      // CustomEvent yoksa en azından işaret bırak
+      try { window.dispatchEvent(new Event(evtName)); } catch (_) {}
     }
   }
 
-  function applyDamageToMe(dmg) {
+  function endMatchWin() {
+    stop(); // timerları durdur, ikonları temizle
+    setStatus("Kazandın!");
+    emitResult("win");
+  }
+
+  function endMatchLose() {
+    stop();
+    setStatus("Kaybettin!");
+    emitResult("lose");
+  }
+
+  function applyDamageToEnemy(dmg) {
+    if (ended) return;
+    dmgDone += dmg;
+
+    enemyHp = Math.max(0, enemyHp - dmg);
+    updateBars();
+
+    if (enemyHp === 0) {
+      endMatchWin();
+    }
+  }
+
+  function applyDamageToMe(dmg, reasonText) {
+    if (ended) return;
     if (dmg <= 0) return;
+
+    dmgTaken += dmg;
+
     meHp = Math.max(0, meHp - dmg);
     updateBars();
+
+    if (reasonText) setStatus(reasonText);
+
     if (meHp === 0) {
-      stop();
-      setStatus("Kaybettin!");
+      endMatchLose();
     }
   }
 
   function spawnOne() {
-    if (!running || !arena) return;
+    if (!running || !arena || ended) return;
 
     const rect = arena.getBoundingClientRect();
     if (rect.width < 50 || rect.height < 50) return;
@@ -125,17 +181,16 @@
 
     const ttl = randInt(CFG.ttlMinMs, CFG.ttlMaxMs);
     const missTimer = setTimeout(() => {
-      if (removed) return;
+      if (removed || ended) return;
       removed = true;
       removeAction(el, zoneIndex);
-      setStatus("Kaçırdın!");
-      applyDamageToMe(CFG.missSelfDmg);
+      applyDamageToMe(CFG.missSelfDmg, "Kaçırdın!");
     }, ttl);
     timers.add(missTimer);
 
     el.addEventListener("pointerdown", (e) => {
       e.preventDefault();
-      if (removed) return;
+      if (removed || ended) return;
       removed = true;
       clearTimeout(missTimer);
       removeAction(el, zoneIndex);
@@ -145,11 +200,53 @@
   }
 
   function loopSpawn() {
-    if (!running) return;
+    if (!running || ended) return;
     spawnOne();
     const next = randInt(CFG.spawnMinMs, CFG.spawnMaxMs);
     const t = setTimeout(loopSpawn, next);
     timers.add(t);
+  }
+
+  // Rakip "vuruyor" simülasyonu (bot anlaşılmasın)
+  function scheduleOpponentTick() {
+    if (!running || ended || !CFG.oppEnabled) return;
+
+    const next = randInt(CFG.oppTickMinMs, CFG.oppTickMaxMs);
+    const t = setTimeout(() => {
+      if (!running || ended) return;
+
+      // bazen miss / bazen hit / bazen hiçbir şey
+      const r = randFloat();
+
+      // "miss gibi" davran: status değişsin ama hasar verme
+      if (r < CFG.oppMissChance) {
+        setStatus(`${opponent.username} kaçırdı`);
+      } else if (r < CFG.oppMissChance + CFG.oppHitChance) {
+        const dmg = randInt(CFG.oppDmgMin, CFG.oppDmgMax);
+        applyDamageToMe(dmg, `${opponent.username} vurdu (-${dmg})`);
+
+        // burst: bazen üst üste bir tane daha
+        if (!ended && randFloat() < CFG.oppBurstChance) {
+          const t2 = setTimeout(() => {
+            if (!running || ended) return;
+            const dmg2 = randInt(CFG.oppDmgMin, CFG.oppDmgMax);
+            applyDamageToMe(dmg2, `${opponent.username} seri vurdu (-${dmg2})`);
+          }, randInt(160, 420));
+          timers.add(t2);
+        }
+      } else {
+        // sessiz tick: hiçbir şey yapma
+      }
+
+      scheduleOpponentTick();
+    }, next);
+
+    timers.add(t);
+  }
+
+  function setOpponent(o) {
+    opponent = o && typeof o === "object" ? o : { username: "Rakip", isBot: true };
+    matchId = uid();
   }
 
   function init(cfg) {
@@ -162,8 +259,15 @@
 
     occupied = new Array(CFG.cols * CFG.rows).fill(false);
 
+    // ilk init default match
+    setOpponent({ username: "Rakip", isBot: true });
+
     enemyHp = 100;
     meHp = 100;
+    dmgDone = 0;
+    dmgTaken = 0;
+    ended = false;
+
     updateBars();
     setStatus("Hazır");
   }
@@ -171,8 +275,16 @@
   function start() {
     if (running) return;
     running = true;
+
+    // yeni maç başlarken sayaçları sıfırla
+    ended = false;
+    dmgDone = 0;
+    dmgTaken = 0;
+    if (!matchId) matchId = uid();
+
     setStatus("Başladı");
     loopSpawn();
+    scheduleOpponentTick();
   }
 
   function stop() {
@@ -186,10 +298,12 @@
     stop();
     enemyHp = 100;
     meHp = 100;
+    dmgDone = 0;
+    dmgTaken = 0;
+    ended = false;
     updateBars();
     setStatus("Hazır");
   }
 
-  // GLOBAL EXPORT (hata buradaydı)
-  window.TonCrimePVP = { init, start, stop, reset };
+  window.TonCrimePVP = { init, start, stop, reset, setOpponent };
 })();
