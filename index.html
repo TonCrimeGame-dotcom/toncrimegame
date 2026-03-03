@@ -533,22 +533,21 @@
 
         // Fallback buton
         fab.onclick = togglePvp;
+// PvP overlay içi butonlar
+document.getElementById("pvpStart").onclick = () => window.TonCrimePVP.start();
+document.getElementById("pvpStop").onclick  = () => window.TonCrimePVP.stop();
+document.getElementById("pvpReset").onclick = () => window.TonCrimePVP.reset();
 
-        // Menüdeki "PvP" kartı HTML ise tıklamayı yakala (canvas değilse çalışır)
-        // "PvP" yazısı taşıyan en yakın tıklanabilir kapsayıcıya click bağlar.
-        const pvpTextNodes = Array.from(document.querySelectorAll("*"))
-          .filter(el => (el.childElementCount === 0) && (el.textContent || "").trim().toLowerCase() === "pvp");
+// Sağ alttaki buton
+fab.onclick = togglePvp;
 
-        for (const t of pvpTextNodes) {
-          const clickable = t.closest("button,a,[role='button'],.card,.menuItem,.tile") || t;
-          clickable.style.pointerEvents = "auto";
-          clickable.addEventListener("click", (e) => {
-            // menü kendi click’ini de çalıştırabilir; burada sadece PvP açıyoruz
-            openPvp();
-          });
-        }
-
-        // ESC ile kapat (masaüstü)
+// ✅ Canvas menüden gelen event
+window.addEventListener("tc:openPvp", () => {
+  wrap.classList.add("open");
+  window.TonCrimePVP.reset();
+  window.TonCrimePVP.start();
+});
+        
         window.addEventListener("keydown", (e) => {
           if (e.key === "Escape" && wrap.classList.contains("open")) closePvp();
         });
