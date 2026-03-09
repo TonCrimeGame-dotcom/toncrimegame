@@ -20,18 +20,20 @@
   overflow:hidden !important;
   user-select:none !important;
   -webkit-user-select:none !important;
-  flex:1 1 auto !important;
-  min-height:0 !important;
-  height:auto !important;
 
-  /* ANA KOYU ARENA */
-  background:
-    radial-gradient(circle at 50% 45%, rgba(255,140,40,0.08) 0%, rgba(255,120,20,0.04) 18%, rgba(0,0,0,0.00) 36%),
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.00) 48%),
-    linear-gradient(180deg, rgba(8,10,16,0.92) 0%, rgba(3,4,8,0.96) 100%) !important;
+  width:100% !important;
+  min-height:260px !important;
+  height:260px !important;
+  flex:1 1 auto !important;
 
   border-radius:14px !important;
   border:1px solid rgba(255,255,255,0.08) !important;
+
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,140,40,0.10) 0%, rgba(255,120,20,0.05) 18%, rgba(0,0,0,0.00) 36%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.00) 48%),
+    linear-gradient(180deg, rgba(10,12,18,0.94) 0%, rgba(3,4,8,0.98) 100%) !important;
+
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.03),
     inset 0 -30px 70px rgba(0,0,0,0.55),
@@ -45,10 +47,10 @@
   inset:0;
   pointer-events:none;
   border-radius:inherit;
+  z-index:0;
   background:
     radial-gradient(circle at center, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 20%, rgba(255,255,255,0) 55%),
     linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.00) 24%, rgba(0,0,0,0.18) 100%);
-  z-index:0;
 }
 
 #${arenaId}::after{
@@ -57,9 +59,9 @@
   inset:0;
   pointer-events:none;
   border-radius:inherit;
+  z-index:0;
   background:
     radial-gradient(circle at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.22) 74%, rgba(0,0,0,0.42) 100%);
-  z-index:0;
 }
 
 #${arenaId} .tc-pvp-stage{
@@ -130,10 +132,6 @@
   filter: drop-shadow(0 3px 10px rgba(0,0,0,.45));
 }
 
-#${arenaId} .action:hover{
-  transform: translateY(-1px) scale(1.02) translateZ(0);
-}
-
 #${arenaId} .tc-pvp-fx{
   position:absolute;
   pointer-events:none;
@@ -166,50 +164,6 @@
     document.head.appendChild(st);
   }
 
-  function isLikelyGlass(el) {
-    if (!el) return false;
-    const cs = getComputedStyle(el);
-    const bg = cs.backgroundColor || "";
-    const bf = cs.backdropFilter || cs.webkitBackdropFilter || "";
-    const br = cs.borderTopColor || "";
-    const hasTransBg =
-      bg.includes("rgba") &&
-      !bg.includes("rgba(0, 0, 0, 0)") &&
-      !bg.includes("rgba(0,0,0,0)");
-    const hasBlur = bf && bf !== "none";
-    const hasBorder = br && br !== "transparent";
-    return hasTransBg || hasBlur || hasBorder;
-  }
-
-  function killGlass(el) {
-    if (!el) return;
-    el.style.background = "transparent";
-    el.style.border = "0";
-    el.style.boxShadow = "none";
-    el.style.backdropFilter = "none";
-    el.style.webkitBackdropFilter = "none";
-  }
-
-  function enforceFlexColumn(panelEl) {
-    if (!panelEl) return;
-    const cs = getComputedStyle(panelEl);
-    const isFlex = cs.display.includes("flex");
-    if (!isFlex) panelEl.style.display = "flex";
-    panelEl.style.flexDirection = "column";
-    Array.from(panelEl.children).forEach((ch) => {
-      if (ch && ch.style) ch.style.minHeight = "0";
-    });
-  }
-
-  function findAncestor(el, maxHops, predicate) {
-    let cur = el;
-    for (let i = 0; i < maxHops && cur; i++) {
-      if (predicate(cur)) return cur;
-      cur = cur.parentElement;
-    }
-    return null;
-  }
-
   function ensureArenaDecor(arena) {
     if (!arena) return;
 
@@ -239,38 +193,55 @@
     }
   }
 
-  function applyArenaLayout(arena, opts = {}) {
+  function forceArenaSize(arena) {
     if (!arena) return;
+
+    const wrap = arena.parentElement;
+    if (!wrap) {
+      arena.style.minHeight = "260px";
+      arena.style.height = "260px";
+      return;
+    }
+
+    const children = Array.from(wrap.children).filter((el) => el !== arena);
+    let used = 0;
+
+    for (const el of children) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none") continue;
+      used += el.offsetHeight;
+      used += parseFloat(cs.marginTop || 0);
+      used += parseFloat(cs.marginBottom || 0);
+    }
+
+    const wrapStyle = getComputedStyle(wrap);
+    const padTop = parseFloat(wrapStyle.paddingTop || 0);
+    const padBottom = parseFloat(wrapStyle.paddingBottom || 0);
+
+    const total = wrap.clientHeight || wrap.getBoundingClientRect().height || 0;
+    const free = Math.floor(total - used - padTop - padBottom - 8);
+
+    const h = Math.max(260, free);
+    arena.style.minHeight = h + "px";
+    arena.style.height = h + "px";
+  }
+
+  function applyArenaLayout(arena) {
+    if (!arena) return;
+
+    const wrap = arena.parentElement;
+    if (wrap) {
+      wrap.style.display = "flex";
+      wrap.style.flexDirection = "column";
+      wrap.style.minHeight = "100%";
+    }
 
     arena.style.position = "relative";
     arena.style.overflow = "hidden";
+    arena.style.width = "100%";
     arena.style.flex = "1 1 auto";
-    arena.style.minHeight = "0";
-    arena.style.height = "auto";
 
-    let arenaWrap = null;
-    if (opts.arenaWrapId) arenaWrap = $(opts.arenaWrapId);
-    if (!arenaWrap) arenaWrap = arena.parentElement;
-
-    if (arenaWrap && isLikelyGlass(arenaWrap)) {
-      killGlass(arenaWrap);
-    }
-
-    let panel = null;
-    if (opts.panelId) panel = $(opts.panelId);
-
-    if (!panel) {
-      panel = findAncestor(arena, 8, (x) => {
-        if (!x) return false;
-        const id = (x.id || "").toLowerCase();
-        const cls = (x.className || "").toString().toLowerCase();
-        return id.includes("pvp") || cls.includes("pvp");
-      });
-    }
-
-    if (!panel && arenaWrap) panel = arenaWrap.parentElement;
-    if (panel) enforceFlexColumn(panel);
-
+    forceArenaSize(arena);
     ensureArenaDecor(arena);
   }
 
@@ -284,7 +255,6 @@
     _meHp: 100,
     _enemyHp: 100,
     _lastZone: -1,
-    _layoutOpts: null,
 
     init(opts = {}) {
       const ids = {
@@ -308,11 +278,6 @@
         return;
       }
 
-      this._layoutOpts = {
-        panelId: opts.panelId || null,
-        arenaWrapId: opts.arenaWrapId || null,
-      };
-
       injectBaseStyleOnce(ids.arenaId);
 
       this._els = {
@@ -323,10 +288,16 @@
         enemyHpText,
         meHpText,
       };
+
       this._inited = true;
 
-      applyArenaLayout(arena, this._layoutOpts);
+      applyArenaLayout(arena);
       this.reset();
+
+      window.addEventListener("resize", () => {
+        if (!this._els?.arena) return;
+        forceArenaSize(this._els.arena);
+      });
 
       console.log("[TonCrimePVP] init OK");
     },
@@ -341,34 +312,38 @@
       if (!this._inited || this._running) return;
 
       this.reset();
-      this._running = true;
-      this._setStatus("Savaş • " + this._opp.username);
-      this._spawnActions();
+      applyArenaLayout(this._els.arena);
 
-      const tick = () => {
+      requestAnimationFrame(() => {
+        forceArenaSize(this._els.arena);
+        this._running = true;
+        this._setStatus("Savaş • " + this._opp.username);
+        this._spawnActions();
+        this._enemyLoop();
+      });
+    },
+
+    _enemyLoop() {
+      if (!this._running) return;
+
+      const botDelay = 850 + Math.floor(Math.random() * 350);
+
+      clearTimeout(this._tickT);
+      this._tickT = setTimeout(() => {
         if (!this._running) return;
 
-        const botDelay = 850 + Math.floor(Math.random() * 350);
+        const dmg = 6 + Math.floor(Math.random() * 7);
+        this._meHp = clamp(this._meHp - dmg, 0, 100);
+        this._renderBars();
+        this._flashDamage("me");
 
-        clearTimeout(this._tickT);
-        this._tickT = setTimeout(() => {
-          if (!this._running) return;
+        if (this._meHp <= 0) {
+          this._finish("lose");
+          return;
+        }
 
-          const dmg = 6 + Math.floor(Math.random() * 7);
-          this._meHp = clamp(this._meHp - dmg, 0, 100);
-          this._renderBars();
-          this._flashDamage("me");
-
-          if (this._meHp <= 0) {
-            this._finish("lose");
-            return;
-          }
-
-          tick();
-        }, botDelay);
-      };
-
-      tick();
+        this._enemyLoop();
+      }, botDelay);
     },
 
     stop() {
@@ -377,6 +352,7 @@
       this._tickT = null;
       this._clearActions();
       this._setStatus("Durduruldu");
+      applyArenaLayout(this._els.arena);
     },
 
     reset() {
@@ -391,7 +367,7 @@
       this._lastZone = -1;
 
       this._clearActions();
-      applyArenaLayout(this._els.arena, this._layoutOpts);
+      applyArenaLayout(this._els.arena);
       this._renderBars();
       this._setStatus("Hazır");
     },
@@ -418,30 +394,27 @@
       clearTimeout(this._tickT);
       this._tickT = null;
       this._clearActions();
+      applyArenaLayout(this._els.arena);
 
       if (result === "win") {
         this._setStatus("Kazandın");
-        dispatch("tc:pvp:win", {
-          matchId: "m_" + Date.now(),
-          opponent: this._opp,
-        });
+        dispatch("tc:pvp:win", { matchId: "m_" + Date.now(), opponent: this._opp });
       } else {
         this._setStatus("Kaybettin");
-        dispatch("tc:pvp:lose", {
-          matchId: "m_" + Date.now(),
-          opponent: this._opp,
-        });
+        dispatch("tc:pvp:lose", { matchId: "m_" + Date.now(), opponent: this._opp });
       }
     },
 
     _clearActions() {
       if (!this._els) return;
+
       clearTimeout(this._flashT);
       this._flashT = null;
 
       const arena = this._els.arena;
       arena.querySelectorAll(".action, .tc-pvp-fx").forEach((el) => el.remove());
       ensureArenaDecor(arena);
+      forceArenaSize(arena);
     },
 
     _flashDamage(side) {
@@ -479,7 +452,8 @@
     _spawnActions() {
       const arena = this._els.arena;
 
-      applyArenaLayout(arena, this._layoutOpts);
+      applyArenaLayout(arena);
+      forceArenaSize(arena);
       this._clearActions();
 
       const actions = [
@@ -492,9 +466,7 @@
       const size = 64;
       const s = window.tcStore?.get?.() ?? {};
       const pct = Number(s.player?.weaponIconBonusPct ?? 0);
-      const showMs = Math.round(
-        500 * (1 + Math.max(0, Math.min(200, pct)) / 100)
-      );
+      const showMs = Math.round(500 * (1 + Math.max(0, Math.min(200, pct)) / 100));
       const gapMs = 120;
       const pad = 12;
 
@@ -502,11 +474,9 @@
         { x0: 0.05, x1: 0.33, y0: 0.05, y1: 0.33 },
         { x0: 0.33, x1: 0.66, y0: 0.05, y1: 0.33 },
         { x0: 0.66, x1: 0.95, y0: 0.05, y1: 0.33 },
-
         { x0: 0.05, x1: 0.33, y0: 0.33, y1: 0.66 },
         { x0: 0.33, x1: 0.66, y0: 0.33, y1: 0.66 },
         { x0: 0.66, x1: 0.95, y0: 0.33, y1: 0.66 },
-
         { x0: 0.05, x1: 0.33, y0: 0.66, y1: 0.95 },
         { x0: 0.33, x1: 0.66, y0: 0.66, y1: 0.95 },
         { x0: 0.66, x1: 0.95, y0: 0.66, y1: 0.95 },
@@ -516,9 +486,7 @@
         if (zones.length <= 1) return 0;
         let idx = Math.floor(Math.random() * zones.length);
         if (idx === this._lastZone) {
-          idx =
-            (idx + 1 + Math.floor(Math.random() * (zones.length - 1))) %
-            zones.length;
+          idx = (idx + 1 + Math.floor(Math.random() * (zones.length - 1))) % zones.length;
         }
         this._lastZone = idx;
         return idx;
@@ -528,6 +496,8 @@
         if (!this._running) return;
 
         arena.querySelectorAll(".action").forEach((el) => el.remove());
+
+        forceArenaSize(arena);
 
         const W = arena.clientWidth || arena.getBoundingClientRect().width;
         const H = arena.clientHeight || arena.getBoundingClientRect().height;
@@ -547,18 +517,9 @@
         const zy1 = z.y1 * H;
 
         const minX = clamp(zx0 + pad, pad, Math.max(pad, W - pad - size));
-        const maxX = clamp(
-          zx1 - pad - size,
-          minX,
-          Math.max(minX, W - pad - size)
-        );
-
+        const maxX = clamp(zx1 - pad - size, minX, Math.max(minX, W - pad - size));
         const minY = clamp(zy0 + pad, pad, Math.max(pad, H - pad - size));
-        const maxY = clamp(
-          zy1 - pad - size,
-          minY,
-          Math.max(minY, H - pad - size)
-        );
+        const maxY = clamp(zy1 - pad - size, minY, Math.max(minY, H - pad - size));
 
         const x = minX + Math.random() * (maxX - minX);
         const y = minY + Math.random() * (maxY - minY);
@@ -585,7 +546,7 @@
         d.style.webkitBackdropFilter = "blur(6px)";
         d.style.border = "1px solid rgba(255,255,255,.14)";
         d.style.transform = "translateZ(0)";
-        d.style.transition = "transform 90ms ease, box-shadow 90ms ease, opacity 90ms ease";
+        d.style.transition = "transform 90ms ease, opacity 90ms ease";
 
         d.innerHTML = `<div class="emoji" style="font-size:34px; line-height:1;">${a.emoji}</div>`;
 
@@ -594,8 +555,7 @@
           ev.stopPropagation();
           if (!this._running) return;
 
-          const dmg =
-            a.dmg[0] + Math.floor(Math.random() * (a.dmg[1] - a.dmg[0] + 1));
+          const dmg = a.dmg[0] + Math.floor(Math.random() * (a.dmg[1] - a.dmg[0] + 1));
           this._enemyHp = clamp(this._enemyHp - dmg, 0, 100);
           this._renderBars();
           this._flashDamage("enemy");
