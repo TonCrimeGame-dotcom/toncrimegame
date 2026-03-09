@@ -22,17 +22,17 @@
   -webkit-user-select:none !important;
 
   width:100% !important;
-  min-height:260px !important;
-  height:260px !important;
   flex:1 1 auto !important;
+  min-height:280px !important;
+  height:100% !important;
 
   border-radius:14px !important;
   border:1px solid rgba(255,255,255,0.08) !important;
 
   background:
-    radial-gradient(circle at 50% 45%, rgba(255,140,40,0.10) 0%, rgba(255,120,20,0.05) 18%, rgba(0,0,0,0.00) 36%),
+    radial-gradient(circle at 50% 40%, rgba(255,140,40,0.10) 0%, rgba(255,120,20,0.04) 18%, rgba(0,0,0,0.00) 38%),
     radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.00) 48%),
-    linear-gradient(180deg, rgba(10,12,18,0.94) 0%, rgba(3,4,8,0.98) 100%) !important;
+    linear-gradient(180deg, rgba(8,10,16,0.94) 0%, rgba(3,4,8,0.98) 100%) !important;
 
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.03),
@@ -193,55 +193,46 @@
     }
   }
 
-  function forceArenaSize(arena) {
+  function forceArenaLayout(arena) {
     if (!arena) return;
 
     const wrap = arena.parentElement;
     if (!wrap) {
-      arena.style.minHeight = "260px";
-      arena.style.height = "260px";
+      arena.style.minHeight = "280px";
+      arena.style.height = "280px";
+      ensureArenaDecor(arena);
       return;
     }
 
-    const children = Array.from(wrap.children).filter((el) => el !== arena);
-    let used = 0;
+    // ÖNEMLİ: pvpWrap'ı bozma, sadece layout ver
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.alignItems = "stretch";
 
-    for (const el of children) {
+    const totalH = wrap.clientHeight || wrap.getBoundingClientRect().height || 0;
+
+    const siblings = Array.from(wrap.children).filter((el) => el !== arena);
+    let usedH = 0;
+
+    for (const el of siblings) {
       const cs = getComputedStyle(el);
       if (cs.display === "none") continue;
-      used += el.offsetHeight;
-      used += parseFloat(cs.marginTop || 0);
-      used += parseFloat(cs.marginBottom || 0);
+      usedH += el.offsetHeight;
+      usedH += parseFloat(cs.marginTop || 0);
+      usedH += parseFloat(cs.marginBottom || 0);
     }
 
-    const wrapStyle = getComputedStyle(wrap);
-    const padTop = parseFloat(wrapStyle.paddingTop || 0);
-    const padBottom = parseFloat(wrapStyle.paddingBottom || 0);
+    const wrapCs = getComputedStyle(wrap);
+    const padTop = parseFloat(wrapCs.paddingTop || 0);
+    const padBottom = parseFloat(wrapCs.paddingBottom || 0);
 
-    const total = wrap.clientHeight || wrap.getBoundingClientRect().height || 0;
-    const free = Math.floor(total - used - padTop - padBottom - 8);
+    const freeH = Math.max(280, Math.floor(totalH - usedH - padTop - padBottom - 8));
 
-    const h = Math.max(260, free);
-    arena.style.minHeight = h + "px";
-    arena.style.height = h + "px";
-  }
-
-  function applyArenaLayout(arena) {
-    if (!arena) return;
-
-    const wrap = arena.parentElement;
-    if (wrap) {
-      wrap.style.display = "flex";
-      wrap.style.flexDirection = "column";
-      wrap.style.minHeight = "100%";
-    }
-
-    arena.style.position = "relative";
-    arena.style.overflow = "hidden";
-    arena.style.width = "100%";
     arena.style.flex = "1 1 auto";
+    arena.style.width = "100%";
+    arena.style.minHeight = freeH + "px";
+    arena.style.height = freeH + "px";
 
-    forceArenaSize(arena);
     ensureArenaDecor(arena);
   }
 
@@ -280,23 +271,15 @@
 
       injectBaseStyleOnce(ids.arenaId);
 
-      this._els = {
-        arena,
-        status,
-        enemyFill,
-        meFill,
-        enemyHpText,
-        meHpText,
-      };
-
+      this._els = { arena, status, enemyFill, meFill, enemyHpText, meHpText };
       this._inited = true;
 
-      applyArenaLayout(arena);
+      forceArenaLayout(arena);
       this.reset();
 
       window.addEventListener("resize", () => {
         if (!this._els?.arena) return;
-        forceArenaSize(this._els.arena);
+        forceArenaLayout(this._els.arena);
       });
 
       console.log("[TonCrimePVP] init OK");
@@ -312,10 +295,10 @@
       if (!this._inited || this._running) return;
 
       this.reset();
-      applyArenaLayout(this._els.arena);
+      forceArenaLayout(this._els.arena);
 
       requestAnimationFrame(() => {
-        forceArenaSize(this._els.arena);
+        forceArenaLayout(this._els.arena);
         this._running = true;
         this._setStatus("Savaş • " + this._opp.username);
         this._spawnActions();
@@ -352,7 +335,7 @@
       this._tickT = null;
       this._clearActions();
       this._setStatus("Durduruldu");
-      applyArenaLayout(this._els.arena);
+      forceArenaLayout(this._els.arena);
     },
 
     reset() {
@@ -367,7 +350,7 @@
       this._lastZone = -1;
 
       this._clearActions();
-      applyArenaLayout(this._els.arena);
+      forceArenaLayout(this._els.arena);
       this._renderBars();
       this._setStatus("Hazır");
     },
@@ -394,7 +377,7 @@
       clearTimeout(this._tickT);
       this._tickT = null;
       this._clearActions();
-      applyArenaLayout(this._els.arena);
+      forceArenaLayout(this._els.arena);
 
       if (result === "win") {
         this._setStatus("Kazandın");
@@ -414,7 +397,7 @@
       const arena = this._els.arena;
       arena.querySelectorAll(".action, .tc-pvp-fx").forEach((el) => el.remove());
       ensureArenaDecor(arena);
-      forceArenaSize(arena);
+      forceArenaLayout(arena);
     },
 
     _flashDamage(side) {
@@ -452,8 +435,7 @@
     _spawnActions() {
       const arena = this._els.arena;
 
-      applyArenaLayout(arena);
-      forceArenaSize(arena);
+      forceArenaLayout(arena);
       this._clearActions();
 
       const actions = [
@@ -496,8 +478,7 @@
         if (!this._running) return;
 
         arena.querySelectorAll(".action").forEach((el) => el.remove());
-
-        forceArenaSize(arena);
+        forceArenaLayout(arena);
 
         const W = arena.clientWidth || arena.getBoundingClientRect().width;
         const H = arena.clientHeight || arena.getBoundingClientRect().height;
@@ -547,7 +528,6 @@
         d.style.border = "1px solid rgba(255,255,255,.14)";
         d.style.transform = "translateZ(0)";
         d.style.transition = "transform 90ms ease, opacity 90ms ease";
-
         d.innerHTML = `<div class="emoji" style="font-size:34px; line-height:1;">${a.emoji}</div>`;
 
         const hit = (ev) => {
